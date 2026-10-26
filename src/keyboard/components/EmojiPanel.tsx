@@ -6,6 +6,7 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { t } from '../../i18n';
+import { useKeyboardBack } from '../../navigation/back';
 import { storage } from '../../storage/storage';
 import { EMOJI_CATEGORIES } from '../typing/emojis';
 import { makeStyles, radius, spacing, useColors } from '../theme';
@@ -38,6 +39,8 @@ interface Props {
 export const EmojiPanel = memo(({ onPick, onDelete, onDeleteHoldStart, onDeleteHoldEnd, onClose }: Props) => {
   const colors = useColors();
   const styles = useStyles();
+  // O "voltar" do celular volta para as letras
+  useKeyboardBack(onClose);
   const [recents, setRecents] = useState<string[]>(readRecents);
   const [category, setCategory] = useState(() => (readRecents().length ? 'recent' : EMOJI_CATEGORIES[0].id));
 

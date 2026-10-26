@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, AppState, Image, Pressable, Text, TextInput, View } from 'react-native';
 import { t } from '../../i18n';
+import { useAppBack } from '../../navigation/back';
 import {
   descendantIds,
   filesIn,
@@ -47,6 +48,9 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   }, [reload]);
 
   const folder = folderId ? data.folders.find(f => f.id === folderId) : undefined;
+  // "Voltar" do celular com "Nova pasta" ou "Adicionar" aberto no início: fecha o formulário
+  // (dentro de uma pasta, o Voltar da pasta já fecha o formulário antes)
+  useAppBack(() => setMode(null), !!mode && !folder);
   // Pasta excluída pelo teclado: volta ao início
   useEffect(() => {
     if (folderId && !folder) setFolderId(null);
@@ -121,7 +125,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   return (
     <Page>
       {folder ? (
-        <SubHeader title={folder.name} onBack={() => open(folder.parentId)} />
+        <SubHeader title={folder.name} onBack={() => (mode ? setMode(null) : open(folder.parentId))} />
       ) : onBack ? (
         <SubHeader title={t('Arquivos')} onBack={onBack} />
       ) : (

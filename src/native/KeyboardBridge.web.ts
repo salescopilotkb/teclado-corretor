@@ -51,6 +51,8 @@ let expandHandler: ((mode: HeightMode) => void) | null = null;
 const showListeners = new Set<(e: KeyboardShowEvent) => void>();
 const hideListeners = new Set<() => void>();
 const selectionListeners = new Set<(e: SelectionChangeEvent) => void>();
+const backListeners = new Set<() => void>();
+let backEnabled = false;
 
 /** Usado pela página de testes para conectar a conversa simulada ao teclado. */
 export const WebKeyboardHost = {
@@ -70,6 +72,12 @@ export const WebKeyboardHost = {
   /** O cursor do campo de teste mudou por fora do teclado (clique, colar...). */
   selectionChanged() {
     selectionListeners.forEach(cb => cb({}));
+  },
+  /** "Voltar" do celular (na página de teste: tecla Esc). true = o teclado voltou uma tela. */
+  pressBack() {
+    if (!backEnabled) return false;
+    backListeners.forEach(cb => cb());
+    return true;
   },
   /** O que fazer quando o teclado pede para abrir o app (ex.: login). */
   onOpenApp(handler: () => void) {
@@ -194,6 +202,15 @@ export const KeyboardBridge = {
     selectionListeners.add(cb);
     return () => {
       selectionListeners.delete(cb);
+    };
+  },
+  setBackEnabled: (enabled: boolean) => {
+    backEnabled = enabled;
+  },
+  onBackPressed(cb: () => void) {
+    backListeners.add(cb);
+    return () => {
+      backListeners.delete(cb);
     };
   },
 };

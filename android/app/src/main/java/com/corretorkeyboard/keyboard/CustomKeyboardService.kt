@@ -72,7 +72,7 @@ class CustomKeyboardService : InputMethodService() {
         const val MODULE_NAME = "CorretorKeyboard"
 
         /** Altura total do teclado (toolbar + conteúdo + barra inferior) em pé. */
-        private const val KEYBOARD_HEIGHT_DP = 320
+        private const val KEYBOARD_HEIGHT_DP = 350
 
         /**
          * Celular deitado: a tela tem ~360-410dp de altura, então 320dp cobriria
@@ -454,6 +454,30 @@ class CustomKeyboardService : InputMethodService() {
         params.putInt("start", newSelStart)
         params.putInt("end", newSelEnd)
         emitToJs("onSelectionChange", params)
+    }
+
+    /**
+     * O JS tem para onde voltar (subtela, busca, pasta, seção, tradução): o
+     * "voltar" do celular (botão ou gesto) volta uma tela no teclado em vez de
+     * fechá-lo. Avisado pelo JS (KeyboardBridge.setBackEnabled).
+     */
+    @Volatile
+    var jsHandlesBack = false
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && jsHandlesBack && isInputViewShown) {
+            event.startTracking()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK && jsHandlesBack && isInputViewShown && event.isTracking && !event.isCanceled) {
+            emitToJs("onBackPressed", Arguments.createMap())
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     /**

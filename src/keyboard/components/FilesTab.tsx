@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { t } from '../../i18n';
+import { useKeyboardBack } from '../../navigation/back';
 import {
   descendantIds,
   fileLink,
@@ -322,6 +323,8 @@ function Browser({
   const colors = useColors();
   const styles = useStyles();
   const folders = subfolders(files, folderId);
+  // Dentro de uma pasta, o "voltar" do celular sobe uma pasta
+  useKeyboardBack(onUp, folderId !== null);
   const items = filesIn(files, folderId);
   const path = folderPath(files, folderId);
   const current = path[path.length - 1];

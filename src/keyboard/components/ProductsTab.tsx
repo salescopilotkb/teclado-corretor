@@ -9,6 +9,7 @@
  * do KEYCON escrevendo nos campos (KeyboardForm).
  */
 import { t, tSell } from '../../i18n';
+import { useKeyboardBack } from '../../navigation/back';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { deleteFolder, deleteProduct, draftFromProduct, emptyDraft, saveFolder, saveProductDraft } from '../../catalog/catalog';
@@ -260,6 +261,8 @@ function Browser({
 }) {
   const colors = useColors();
   const styles = useStyles();
+  // Dentro de uma pasta, o "voltar" do celular volta para as pastas
+  useKeyboardBack(onBack, !!folder);
   const { item, items } = segment.terms;
   return (
     <View style={styles.flex} testID="products-tab">
@@ -360,6 +363,7 @@ function ProductDetail({
 }) {
   const colors = useColors();
   const styles = useStyles();
+  useKeyboardBack(onBack);
   const [confirming, setConfirming] = useState(false);
   const photo = product.photos[0];
   return (

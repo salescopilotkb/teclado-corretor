@@ -6,8 +6,11 @@
  * os detalhes ficam em submenus dentro dela.
  */
 import React, { useEffect, useState } from 'react';
+import { appBack, useAppBack } from '../navigation/back';
 import {
   AppState,
+  BackHandler,
+  Platform,
   Pressable,
   SafeAreaView,
   StatusBar,
@@ -85,6 +88,23 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   // Perfil (nome no avatar, ramo nos menus); as telas releem o ramo ao abrir
   const [seller, setSeller] = useState<SellerProfile>(() => Repo.getSeller());
   const segment = getSegment(seller.segment);
+
+  // "Voltar" do celular (botão ou gesto): volta uma tela no app; numa aba do
+  // menu, volta para o Início; no Início, o Android fecha o app como sempre
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => appBack.handle());
+    return () => sub.remove();
+  }, []);
+  useAppBack(
+    () => {
+      setAccountSection('root');
+      setScheduleClientId(null);
+      setCurrentTab('home');
+      setTabVisit(v => v + 1);
+    },
+    isAuthenticated && !showTutorial && currentTab !== 'home',
+  );
 
   useEffect(() => {
     const stopSync = startAuthSync();

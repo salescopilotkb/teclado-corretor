@@ -21,6 +21,7 @@ import {
   whatsappLink,
 } from '../../crm/crm';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
+import { useKeyboardBack } from '../../navigation/back';
 import type { SegmentProfile } from '../../segments/segments';
 import { Repo } from '../../storage/storage';
 import type { CRMLead, ScheduleItem } from '../../types';
@@ -548,6 +549,8 @@ export function Header({
 }) {
   const colors = useColors();
   const styles = useStyles();
+  // O "voltar" do celular faz o mesmo que o Voltar do cabeçalho
+  useKeyboardBack(onBack);
   return (
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel={t('Voltar')} hitSlop={8} style={styles.headerBack} onPress={onBack}>

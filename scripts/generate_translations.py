@@ -1443,6 +1443,9 @@ EXTRA = [
     ("Arquivo grande demais para enviar pelo teclado. Envie pelo app KEYCON.", "File too large to send from the keyboard. Send it from the KEYCON app.", "Archivo demasiado grande para enviar desde el teclado. Envíalo desde la app KEYCON."),
     ("Link do arquivo inválido.", "Invalid file link.", "Enlace del archivo no válido."),
     ("O microfone está bloqueado para o KEYCON. Libere em Ajustes › KEYCON › Microfone.", "The microphone is blocked for KEYCON. Allow it in Settings › KEYCON › Microphone.", "El micrófono está bloqueado para KEYCON. Permítelo en Ajustes › KEYCON › Micrófono."),
+    # Menu do teclado: voltar ao teclado do sistema (pergunta antes)
+    ("Trocar para o teclado do sistema", "Switch to the system keyboard", "Cambiar al teclado del sistema"),
+    ("Você quer trocar para o teclado padrão do sistema?", "Do you want to switch to the default system keyboard?", "¿Quieres cambiar al teclado predeterminado del sistema?"),
     # Ramos: mensagens de retorno do CRM ({{cliente}} = nome do cliente)
     ("Olá, {{cliente}}! Ficou com alguma dúvida sobre o imóvel? Posso agendar uma visita para você conhecer pessoalmente.",
      "Hi {{cliente}}! Any questions about the property? I can schedule a visit so you can see it in person.",

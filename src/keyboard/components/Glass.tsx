@@ -2,8 +2,9 @@
  * Peças do Liquid Glass usadas pelo app e pelo teclado (guia "KEYCON Liquid
  * Glass"): a aurora do fundo e o reflexo dos botões coral.
  */
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { radius as radii, useColors } from '../theme';
 
@@ -25,28 +26,40 @@ const SPOTS = [
 /**
  * Fundo com aurora, atrás de tudo. `intensity` (0–1) suaviza as manchas: o
  * teclado usa menos, para não competir com as teclas.
+ *
+ * O SVG recebe o tamanho medido (e é refeito quando ele muda): com "100%",
+ * no Android ele não se redesenha quando o teclado cresce (Atalhos, Agenda,
+ * CRM, tradução) e a parte nova ficava sem a aurora — o fundo "dividido".
  */
 export const Aurora = memo(({ intensity = 1 }: { intensity?: number }) => {
   const colors = useColors();
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const onLayout = (e: LayoutChangeEvent) => {
+    const width = Math.round(e.nativeEvent.layout.width);
+    const height = Math.round(e.nativeEvent.layout.height);
+    setSize(s => (s && s.width === width && s.height === height ? s : { width, height }));
+  };
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.canvas }]} pointerEvents="none">
-      <Svg width="100%" height="100%">
-        <Defs>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.canvas }]} pointerEvents="none" onLayout={onLayout}>
+      {size && (
+        <Svg key={`${size.width}x${size.height}`} width={size.width} height={size.height}>
+          <Defs>
+            {SPOTS.map(s => (
+              <RadialGradient key={s.id} id={`aurora-${s.id}`} cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fx={s.cx} fy={s.cy}>
+                <Stop
+                  offset="0"
+                  stopColor={colors[s.key]}
+                  stopOpacity={(colors.scheme === 'dark' ? s.dark : 1) * intensity}
+                />
+                <Stop offset={String(s.fade)} stopColor={colors[s.key]} stopOpacity={0} />
+              </RadialGradient>
+            ))}
+          </Defs>
           {SPOTS.map(s => (
-            <RadialGradient key={s.id} id={`aurora-${s.id}`} cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fx={s.cx} fy={s.cy}>
-              <Stop
-                offset="0"
-                stopColor={colors[s.key]}
-                stopOpacity={(colors.scheme === 'dark' ? s.dark : 1) * intensity}
-              />
-              <Stop offset={String(s.fade)} stopColor={colors[s.key]} stopOpacity={0} />
-            </RadialGradient>
+            <Rect key={s.id} width={size.width} height={size.height} fill={`url(#aurora-${s.id})`} />
           ))}
-        </Defs>
-        {SPOTS.map(s => (
-          <Rect key={s.id} width="100%" height="100%" fill={`url(#aurora-${s.id})`} />
-        ))}
-      </Svg>
+        </Svg>
+      )}
     </View>
   );
 });

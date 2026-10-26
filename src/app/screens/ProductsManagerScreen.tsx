@@ -1,4 +1,5 @@
 import { t } from '../../i18n';
+import { useAppBack } from '../../navigation/back';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -107,6 +108,18 @@ export function ProductsManagerScreen() {
     setSelectedProductId(id);
     setProductForm(null);
   };
+
+  // "Voltar" do celular: sai do cadastro, do produto ou da pasta (como os botões Voltar)
+  useAppBack(
+    () => {
+      if (productForm) {
+        if (productForm.imageStoragePath && !productForm.id) deleteUploadedMedia(productForm.imageStoragePath);
+        setProductForm(null);
+      } else if (product) openProduct(null);
+      else openFolder(null);
+    },
+    !!(productForm || product || folder),
+  );
 
   const makeEmptyProductForm = (defaultFolderId?: string): ProductForm => emptyDraft(defaultFolderId ?? (folders[0]?.id || ''));
 

@@ -8,6 +8,7 @@ import { t, tSell } from '../i18n';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { KeyboardBridge } from '../native/KeyboardBridge';
+import { keyboardBack, useKeyboardBack } from '../navigation/back';
 import type { HeightMode } from '../native/KeyboardBridge';
 import { LoginRequiredPanel } from './components/LoginRequiredPanel';
 import { Repo } from '../storage/storage';
@@ -21,6 +22,7 @@ import { ShortcutsTab } from './components/ShortcutsTab';
 import { SystemMenuBar } from './components/SystemMenuBar';
 import { TranslatePanel } from './components/TranslatePanel';
 import { TypingKeyboard } from './components/TypingKeyboard';
+import { ConfirmBox } from './components/KeyboardButtons';
 import { Aurora } from './components/Glass';
 import { useKeyboardData } from './hooks/useKeyboardData';
 import { buildLexicon } from './typing/lexicon';
@@ -129,6 +131,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   const [menuOrder, setMenuOrder] = useState<MenuTab[]>(() => Repo.getMenuOrder());
   /** Tradução simultânea aberta (painel por cima do conteúdo). */
   const [translating, setTranslating] = useState(false);
+  /** Tocou no 🌐 do menu: pergunta antes de sair do KEYCON. */
+  const [confirmSwitch, setConfirmSwitch] = useState(false);
   /** CRM → "Agendar": a agenda abre já com o cliente. */
   const [scheduleFor, setScheduleFor] = useState<CRMLead | null>(null);
 
@@ -177,12 +181,26 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       KeyboardBridge.onKeyboardHide(() => {
         if (KeyboardBridge.isPickingMedia()) return;
         setTranslating(false);
+        setConfirmSwitch(false);
         setTab('keyboard');
         setScheduleFor(null);
         setMoreVisit(v => v + 1);
       }),
     [],
   );
+
+  // "Voltar" do celular (botão ou gesto): o Android só entrega ao teclado quando
+  // alguma tela daqui tem para onde voltar; sem nenhuma, o teclado fecha como sempre
+  useEffect(() => {
+    const offEnabled = keyboardBack.onChange(enabled => KeyboardBridge.setBackEnabled(enabled));
+    const offPress = KeyboardBridge.onBackPressed(() => {
+      keyboardBack.handle();
+    });
+    return () => {
+      offEnabled();
+      offPress();
+    };
+  }, []);
 
   useEffect(() => {
     KeyboardBridge.notifyReady();
@@ -333,6 +351,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   // A troca para outro teclado do sistema (Gboard etc.) fica na tecla 🌐.
   const handleTabChange = useCallback((newTab: MainSystemTab) => {
     setScheduleFor(null);
+    setConfirmSwitch(false);
     // Tocar no menu fecha a tradução (o ícone do teclado volta para as letras)
     if (translatingRef.current) {
       setTranslating(false);
@@ -348,24 +367,45 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
     });
   }, []);
 
+  // Numa seção (Produtos, Arquivos, Atalhos...), o "voltar" do celular volta ao teclado de letras.
+  // As subtelas de cada seção ficam por cima e voltam antes (cabeçalho, busca, pasta)
+  useKeyboardBack(() => handleTabChange('keyboard'), tab !== 'keyboard' && !translating);
+
+  // Agenda e CRM abrem em tela grande: o menu desce, perto do polegar, e a área fica mais livre
+  const menuAtBottom = big && !translating;
+  const menu = (
+    <SystemMenuBar
+      active={tab}
+      onChange={handleTabChange}
+      order={menuOrder}
+      onReorder={reorderMenu}
+      catalogLabel={segment.terms.catalog}
+      translating={translating}
+      onTranslate={() => setTranslating(v => !v)}
+      onSwitchKeyboard={() => setConfirmSwitch(v => !v)}
+      atBottom={menuAtBottom}
+    />
+  );
+
   return (
     <View style={styles.root} testID="corretor-keyboard">
       {/* Liquid Glass discreto: aurora suave atrás do menu, dos cards e das teclas */}
       <Aurora intensity={0.55} />
-      {/* Menu com os botões do sistema SEMPRE VISÍVEL no topo */}
-      <SystemMenuBar
-        active={tab}
-        onChange={handleTabChange}
-        order={menuOrder}
-        onReorder={reorderMenu}
-        catalogLabel={segment.terms.catalog}
-        translating={translating}
-        onTranslate={() => setTranslating(v => !v)}
-      />
+      {/* Menu com os botões do sistema SEMPRE VISÍVEL no topo (Agenda e CRM: embaixo) */}
+      {!menuAtBottom && menu}
 
       {/* Área de conteúdo: teclado de letras ou área de vendas */}
       <View style={styles.content}>
         {translating && <TranslatePanel onClose={() => setTranslating(false)} />}
+        {confirmSwitch && (
+          <SwitchConfirm
+            onCancel={() => setConfirmSwitch(false)}
+            onConfirm={() => {
+              setConfirmSwitch(false);
+              KeyboardBridge.switchKeyboard();
+            }}
+          />
+        )}
         {!translating && tab === 'keyboard' && <TypingKeyboard />}
         {/* Sem login no app, a área de vendas fica bloqueada (o ABC continua livre) */}
         {!translating && tab !== 'keyboard' && !loggedIn && <LoginRequiredPanel />}
@@ -429,6 +469,25 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
           </Animated.View>
         )}
       </View>
+      {menuAtBottom && menu}
+    </View>
+  );
+}
+
+/** Pergunta antes de trocar para o teclado do sistema; o "voltar" do celular cancela. */
+function SwitchConfirm({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+  const styles = useStyles();
+  useKeyboardBack(onCancel);
+  return (
+    <View style={styles.confirmSwitch} testID="switch-confirm">
+      <ConfirmBox
+        testID="switch-confirm-yes"
+        message={t('Você quer trocar para o teclado padrão do sistema?')}
+        confirmLabel={t('Trocar')}
+        confirmIcon="globo"
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />
     </View>
   );
 }
@@ -461,6 +520,8 @@ const useStyles = makeStyles(colors => ({
   content: {
     flex: 1,
   },
+  // Fundo sólido: as teclas não aparecem por trás da pergunta
+  confirmSwitch: { position: 'absolute', top: 6, left: 8, right: 8, zIndex: 50, borderRadius: radius.md, backgroundColor: colors.bg, elevation: 6 },
   toast: {
     position: 'absolute',
     bottom: 12,

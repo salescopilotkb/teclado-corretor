@@ -83,7 +83,6 @@ type KeyAction =
   | { t: 'shift' }
   | { t: 'delete' }
   | { t: 'mode'; to: Mode }
-  | { t: 'globe' }
   | { t: 'space' }
   | { t: 'emoji' }
   | { t: 'enter' };
@@ -114,7 +113,8 @@ function rowInset(row: KeyDef[]): number {
   return total < ROW_UNITS ? (ROW_UNITS - total) / 2 : 0;
 }
 
-const ROW_GAP = 6;
+/** Espaço entre as linhas de teclas (teclas retangulares, como no teclado do Android). */
+const ROW_GAP = 9;
 const KEY_GAP = 5;
 const LONG_PRESS_MS = 350;
 /** Dois toques no shift dentro deste tempo travam as maiúsculas. */
@@ -169,12 +169,11 @@ function buildRows(mode: Mode, shift: ShiftState, typingLang: Lang): KeyDef[][] 
         flex: 1.5,
         action: { t: 'mode', to: mode === 'alpha' ? 'numeric' : 'alpha' },
       },
-      { id: 'globe', label: '🌐', icon: 'globo', kind: 'func', flex: 1, action: { t: 'globe' } },
       { id: 'comma', label: ',', kind: 'char', flex: 1, action: { t: 'char', v: ',' } },
       // Emojis (painel com os emojis do próprio celular)
       { id: 'emoji', label: '😊', kind: 'func', flex: 1, action: { t: 'emoji' } },
       // O nome do idioma de digitação no espaço (segurar troca)
-      { id: 'space', label: LANGUAGES.find(l => l.id === typingLang)?.label ?? '', kind: 'space', flex: 3, action: { t: 'space' } },
+      { id: 'space', label: LANGUAGES.find(l => l.id === typingLang)?.label ?? '', kind: 'space', flex: 4, action: { t: 'space' } },
       { id: 'dot', label: '.', kind: 'char', flex: 1, action: { t: 'char', v: '.' } },
       { id: 'enter', label: '↵', icon: 'enter', kind: 'enter', flex: 1.5, action: { t: 'enter' } },
     ],
@@ -495,9 +494,6 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
           break;
         case 'mode':
           setMode(a.to);
-          break;
-        case 'globe':
-          KeyboardBridge.switchKeyboard();
           break;
         case 'emoji':
           setEmojiOpen(true);
@@ -1013,7 +1009,7 @@ const useStyles = makeStyles(colors => ({
   },
   label: {
     color: colors.text,
-    fontSize: 19,
+    fontSize: 20,
   },
   labelFunc: {
     fontSize: 14,

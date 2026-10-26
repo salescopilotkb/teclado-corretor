@@ -1,4 +1,5 @@
 import { t } from '../../i18n';
+import { useKeyboardBack } from '../../navigation/back';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { MoreSubMenu, ThemePreference } from '../../types';
@@ -34,6 +35,8 @@ export function MoreTab({ theme, onThemeChange, onInsert }: Props) {
     </Pressable>
   );
   const [selectedSubMenu, setSelectedSubMenu] = useState<MoreSubMenu>(null);
+  // Num submenu (IA, Configurações), o "voltar" do celular volta ao menu do Mais
+  useKeyboardBack(() => setSelectedSubMenu(null), selectedSubMenu !== null);
 
   // Se nenhum submenu estiver aberto, exibe as opções do segundo menu
   if (!selectedSubMenu) {

@@ -804,6 +804,8 @@ export const EN: Record<string, string> = {
   "Arquivo grande demais para enviar pelo teclado. Envie pelo app KEYCON.": "File too large to send from the keyboard. Send it from the KEYCON app.",
   "Link do arquivo inválido.": "Invalid file link.",
   "O microfone está bloqueado para o KEYCON. Libere em Ajustes › KEYCON › Microfone.": "The microphone is blocked for KEYCON. Allow it in Settings › KEYCON › Microphone.",
+  "Trocar para o teclado do sistema": "Switch to the system keyboard",
+  "Você quer trocar para o teclado padrão do sistema?": "Do you want to switch to the default system keyboard?",
   "Olá, {{cliente}}! Ficou com alguma dúvida sobre o imóvel? Posso agendar uma visita para você conhecer pessoalmente.": "Hi {{cliente}}! Any questions about the property? I can schedule a visit so you can see it in person.",
   "Olá, {{cliente}}! Conseguiu ver a cotação que te enviei? Posso tirar qualquer dúvida sobre as coberturas.": "Hi {{cliente}}! Did you get a chance to look at the quote I sent? I'm happy to answer any questions about the coverage.",
   "Olá, {{cliente}}! Que tal repetir o pedido hoje? Posso te mandar o cardápio do dia.": "Hi {{cliente}}! How about ordering again today? I can send you today's menu.",

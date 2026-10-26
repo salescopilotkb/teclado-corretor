@@ -38,20 +38,25 @@ interface Props {
   /** Tradução simultânea aberta (botão ao lado do ícone do teclado). */
   translating: boolean;
   onTranslate: () => void;
+  /** Botão 🌐: voltar ao teclado padrão do sistema (pergunta antes). */
+  onSwitchKeyboard: () => void;
+  /** Agenda e CRM (tela grande): o menu fica embaixo, perto do polegar. */
+  atBottom?: boolean;
 }
 
 /**
  * Menu do teclado, SEMPRE VISÍVEL no topo:
- *  - em cima, o logotipo KEYCON (à esquerda) e, à direita, Traduzir (tradução
- *    simultânea) e o ícone de teclado (fixo), que alterna entre o teclado de
- *    letras e a última seção usada;
+ *  - em cima, o logotipo KEYCON (à esquerda) e, à direita, o 🌐 (voltar ao
+ *    teclado do sistema, com pergunta antes), Traduzir (tradução simultânea)
+ *    e o ícone de teclado (fixo), que alterna entre o teclado de letras e a
+ *    última seção usada;
  *  - embaixo, os botões das seções (Arquivos, Produtos, Atalhos, Agenda, CRM,
  *    Mais), com ícone e texto em cinza como no app; o ativo fica coral.
  *
  * Segurar um botão por 1 segundo: o teclado vibra, o botão descola do fundo
  * e acompanha o dedo; soltar em outra posição muda a ordem (fica salva).
  */
-export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate }: Props) => {
+export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate, onSwitchKeyboard, atBottom }: Props) => {
   const colors = useColors();
   const styles = useStyles();
   const keyboardActive = active === 'keyboard' && !translating;
@@ -170,7 +175,7 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
   };
 
   return (
-    <View style={styles.wrap} testID="system-menu-bar">
+    <View style={[styles.wrap, atBottom && styles.wrapBottom]} testID="system-menu-bar">
       <View style={styles.head}>
         {dragging ? (
           <Text style={styles.dragHint} numberOfLines={1}>
@@ -179,6 +184,16 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
         ) : (
           <KeyconLogo size={16} />
         )}
+        {/* Voltar ao teclado padrão do sistema (longe das teclas, para não tocar sem querer) */}
+        <Pressable
+          testID="system-btn-switch"
+          accessibilityRole="button"
+          accessibilityLabel={t('Trocar para o teclado do sistema')}
+          hitSlop={6}
+          onPress={onSwitchKeyboard}
+          style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
+          <Icon name="globo" size={20} color={colors.textMuted} />
+        </Pressable>
         {/* Tradução simultânea: escreve no seu idioma, vai traduzido para a conversa */}
         {canTranslate && (
           <Pressable
@@ -188,7 +203,7 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
             accessibilityState={{ selected: translating }}
             hitSlop={6}
             onPress={onTranslate}
-            style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
+            style={({ pressed }) => [styles.keyboardBtn, pressed && styles.pressed]}>
             <Icon name="traduzir" size={22} color={translating ? colors.primary : colors.textMuted} />
           </Pressable>
         )}
@@ -248,6 +263,7 @@ const useStyles = makeStyles(colors => ({
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
+  wrapBottom: { borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: colors.divider },
   head: {
     flexDirection: 'row',
     alignItems: 'center',

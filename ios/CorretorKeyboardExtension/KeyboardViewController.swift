@@ -20,7 +20,7 @@ final class KeyboardViewController: UIInputViewController {
 
     private var bridge: RCTBridge?
     private var heightConstraint: NSLayoutConstraint?
-    private let normalHeight: CGFloat = 320
+    private let normalHeight: CGFloat = 350
 
     /// Tamanho do teclado, pedido pelo JS (KeyboardBridge.setHeightMode), como no Android:
     /// normal, intermediário (Atalhos), tela grande (Agenda, CRM, formulários) ou

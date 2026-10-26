@@ -201,7 +201,8 @@ const useStyles = makeStyles(colors => ({
   value: { fontSize: 15, color: colors.text, flexShrink: 1 },
   placeholder: { color: colors.textMuted },
   caret: { width: 2, height: 18, backgroundColor: colors.primary, marginLeft: 1 },
-  keys: { height: 236 },
+  // Mesma altura de teclas do teclado de letras (sugestões + 4 linhas de ~48 dp)
+  keys: { height: 266 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   choice: {
     minHeight: 34,

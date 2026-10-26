@@ -15,4 +15,6 @@ ios/Pods/
 ios/*.xcodeproj
 ios/*.xcworkspace
 ios/.xcode.env.local
+# Cópia da fonte Inter do Android, feita pelo XcodeGen (preGenCommand)
+ios/Fonts/
 xcuserdata/

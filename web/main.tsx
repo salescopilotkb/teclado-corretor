@@ -14,6 +14,15 @@ import { View } from 'react-native';
 import App from '../src/app/App';
 import CorretorKeyboard from '../src/keyboard/CorretorKeyboard';
 import { WebKeyboardHost } from '../src/native/KeyboardBridge.web';
+import { appBack } from '../src/navigation/back';
+
+// "Voltar" do celular na página de teste: tecla Esc (teclado na conversa; senão, o app)
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!WebKeyboardHost.pressBack()) appBack.handle();
+  });
+}
 import { Repo } from '../src/storage/storage';
 
 if (!Repo.isLoggedIn()) {

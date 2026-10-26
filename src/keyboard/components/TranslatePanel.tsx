@@ -14,6 +14,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { getSellingLanguage, getTypingLanguage, setTypingLanguage, t } from '../../i18n';
+import { useKeyboardBack } from '../../navigation/back';
 import type { Lang } from '../../i18n';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import { isTranslatorReady, translate, TRANSLATE_LANGUAGES } from '../../native/Translator';
@@ -35,6 +36,8 @@ const STRIP_HEIGHT = 104;
 /** Caracteres do fim do texto que cabem numa linha da faixa. */
 const FIELD_TAIL = 42;
 const PREVIEW_TAIL = 52;
+/** De quanto em quanto tempo confere se a mensagem já foi enviada. */
+const SENT_CHECK_MS = 700;
 
 const FIELD: FormFieldSpec = { key: 'text', label: 'Sua mensagem', placeholder: 'Escreva no seu idioma', kind: 'multiline' };
 
@@ -58,6 +61,8 @@ const labelOf = (id: TranslateLang) => TRANSLATE_LANGUAGES.find(l => l.id === id
 export function TranslatePanel({ onClose }: { onClose: () => void }) {
   const colors = useColors();
   const styles = useStyles();
+  // O "voltar" do celular fecha a tradução
+  useKeyboardBack(onClose);
   const [pair, setPair] = useState(initialPair);
   const [picking, setPicking] = useState<'source' | 'target' | null>(null);
   const [translated, setTranslated] = useState('');
@@ -137,22 +142,35 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(timer);
   }, [text, pair, syncChat]);
 
-  // Mensagem enviada (o campo da conversa esvaziou): limpa a caixa para a próxima
+  // Mensagem enviada (o campo da conversa esvaziou): limpa a caixa para a próxima.
+  // Confere quando o cursor da conversa muda, quando o campo reinicia (alguns apps
+  // trocam o campo ao enviar) e, por garantia, a cada SENT_CHECK_MS enquanto há texto.
   const { setValue } = form;
-  useEffect(
-    () =>
-      KeyboardBridge.onSelectionChange(async () => {
-        if (!inserted.current) return;
-        const { before } = await KeyboardBridge.getInputContext().catch(() => ({ before: 'x' }));
-        if (before === '') {
-          inserted.current = '';
-          setValue('text', '');
-          setTranslated('');
-          setRound(r => r + 1);
-        }
-      }),
-    [setValue],
-  );
+  const checkSent = useCallback(async () => {
+    if (!inserted.current) return;
+    const { before } = await KeyboardBridge.getInputContext().catch(() => ({ before: 'x' }));
+    if (before !== '' || !inserted.current) return;
+    inserted.current = '';
+    seq.current++; // tradução atrasada da mensagem enviada não volta para o campo
+    setValue('text', '');
+    setTranslated('');
+    setStatus('idle');
+    setRound(r => r + 1);
+  }, [setValue]);
+  useEffect(() => {
+    const offSel = KeyboardBridge.onSelectionChange(() => {
+      checkSent();
+    });
+    const offShow = KeyboardBridge.onKeyboardShow(() => {
+      checkSent();
+    });
+    const timer = setInterval(checkSent, SENT_CHECK_MS);
+    return () => {
+      offSel();
+      offShow();
+      clearInterval(timer);
+    };
+  }, [checkSent]);
 
   const swap = () => {
     setPicking(null);
@@ -224,10 +242,22 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
         ) : (
           <View style={styles.body}>
             <View style={styles.field} testID="kbfield-text" accessible accessibilityLabel={t(FIELD.label)}>
-              <Text style={[styles.fieldText, !text && styles.muted]} numberOfLines={1}>
-                {text ? tail(text, FIELD_TAIL) : t(FIELD.placeholder)}
-              </Text>
-              <View style={styles.caret} />
+              {text ? (
+                <>
+                  <Text style={styles.fieldText} numberOfLines={1}>
+                    {tail(text, FIELD_TAIL)}
+                  </Text>
+                  <View style={styles.caret} />
+                </>
+              ) : (
+                <>
+                  {/* Vazio: o cursor fica no começo e a dica bem clara, como num campo de verdade */}
+                  <View style={[styles.caret, styles.caretStart]} />
+                  <Text style={styles.placeholder} numberOfLines={1}>
+                    {t(FIELD.placeholder)}
+                  </Text>
+                </>
+              )}
             </View>
             <Text
               testID="translate-result"
@@ -301,8 +331,9 @@ const useStyles = makeStyles(colors => ({
     backgroundColor: colors.surface,
   },
   fieldText: { fontSize: 15, color: colors.text, flexShrink: 1 },
-  muted: { color: colors.textMuted },
+  placeholder: { fontSize: 14, fontWeight: '400', color: colors.textMuted, opacity: 0.75, flexShrink: 1 },
   caret: { width: 2, height: 18, backgroundColor: colors.primary, marginLeft: 1 },
+  caretStart: { marginLeft: 0, marginRight: 4 },
   preview: { marginTop: 3, paddingHorizontal: spacing.md, fontSize: 13, lineHeight: 18, color: colors.primaryText },
   previewError: { color: colors.danger },
   choices: { alignItems: 'center', gap: 6, paddingVertical: 4 },

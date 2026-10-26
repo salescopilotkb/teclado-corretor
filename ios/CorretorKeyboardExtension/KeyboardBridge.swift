@@ -27,7 +27,7 @@ final class KeyboardBridge: RCTEventEmitter {
     }
 
     override static func requiresMainQueueSetup() -> Bool { true }
-    override func supportedEvents() -> [String]! { ["onKeyboardShow", "onKeyboardHide", "onSelectionChange"] }
+    override func supportedEvents() -> [String]! { ["onKeyboardShow", "onKeyboardHide", "onSelectionChange", "onBackPressed"] }
     override func startObserving() { hasListeners = true }
     override func stopObserving() { hasListeners = false }
 

@@ -58,6 +58,8 @@ jobs:
           export PATH="$BIN:$PATH"
           echo "$BIN" >> "$GITHUB_PATH"
           xcodegen --version
+          # Fonte Inter do Android para ios/Fonts (o project.yml também faz, no preGenCommand)
+          mkdir -p Fonts && cp ../android/app/src/main/assets/fonts/*.otf Fonts/
           xcodegen generate
 
       - name: Instalar Pods

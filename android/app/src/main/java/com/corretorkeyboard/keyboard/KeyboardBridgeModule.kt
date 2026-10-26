@@ -97,6 +97,12 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
             )
         }
 
+    /** O "voltar" do celular volta uma tela no teclado (true) ou fecha o teclado (false, o normal). */
+    @ReactMethod
+    fun setBackEnabled(enabled: Boolean) {
+        UiThreadUtil.runOnUiThread { CustomKeyboardService.instance?.jsHandlesBack = enabled }
+    }
+
     /** Teclado em tela grande (CRM) ou de volta ao tamanho normal. */
     @ReactMethod
     fun setExpanded(expanded: Boolean, promise: Promise) =

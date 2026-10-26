@@ -129,13 +129,34 @@ export function AppOnlyNote({ text, testID }: { text: string; testID?: string })
 }
 
 export function ConfirmDelete({ message, onCancel, onConfirm, testID }: { message: string; onCancel: () => void; onConfirm: () => void; testID?: string }) {
+  return <ConfirmBox message={message} onCancel={onCancel} onConfirm={onConfirm} testID={testID} confirmLabel={t('Excluir')} confirmIcon="lixeira" danger />;
+}
+
+/** Pergunta na própria tela (o teclado não pode abrir janelas de aviso). */
+export function ConfirmBox({
+  message,
+  onCancel,
+  onConfirm,
+  confirmLabel,
+  confirmIcon,
+  danger,
+  testID,
+}: {
+  message: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  confirmLabel: string;
+  confirmIcon: IconName;
+  danger?: boolean;
+  testID?: string;
+}) {
   const styles = useStyles();
   return (
     <View style={styles.confirm}>
       <Text style={styles.confirmText}>{message}</Text>
       <View style={styles.row}>
-        <ActionButton icon="fechar" label={t('Cancelar')} onPress={onCancel} />
-        <ActionButton testID={testID} icon="lixeira" label={t('Excluir')} danger onPress={onConfirm} />
+        <ActionButton testID={testID ? `${testID}-cancel` : undefined} icon="fechar" label={t('Cancelar')} onPress={onCancel} />
+        <ActionButton testID={testID} icon={confirmIcon} label={confirmLabel} danger={danger} onPress={onConfirm} />
       </View>
     </View>
   );

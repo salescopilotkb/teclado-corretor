@@ -186,7 +186,8 @@ O que já vem pronto no projeto:
   (`ios/CorretorKeyboardExtension`) abre o `CorretorKeyboard`. Cada um leva o seu `main.jsbundle`.
 - App Group nos dois alvos (entitlements + chave `AppGroup` no `Info.plist`, que o MMKV lê):
   app e teclado usam os mesmos dados.
-- Fonte Inter nos dois alvos (copiada de `android/app/src/main/assets/fonts/`) e ícone em
+- Fonte Inter nos dois alvos (o XcodeGen copia de `android/app/src/main/assets/fonts/` para
+  `ios/Fonts/` antes de gerar o projeto) e ícone em
   `ios/CorretorKeyboard/Images.xcassets/AppIcon.appiconset/`.
 - Tradução do teclado com o Google ML Kit, como no Android (`TranslatorModule.swift`, pod
   `GoogleMLKit/Translate` só no teclado). O ML Kit não roda no simulador arm64: no Mac M1+ o

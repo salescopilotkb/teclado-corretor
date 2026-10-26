@@ -6,6 +6,7 @@
  * resultados filtram a cada letra; sem maiúscula nem correção automática.
  */
 import React from 'react';
+import { useKeyboardBack } from '../../navigation/back';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { t } from '../../i18n';
@@ -68,6 +69,7 @@ export function SearchPanel({
 }) {
   const colors = useColors();
   const styles = useStyles();
+  useKeyboardBack(onClose);
   const form = useKeyboardForm(SEARCH_FIELD, { q: '' });
   const query = form.values.q ?? '';
   const results = query.trim() ? children(query) : null;

@@ -38,6 +38,8 @@ interface KeyboardBridgeNative {
   openUrl?(url: string): Promise<boolean>;
   pickMedia?(source: KeyboardPickSource): Promise<LocalMedia | null>;
   requestMicPermission?(): Promise<MicPermission>;
+  /** Android: o "voltar" do celular volta uma tela no teclado (true) ou fecha o teclado (false). */
+  setBackEnabled?(enabled: boolean): void;
 }
 
 /** De onde o teclado pega o arquivo da seção Arquivos. */
@@ -206,6 +208,13 @@ export const KeyboardBridge = {
   },
   onSelectionChange(cb: (e: SelectionChangeEvent) => void) {
     const sub = emitter?.addListener('onSelectionChange', cb);
+    return () => sub?.remove();
+  },
+  /** Alguma tela do teclado tem para onde voltar? (o Android então entrega o "voltar" ao JS) */
+  setBackEnabled: (enabled: boolean) => Native?.setBackEnabled?.(enabled),
+  /** "Voltar" do celular com uma tela do teclado aberta (só chega quando setBackEnabled(true)). */
+  onBackPressed(cb: () => void) {
+    const sub = emitter?.addListener('onBackPressed', cb);
     return () => sub?.remove();
   },
 };

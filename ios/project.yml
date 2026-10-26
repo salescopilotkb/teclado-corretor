@@ -14,6 +14,9 @@ options:
   deploymentTarget:
     iOS: "15.5"
   createIntermediateGroups: true
+  # Fonte Inter: a mesma do Android, copiada para ios/Fonts a cada geração do projeto
+  # (apontar os dois alvos para a pasta do Android duplicava o caminho no teclado)
+  preGenCommand: mkdir -p Fonts && cp ../android/app/src/main/assets/fonts/*.otf Fonts/
 
 settings:
   base:
@@ -54,8 +57,7 @@ targets:
     platform: iOS
     sources:
       - path: CorretorKeyboard
-      - path: ../android/app/src/main/assets/fonts
-        group: Fonts
+      - path: Fonts
         buildPhase: resources
     dependencies:
       - target: CorretorKeyboardExtension
@@ -85,8 +87,7 @@ targets:
     platform: iOS
     sources:
       - path: CorretorKeyboardExtension
-      - path: ../android/app/src/main/assets/fonts
-        group: Fonts
+      - path: Fonts
         buildPhase: resources
     settings:
       base:
