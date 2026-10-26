@@ -23,6 +23,11 @@ function chooseFile(accept: string, capture?: string): Promise<LocalMedia | null
     input.accept = accept;
     if (capture) input.setAttribute('capture', capture);
     input.style.display = 'none';
+    // Fechou o seletor sem escolher (Chrome, Firefox e Safari atuais avisam com "cancel")
+    input.addEventListener('cancel', () => {
+      input.remove();
+      resolve(null);
+    });
     input.onchange = () => {
       const file = input.files?.[0];
       input.remove();

@@ -15,6 +15,7 @@ import {
   fileLink,
   filesIn,
   folderPath,
+  folderPathLabel,
   folderSummary,
   moveTargets,
   newFileFolderId,
@@ -32,8 +33,9 @@ import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
-import { ActionButton, BarButton, ConfirmDelete } from './KeyboardButtons';
+import { ActionButton, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
+import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
 import { KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
 
@@ -52,6 +54,7 @@ interface Props {
 
 type Screen =
   | { name: 'browse' }
+  | { name: 'search' }
   | { name: 'add' }
   | { name: 'file'; id: string }
   | { name: 'folder-options' }
@@ -70,7 +73,8 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     if (folderId && !folder) setFolderId(null);
   }, [folderId, folder]);
 
-  const typing = screen.name === 'name';
+  // Formulários e busca: o teclado de letras precisa da tela grande
+  const typing = screen.name === 'name' || screen.name === 'search';
   useEffect(() => {
     onExpandedChange(typing);
   }, [typing, onExpandedChange]);
@@ -129,6 +133,67 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
           onChanged();
         }}
       />
+    );
+  }
+
+  if (screen.name === 'search') {
+    return (
+      <SearchPanel testID="files-search" placeholder={t('Buscar pastas e arquivos')} onClose={browse}>
+        {query => {
+          const hitFolders = files.folders.filter(f => matches(query, f.name)).slice(0, MAX_RESULTS);
+          const hitFiles = files.files.filter(f => matches(query, f.title)).slice(0, MAX_RESULTS);
+          if (!hitFolders.length && !hitFiles.length) return <NoResults query={query} />;
+          return (
+            <>
+              {hitFolders.length > 0 && <ResultsSection title={t('Pastas')} />}
+              {hitFolders.map(f => (
+                <ItemCard
+                  key={f.id}
+                  testID={`search-ffolder-${f.id}`}
+                  title={f.name}
+                  subtitle={folderPathLabel(files, f.parentId)}
+                  meta={folderSummary(files, f.id)}
+                  icon="pasta"
+                  onPress={() => {
+                    setFolderId(f.id);
+                    browse();
+                  }}
+                />
+              ))}
+              {hitFiles.length > 0 && <ResultsSection title={t('Arquivos')} />}
+              {hitFiles.map(f => (
+                <ItemCard
+                  key={f.id}
+                  testID={`search-file-${f.id}`}
+                  title={f.title}
+                  subtitle={folderPathLabel(files, f.folderId)}
+                  meta={f.type === 'video' ? f.duration || t('Vídeo') : undefined}
+                  imageUri={f.type === 'image' ? f.url : undefined}
+                  icon={f.type === 'video' ? 'video' : undefined}
+                  onPress={() => {
+                    setFolderId(f.folderId);
+                    setScreen({ name: 'file', id: f.id });
+                  }}
+                  trailing={
+                    <UseButton
+                      testID={`use-search-file-${f.id}`}
+                      onPress={() => {
+                        // Usou: fecha a busca e o teclado volta ao tamanho normal
+                        browse();
+                        send(f);
+                      }}
+                      onLongPress={() => {
+                        browse();
+                        onInsert(fileLink(f));
+                      }}
+                    />
+                  }
+                />
+              ))}
+            </>
+          );
+        }}
+      </SearchPanel>
     );
   }
 
@@ -215,9 +280,12 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
       onOpenFolder={setFolderId}
       onUp={() => setFolderId(folder?.parentId ?? null)}
       onOpenFile={id => setScreen({ name: 'file', id })}
+      onUseFile={send}
+      onUseFileLink={file => onInsert(fileLink(file))}
       onAdd={() => setScreen({ name: 'add' })}
       onNewFolder={() => setScreen({ name: 'name', kind: 'new-folder' })}
       onFolderOptions={() => setScreen({ name: 'folder-options' })}
+      onSearch={() => setScreen({ name: 'search' })}
     />
   );
 }
@@ -231,9 +299,12 @@ function Browser({
   onOpenFolder,
   onUp,
   onOpenFile,
+  onUseFile,
+  onUseFileLink,
   onAdd,
   onNewFolder,
   onFolderOptions,
+  onSearch,
 }: {
   files: FilesData;
   folderId: string | null;
@@ -241,9 +312,12 @@ function Browser({
   onOpenFolder: (id: string) => void;
   onUp: () => void;
   onOpenFile: (id: string) => void;
+  onUseFile: (file: SavedFile) => void;
+  onUseFileLink: (file: SavedFile) => void;
   onAdd: () => void;
   onNewFolder: () => void;
   onFolderOptions: () => void;
+  onSearch: () => void;
 }) {
   const colors = useColors();
   const styles = useStyles();
@@ -279,6 +353,7 @@ function Browser({
         <BarButton testID="files-new-folder" icon="novaPasta" label={current ? t('Nova subpasta') : t('Nova pasta')} onPress={onNewFolder} />
         <BarButton testID="files-add" icon="adicionar" label={t('Adicionar foto ou vídeo')} primary onPress={onAdd} disabled={!!uploader.uploading} />
       </View>
+      <SearchLauncher testID="files-search-open" placeholder={t('Buscar pastas e arquivos')} onPress={onSearch} />
 
       {(uploader.uploading || uploader.error) && (
         <View style={styles.status}>
@@ -301,7 +376,13 @@ function Browser({
         {items.length > 0 && (
           <View style={styles.grid}>
             {items.map(file => (
-              <Thumb key={file.id} file={file} onPress={() => onOpenFile(file.id)} />
+              <Thumb
+                key={file.id}
+                file={file}
+                onPress={() => onOpenFile(file.id)}
+                onUse={() => onUseFile(file)}
+                onUseLink={() => onUseFileLink(file)}
+              />
             ))}
           </View>
         )}
@@ -318,29 +399,32 @@ function Browser({
   );
 }
 
-/** Miniatura: a foto em si; vídeo = ícone e duração. */
-function Thumb({ file, onPress }: { file: SavedFile; onPress: () => void }) {
+/** Miniatura: a foto em si; vídeo = ícone e duração. Embaixo, "Usar" envia direto. */
+function Thumb({ file, onPress, onUse, onUseLink }: { file: SavedFile; onPress: () => void; onUse: () => void; onUseLink: () => void }) {
   const colors = useColors();
   const styles = useStyles();
   return (
-    <Pressable
-      testID={`file-${file.id}`}
-      accessibilityRole="button"
-      accessibilityLabel={file.title}
-      onPress={onPress}
-      style={({ pressed }) => [styles.thumb, pressed && styles.pressed]}>
-      {file.type === 'image' ? (
-        <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
-      ) : (
-        <View style={styles.thumbVideo}>
-          <Icon name="video" size={24} color={colors.textSecondary} />
-          {file.duration ? <Text style={styles.thumbDuration}>{file.duration}</Text> : null}
-        </View>
-      )}
-      <Text style={styles.thumbTitle} numberOfLines={1}>
-        {file.title}
-      </Text>
-    </Pressable>
+    <View style={styles.thumbCell}>
+      <Pressable
+        testID={`file-${file.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={file.title}
+        onPress={onPress}
+        style={({ pressed }) => [styles.thumb, pressed && styles.pressed]}>
+        {file.type === 'image' ? (
+          <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.thumbVideo}>
+            <Icon name="video" size={24} color={colors.textSecondary} />
+            {file.duration ? <Text style={styles.thumbDuration}>{file.duration}</Text> : null}
+          </View>
+        )}
+        <Text style={styles.thumbTitle} numberOfLines={1}>
+          {file.title}
+        </Text>
+      </Pressable>
+      <UseButton testID={`use-file-${file.id}`} compact onPress={onUse} onLongPress={onUseLink} />
+    </View>
   );
 }
 
@@ -584,6 +668,7 @@ const useStyles = makeStyles(colors => ({
   list: { padding: spacing.sm },
   empty: { color: colors.textMuted, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: spacing.lg, paddingHorizontal: spacing.lg },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  thumbCell: { width: THUMB, gap: 4 },
   thumb: { width: THUMB, gap: 3 },
   thumbImage: { width: THUMB, height: THUMB, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
   thumbVideo: {

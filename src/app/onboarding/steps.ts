@@ -86,10 +86,10 @@ export function buildSteps(segment: SegmentProfile, keyboardEnabled: boolean | n
       id: 'shortcut',
       icon: 'atalhos',
       title: t('Criar um atalho'),
-      description: t('Textos e áudios que você manda sempre, a um toque.'),
+      description: t('Textos, áudios e links que você manda sempre, a um toque.'),
       actionLabel: t('Criar'),
       target: 'shortcuts',
-      done: shortcuts.texts.length + shortcuts.audios.length > 0,
+      done: shortcuts.texts.length + shortcuts.audios.length + shortcuts.links.length > 0,
     },
     {
       id: 'test',

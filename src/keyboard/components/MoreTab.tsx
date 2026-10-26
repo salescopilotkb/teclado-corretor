@@ -1,14 +1,11 @@
 import { t } from '../../i18n';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { upcoming } from '../../agenda/agenda';
-import type { SegmentProfile } from '../../segments/segments';
-import type { CRMLead, MoreSubMenu, ScheduleItem, ThemePreference } from '../../types';
+import type { MoreSubMenu, ThemePreference } from '../../types';
 import { glassBorder, makeStyles, radius, spacing, touchTarget, useColors } from '../theme';
+import { AICopilotTab } from './AICopilotTab';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { Icon, IconTile } from './Icon';
-import { KeyboardAgenda } from './KeyboardAgenda';
-import { KeyboardCRM } from './KeyboardCRM';
 
 const THEME_LABEL: Record<ThemePreference, string> = {
   light: 'Claro',
@@ -17,23 +14,16 @@ const THEME_LABEL: Record<ThemePreference, string> = {
 };
 
 interface Props {
-  agenda: ScheduleItem[];
-  crm: CRMLead[];
-  /** Ramo do usuário: etapas do funil e mensagem de retorno do CRM. */
-  segment: SegmentProfile;
   theme: ThemePreference;
   onThemeChange: (theme: ThemePreference) => void;
   onInsert: (text: string) => void;
-  /** CRM e Agenda abrem com o teclado em tela grande. */
-  onExpandedChange: (expanded: boolean) => void;
-  /** Releitura dos dados depois de gravar um cliente ou compromisso. */
-  onDataChanged: () => void;
 }
 
 /**
- * Aba "Mais" — Agenda e CRM (em tela grande), Configurações e Diagnóstico.
+ * Aba "Mais" — IA (respostas sugeridas), Configurações e Diagnóstico.
+ * Agenda e CRM têm botões próprios no menu do teclado.
  */
-export function MoreTab({ agenda = [], crm = [], segment, theme, onThemeChange, onInsert, onExpandedChange, onDataChanged }: Props) {
+export function MoreTab({ theme, onThemeChange, onInsert }: Props) {
   const colors = useColors();
   const styles = useStyles();
 
@@ -45,50 +35,20 @@ export function MoreTab({ agenda = [], crm = [], segment, theme, onThemeChange, 
     </Pressable>
   );
   const [selectedSubMenu, setSelectedSubMenu] = useState<MoreSubMenu>(null);
-  /** CRM → "Agendar": a agenda abre já com o cliente. */
-  const [scheduleFor, setScheduleFor] = useState<CRMLead | null>(null);
-
-  const big = selectedSubMenu === 'crm' || selectedSubMenu === 'agenda';
-  /** Enviou para a conversa: fecha a tela grande e mostra a conversa de novo. */
-  const sendAndClose = (text: string) => {
-    onInsert(text);
-    setScheduleFor(null);
-    setSelectedSubMenu(null);
-  };
-  useEffect(() => {
-    onExpandedChange(big);
-  }, [big, onExpandedChange]);
-  // Sair da aba Mais com o CRM aberto: o teclado volta ao normal
-  useEffect(() => () => onExpandedChange(false), [onExpandedChange]);
 
   // Se nenhum submenu estiver aberto, exibe as opções do segundo menu
   if (!selectedSubMenu) {
-    const safeAgenda = agenda || [];
-    const safeCrm = crm || [];
     return (
       <ScrollView contentContainerStyle={styles.menuContainer} keyboardShouldPersistTaps="always">
         <Pressable
-          testID="more-btn-agenda"
+          testID="more-btn-copilot"
           style={styles.menuOption}
-          onPress={() => setSelectedSubMenu('agenda')}>
-          <IconTile name="calendario" size={36} />
+          onPress={() => setSelectedSubMenu('copilot')}>
+          <IconTile name="ia" size={36} />
           <View style={styles.menuInfo}>
-            <Text style={styles.menuTitle}>{t('Agenda')}</Text>
-            <Text style={styles.menuSubtitle}>{t('Calendário de reuniões e tarefas')}</Text>
+            <Text style={styles.menuTitle}>{t('IA')}</Text>
+            <Text style={styles.menuSubtitle}>{t('Respostas sugeridas para a mensagem do cliente')}</Text>
           </View>
-          <Text style={styles.menuMeta}>{t('{length} próximos', { length: upcoming(safeAgenda, Infinity).length })}</Text>
-        </Pressable>
-
-        <Pressable
-          testID="more-btn-crm"
-          style={styles.menuOption}
-          onPress={() => setSelectedSubMenu('crm')}>
-          <IconTile name="clientes" size={36} />
-          <View style={styles.menuInfo}>
-            <Text style={styles.menuTitle}>{t('CRM')}</Text>
-            <Text style={styles.menuSubtitle}>{t('Clientes e funil de vendas')}</Text>
-          </View>
-          <Text style={styles.menuMeta}>{t('{length} clientes', { length: safeCrm.length })}</Text>
         </Pressable>
 
         <Pressable
@@ -113,46 +73,23 @@ export function MoreTab({ agenda = [], crm = [], segment, theme, onThemeChange, 
             <Text style={styles.menuSubtitle}>{t('O que o campo em foco aceita: texto, fotos, GIFs')}</Text>
           </View>
         </Pressable>
+
+        <Text style={styles.tip}>{t('Dica: segure um botão do menu por 1 segundo e arraste para o lado para mudar a ordem.')}</Text>
       </ScrollView>
     );
   }
 
-  // 1. AGENDA (tela grande)
-  if (selectedSubMenu === 'agenda') {
+  // 1. IA: sugestões de resposta para a mensagem copiada do cliente
+  if (selectedSubMenu === 'copilot') {
     return (
-      <KeyboardAgenda
-        agenda={agenda}
-        leads={crm}
-        presetClient={scheduleFor}
-        onInsert={sendAndClose}
-        onChanged={onDataChanged}
-        onClose={() => {
-          setScheduleFor(null);
-          setSelectedSubMenu(null);
-        }}
-      />
+      <View style={styles.flex}>
+        {backBar(t('IA'))}
+        <AICopilotTab onInsert={onInsert} />
+      </View>
     );
   }
 
-  // 2. CRM (tela grande)
-  if (selectedSubMenu === 'crm') {
-    return (
-      <KeyboardCRM
-        segment={segment}
-        leads={crm}
-        agenda={agenda}
-        onInsert={sendAndClose}
-        onChanged={onDataChanged}
-        onClose={() => setSelectedSubMenu(null)}
-        onSchedule={lead => {
-          setScheduleFor(lead);
-          setSelectedSubMenu('agenda');
-        }}
-      />
-    );
-  }
-
-  // 3. SUBMENU: DIAGNÓSTICO (formatos aceitos pelo campo em foco)
+  // 2. SUBMENU: DIAGNÓSTICO (formatos aceitos pelo campo em foco)
   if (selectedSubMenu === 'diagnostics') {
     return (
       <View style={styles.flex}>
@@ -162,7 +99,7 @@ export function MoreTab({ agenda = [], crm = [], segment, theme, onThemeChange, 
     );
   }
 
-  // 4. SUBMENU: CONFIGURAÇÕES (APARÊNCIA DO TECLADO)
+  // 3. SUBMENU: CONFIGURAÇÕES (APARÊNCIA DO TECLADO)
   return (
     <View style={styles.flex}>
       {backBar(t('Aparência do Teclado'))}
@@ -223,6 +160,7 @@ const useStyles = makeStyles(colors => ({
     color: colors.textMuted,
     marginTop: 2,
   },
+  tip: { fontSize: 12, lineHeight: 17, color: colors.textMuted, textAlign: 'center', paddingHorizontal: spacing.md, marginTop: spacing.xs },
   menuMeta: {
     fontSize: 12,
     color: colors.textMuted,

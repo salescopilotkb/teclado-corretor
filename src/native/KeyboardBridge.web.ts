@@ -6,7 +6,7 @@
  * simulada) e o teclado escreve nele. Mesma API do KeyboardBridge.ts.
  */
 import type { LocalMedia } from '../services/mediaUpload';
-import { captureWithCamera, pickFromGallery, pickPhotoOrVideo } from './MediaPicker';
+import { captureWithCamera, pickAudioFile, pickFromGallery, pickPhotoOrVideo } from './MediaPicker';
 
 export interface KeyboardShowEvent {
   targetPackage: string | null;
@@ -16,7 +16,9 @@ export interface KeyboardShowEvent {
 
 export type CommitImageResult = 'sent' | 'unsupported' | 'failed';
 
-export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video';
+export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
+
+export type MicPermission = 'granted' | 'denied' | 'blocked';
 
 export interface InputContext {
   before: string;
@@ -74,6 +76,9 @@ export const WebKeyboardHost = {
   },
 };
 
+/** Seletor de arquivos aberto pelo teclado (mesma API do KeyboardBridge.ts). */
+let picking = false;
+
 const unavailable = (what: string) =>
   Promise.reject(new Error(`${what} funciona só no celular. Use "segurar" para enviar o link.`));
 
@@ -105,6 +110,10 @@ export const KeyboardBridge = {
     expandHandler?.(expanded);
     return !!expandHandler;
   },
+  /** No navegador do celular, a vibração da página (no computador não faz nada). */
+  hapticLongPress: () => {
+    (globalThis as { navigator?: { vibrate?: (ms: number) => boolean } }).navigator?.vibrate?.(30);
+  },
   getTargetApp: async (): Promise<string | null> => (target ? 'com.whatsapp' : null),
   isKeyboardContext: async () => !!target,
   isKeyboardEnabled: async () => false,
@@ -117,16 +126,33 @@ export const KeyboardBridge = {
   getContentMimeTypes: async (): Promise<string[]> => [],
   commitImage: async (_url: string, _description: string): Promise<CommitImageResult> => 'unsupported',
   shareMedia: (_urls: string[]): Promise<'direct' | 'chooser'> => unavailable('O compartilhamento de arquivos'),
+  shareWithCaption: (_urls: string[], _caption: string): Promise<'direct' | 'chooser'> => unavailable('O envio de foto com texto'),
   // Na web os arquivos não são guardados no aparelho
   prefetchMedia: async (_urls: string[]) => 0,
   // Na web o seletor de arquivos do navegador faz o papel da galeria
   canPickMedia: true,
-  pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> =>
-    source === 'gallery'
-      ? pickPhotoOrVideo()
-      : source === 'gallery-photo'
-        ? pickFromGallery('image')
-        : captureWithCamera(source === 'camera-video' ? 'video' : 'image'),
+  pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> => {
+    picking = true;
+    const pick =
+      source === 'gallery'
+        ? pickPhotoOrVideo()
+        : source === 'gallery-photo'
+          ? pickFromGallery('image')
+          : source === 'audio'
+            ? pickAudioFile()
+            : captureWithCamera(source === 'camera-video' ? 'video' : 'image');
+    return pick.finally(() => {
+      picking = false;
+    });
+  },
+  isPickingMedia: () => picking,
+  // Na web o próprio navegador pede o microfone ao gravar
+  requestMicPermission: async (): Promise<MicPermission> => 'granted',
+  // Na web, numa aba nova
+  openUrl: async (url: string) => {
+    (globalThis as { open?: (url: string, target: string) => unknown }).open?.(url, '_blank');
+    return true;
+  },
   openApp: async () => {
     openAppHandler?.();
     return !!openAppHandler;

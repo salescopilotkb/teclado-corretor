@@ -6,7 +6,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { t } from '../../i18n';
-import { coralGlass, glassBorder, makeStyles, radius, spacing, useColors } from '../theme';
+import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, useColors } from '../theme';
 import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
@@ -75,6 +75,43 @@ export function ActionButton({
   );
 }
 
+/**
+ * "Usar": envia o item direto para a conversa, sem abrir (Arquivos, Produtos
+ * e Atalhos). Botão coral pequeno; o toque nele não abre o item. `label`
+ * troca o texto (ex.: "Conversar" no CRM).
+ */
+export function UseButton({
+  onPress,
+  onLongPress,
+  testID,
+  compact,
+  label,
+}: {
+  onPress: () => void;
+  onLongPress?: () => void;
+  testID?: string;
+  compact?: boolean;
+  label?: string;
+}) {
+  const styles = useStyles();
+  const text = label ?? t('Usar');
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={text}
+      hitSlop={6}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={({ pressed }) => [styles.use, compact && styles.useCompact, pressed && styles.pressed]}>
+      <CoralSheen radius={radius.pill} />
+      <Text style={[styles.useText, onCoralText]} numberOfLines={1}>
+        {text}
+      </Text>
+    </Pressable>
+  );
+}
+
 /** "Excluir …?" com Cancelar / Excluir, no lugar dos botões. */
 export function ConfirmDelete({ message, onCancel, onConfirm, testID }: { message: string; onCancel: () => void; onConfirm: () => void; testID?: string }) {
   const styles = useStyles();
@@ -117,6 +154,19 @@ const useStyles = makeStyles(colors => ({
   actionDanger: { backgroundColor: colors.dangerBg },
   actionText: { fontSize: 13, fontWeight: '600', color: colors.text },
   actionTextDanger: { color: colors.danger },
+  use: {
+    minHeight: 30,
+    minWidth: 58,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    ...coralGlass(colors, { pill: true }),
+  },
+  /** Embaixo das miniaturas (Arquivos): ocupa a largura da miniatura. */
+  useCompact: { minHeight: 26, minWidth: 0, paddingHorizontal: spacing.sm },
+  useText: { fontSize: 13, fontWeight: '700', color: colors.onPrimary },
   confirm: { gap: spacing.sm, padding: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surface, ...glassBorder(colors) },
   confirmText: { fontSize: 13, lineHeight: 18, color: colors.text },
 }));

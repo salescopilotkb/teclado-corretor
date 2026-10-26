@@ -16,6 +16,7 @@ interface KeyboardBridgeNative {
   replaceTextBeforeCursor?(count: number, text: string): Promise<boolean>;
   switchKeyboard(): Promise<boolean>;
   setExpanded?(expanded: boolean): Promise<boolean>;
+  hapticLongPress?(): Promise<boolean>;
   getTargetApp(): Promise<string | null>;
   isKeyboardContext(): Promise<boolean>;
   isKeyboardEnabled(): Promise<boolean>;
@@ -28,13 +29,19 @@ interface KeyboardBridgeNative {
   getContentMimeTypes?(): Promise<string[]>;
   commitImage?(url: string, description: string): Promise<CommitImageResult>;
   shareMedia?(urls: string[]): Promise<'direct' | 'chooser'>;
+  shareWithCaption?(urls: string[], caption: string): Promise<'direct' | 'chooser'>;
   prefetchMedia?(urls: string[]): Promise<number>;
   openApp?(): Promise<boolean>;
+  openUrl?(url: string): Promise<boolean>;
   pickMedia?(source: KeyboardPickSource): Promise<LocalMedia | null>;
+  requestMicPermission?(): Promise<MicPermission>;
 }
 
 /** De onde o teclado pega o arquivo da seção Arquivos. */
-export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video';
+export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
+
+/** Resposta do pedido do microfone (blocked = negou com "não perguntar de novo"). */
+export type MicPermission = 'granted' | 'denied' | 'blocked';
 
 /** sent = foto entregue na conversa; unsupported = o app só aceita texto (ou outro formato). */
 export type CommitImageResult = 'sent' | 'unsupported' | 'failed';
@@ -70,6 +77,9 @@ const emitter = Native ? new NativeEventEmitter(NativeModules.KeyboardBridge) : 
 
 const noop = async () => false;
 
+/** Galeria/câmera aberta pelo teclado (o teclado some até ela fechar). */
+let picking = false;
+
 export const KeyboardBridge = {
   /** Injeta texto no campo ativo (InputConnection.commitText / insertText). */
   insertText: (text: string) => (Native ? Native.insertText(text) : noop()),
@@ -85,6 +95,10 @@ export const KeyboardBridge = {
   switchKeyboard: () => (Native ? Native.switchKeyboard() : noop()),
   /** Teclado em tela grande (CRM) ou no tamanho normal. Volta ao normal sozinho a cada campo novo. */
   setExpanded: (expanded: boolean) => (Native?.setExpanded ? Native.setExpanded(expanded) : noop()),
+  /** Vibração curta de "pegou o item" (segurar para arrastar). Nunca falha. */
+  hapticLongPress: () => {
+    Native?.hapticLongPress?.().catch(() => {});
+  },
   getTargetApp: () => (Native ? Native.getTargetApp() : Promise.resolve(null)),
   isKeyboardContext: () => (Native ? Native.isKeyboardContext() : Promise.resolve(false)),
   /** Verifica se o KEYCON está ativado no sistema */
@@ -123,10 +137,39 @@ export const KeyboardBridge = {
    * Abre a galeria ou a câmera por cima da conversa e devolve o arquivo no
    * aparelho (null = cancelou). O teclado some enquanto a galeria está aberta.
    */
-  pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> =>
-    Native?.pickMedia
-      ? Native.pickMedia(source)
-      : Promise.reject(new Error('Adicione fotos e vídeos pelo app KEYCON neste aparelho.')),
+  pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> => {
+    if (!Native?.pickMedia) return Promise.reject(new Error('Adicione fotos e vídeos pelo app KEYCON neste aparelho.'));
+    picking = true;
+    return Native.pickMedia(source).finally(() => {
+      picking = false;
+    });
+  },
+  /** A galeria/câmera do teclado está aberta? (o teclado fechou por causa dela) */
+  isPickingMedia: () => picking,
+  /**
+   * Permissão do microfone pedida de dentro do teclado (abre o pedido do
+   * Android por cima da conversa; o teclado some até a pessoa responder).
+   */
+  requestMicPermission: (): Promise<MicPermission> => {
+    if (!Native?.requestMicPermission) return Promise.resolve('denied');
+    picking = true;
+    return Native.requestMicPermission().finally(() => {
+      picking = false;
+    });
+  },
+
+  /**
+   * Foto com legenda (ficha do produto): baixa e abre o compartilhamento com o
+   * texto junto. No WhatsApp, a foto e o texto vão numa mensagem só.
+   */
+  shareWithCaption: (urls: string[], caption: string): Promise<'direct' | 'chooser'> =>
+    Native?.shareWithCaption
+      ? Native.shareWithCaption(urls, caption)
+      : Promise.reject(new Error('Compartilhamento indisponível neste aparelho.')),
+
+  /** Abre um link (ex.: a conversa do cliente no WhatsApp, https://wa.me/...). */
+  openUrl: (url: string): Promise<boolean> =>
+    Native?.openUrl ? Native.openUrl(url) : Promise.reject(new Error('Não foi possível abrir o link.')),
 
   /** Abre o app KEYCON (ex.: para fazer login). */
   openApp: (): Promise<boolean> => (Native?.openApp ? Native.openApp() : noop()),

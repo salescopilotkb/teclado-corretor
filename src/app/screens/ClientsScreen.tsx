@@ -1,17 +1,32 @@
 import { t } from '../../i18n';
 /**
  * Clientes (CRM) no app — mesmos dados do CRM do teclado.
- * Tela principal: busca, funil por etapa e lista; ficha e cadastro em submenus.
+ * Tela principal: busca, funil por etapa, etiquetas e lista; ficha e cadastro
+ * em submenus. "Conversar" abre a conversa do cliente no WhatsApp (wa.me).
  */
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { formatDayLong, upcoming } from '../../agenda/agenda';
-import { countByStage, initials, lastContactLabel, newLeadId, sortLeads, stagesFor } from '../../crm/crm';
+import {
+  allTags,
+  cleanTag,
+  countByStage,
+  hasTag,
+  initials,
+  lastContactLabel,
+  newLeadId,
+  sortLeads,
+  stagesFor,
+  toggleTag,
+  whatsappLink,
+} from '../../crm/crm';
 import { getSegment } from '../../segments/segments';
 import { Repo } from '../../storage/storage';
 import type { CRMLead } from '../../types';
 import { Icon } from '../../keyboard/components/Icon';
 import { ChoiceRow } from '../../keyboard/components/KeyboardForm';
+import { UseButton } from '../../keyboard/components/KeyboardButtons';
+import { TagFilter, TagList, TagPicker } from '../../keyboard/components/TagChips';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { CoralSheen, Button, Card, CardText, CardTitle, EmptyState, Page, ScreenTitle, SubHeader } from '../components/ui';
 import { useStoredList } from '../hooks/useStoredList';
@@ -33,12 +48,22 @@ export function ClientsScreen({ onSchedule }: Props) {
     reload();
   };
 
+  /** "Conversar": abre o WhatsApp na conversa do cliente e registra o contato de hoje. */
+  const talk = (lead: CRMLead) => {
+    const link = whatsappLink(lead.phone);
+    if (!link) return;
+    Linking.openURL(link).catch(() => Alert.alert(t('Atenção'), t('Não foi possível abrir o WhatsApp.')));
+    save({ ...lead, lastContactAt: new Date().toISOString() });
+  };
+  const tags = allTags(leads);
+
   if (section.name === 'form') {
     const lead = section.id ? leads.find(l => l.id === section.id) ?? null : null;
     return (
       <LeadForm
         lead={lead}
         stages={segment.crmStages}
+        tags={tags}
         onBack={() => setSection(lead ? { name: 'detail', id: lead.id } : { name: 'list' })}
         onSave={l => {
           save(l);
@@ -59,6 +84,8 @@ export function ClientsScreen({ onSchedule }: Props) {
           onEdit={() => setSection({ name: 'form', id: lead.id })}
           onSave={save}
           onSchedule={() => onSchedule(lead)}
+          onTalk={() => talk(lead)}
+          tags={tags}
           onDelete={() =>
             Alert.alert(t('Excluir cliente'), t('Deseja excluir "{clientName}"? Os compromissos dele continuam na agenda.', { clientName: lead.clientName }), [
               { text: t('Cancelar'), style: 'cancel' },
@@ -84,23 +111,45 @@ export function ClientsScreen({ onSchedule }: Props) {
       stages={stagesFor(segment, leads)}
       onOpen={id => setSection({ name: 'detail', id })}
       onNew={() => setSection({ name: 'form', id: null })}
+      onTalk={talk}
     />
   );
 }
 
-function LeadList({ leads, stages, onOpen, onNew }: { leads: CRMLead[]; stages: string[]; onOpen: (id: string) => void; onNew: () => void }) {
+function LeadList({
+  leads,
+  stages,
+  onOpen,
+  onNew,
+  onTalk,
+}: {
+  leads: CRMLead[];
+  stages: string[];
+  onOpen: (id: string) => void;
+  onNew: () => void;
+  onTalk: (lead: CRMLead) => void;
+}) {
   const colors = useColors();
   const styles = useStyles();
   const [stage, setStage] = useState<string | null>(null);
+  const [tag, setTag] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const counts = countByStage(leads);
+  const tags = allTags(leads);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const digits = q.replace(/\D/g, '');
     return sortLeads(leads).filter(
-      l => (!stage || l.stage === stage) && (!q || l.clientName.toLowerCase().includes(q) || l.phone.includes(q)),
+      l =>
+        (!stage || l.stage === stage) &&
+        (!tag || hasTag(l, tag)) &&
+        (!q ||
+          l.clientName.toLowerCase().includes(q) ||
+          (l.tags ?? []).some(x => x.toLowerCase().includes(q)) ||
+          (digits.length >= 3 && (l.phone ?? '').replace(/\D/g, '').includes(digits))),
     );
-  }, [leads, stage, query]);
+  }, [leads, stage, tag, query]);
 
   if (!leads.length) {
     return (
@@ -109,7 +158,7 @@ function LeadList({ leads, stages, onOpen, onNew }: { leads: CRMLead[]; stages: 
         <EmptyState
           icon="clientes"
           title={t('Nenhum cliente ainda')}
-          text={t('Cadastre aqui ou direto no teclado (Mais › CRM), durante a conversa.')}
+          text={t('Cadastre aqui ou direto no teclado (botão CRM), durante a conversa.')}
           actionLabel={t('Novo cliente')}
           onAction={onNew}
         />
@@ -130,7 +179,7 @@ function LeadList({ leads, stages, onOpen, onNew }: { leads: CRMLead[]; stages: 
 
       <TextInput
         style={styles.search}
-        placeholder={t('Buscar por nome ou telefone')}
+        placeholder={t('Buscar por nome, telefone ou etiqueta')}
         placeholderTextColor={colors.textMuted}
         value={query}
         onChangeText={setQuery}
@@ -155,23 +204,29 @@ function LeadList({ leads, stages, onOpen, onNew }: { leads: CRMLead[]; stages: 
           );
         })}
       </ScrollView>
+      <TagFilter tags={tags} value={tag} onChange={setTag} />
 
       <View style={styles.list}>
         {shown.length === 0 && <CardText>{t('Nenhum cliente encontrado.')}</CardText>}
         {shown.map(l => (
-          <Pressable key={l.id} style={({ pressed }) => [styles.leadCard, pressed && styles.pressed]} onPress={() => onOpen(l.id)}>
+          <Pressable key={l.id} testID={`lead-${l.id}`} style={({ pressed }) => [styles.leadCard, pressed && styles.pressed]} onPress={() => onOpen(l.id)}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{initials(l.clientName)}</Text>
             </View>
-            <View style={styles.flex}>
+            <View style={[styles.flex, styles.leadBody]}>
               <Text style={styles.leadName} numberOfLines={1}>
                 {l.clientName}
               </Text>
               <Text style={styles.leadMeta} numberOfLines={1}>
                 {t(l.stage)} · {lastContactLabel(l)}
               </Text>
+              <TagList tags={l.tags} max={3} />
             </View>
-            <Icon name="avancar" size={18} color={colors.textMuted} />
+            {whatsappLink(l.phone) ? (
+              <UseButton testID={`lead-${l.id}-talk`} label={t('Conversar')} onPress={() => onTalk(l)} />
+            ) : (
+              <Icon name="avancar" size={18} color={colors.textMuted} />
+            )}
           </Pressable>
         ))}
       </View>
@@ -187,6 +242,8 @@ function LeadDetail({
   onSave,
   onSchedule,
   onDelete,
+  onTalk,
+  tags,
 }: {
   lead: CRMLead;
   stages: string[];
@@ -195,8 +252,12 @@ function LeadDetail({
   onSave: (l: CRMLead) => void;
   onSchedule: () => void;
   onDelete: () => void;
+  onTalk: () => void;
+  /** Etiquetas usadas nos clientes (para ligar/desligar na ficha). */
+  tags: string[];
 }) {
   const styles = useStyles();
+  const link = whatsappLink(lead.phone);
   const next = upcoming(Repo.getAgenda().filter(a => a.clientId === lead.id), 3);
   return (
     <Page>
@@ -208,8 +269,25 @@ function LeadDetail({
         <View style={styles.flex}>
           <Text style={styles.profileName}>{lead.clientName}</Text>
           <Text style={styles.leadMeta}>{lead.phone || t('Sem telefone')}</Text>
+          {link ? (
+            <Text style={styles.link} numberOfLines={1}>
+              {link.replace('https://', '')}
+            </Text>
+          ) : null}
           <Text style={styles.leadMeta}>{t('Último contato: {lastContactLabellead}', { lastContactLabellead: lastContactLabel(lead).toLowerCase() })}</Text>
         </View>
+      </Card>
+
+      {link ? <Button testID="lead-talk" label={t('Conversar no WhatsApp')} icon="compartilhar" onPress={onTalk} /> : null}
+
+      <Card>
+        <CardTitle>{t('Etiquetas')}</CardTitle>
+        <TagPicker
+          available={tags}
+          selected={lead.tags ?? []}
+          onToggle={tag => onSave({ ...lead, tags: toggleTag(lead.tags ?? [], tag) })}
+          onNew={onEdit}
+        />
       </Card>
 
       <Card>
@@ -239,20 +317,47 @@ function LeadDetail({
         </Card>
       ) : null}
 
-      <Button label={t('Registrar contato agora')} icon="check" onPress={() => onSave({ ...lead, lastContactAt: new Date().toISOString() })} />
+      <Button
+        label={t('Registrar contato agora')}
+        icon="check"
+        variant={link ? 'secondary' : 'primary'}
+        onPress={() => onSave({ ...lead, lastContactAt: new Date().toISOString() })}
+      />
       <Button label={t('Editar')} variant="secondary" onPress={onEdit} />
       <Button label={t('Excluir cliente')} variant="danger" onPress={onDelete} />
     </Page>
   );
 }
 
-function LeadForm({ lead, stages, onBack, onSave }: { lead: CRMLead | null; stages: string[]; onBack: () => void; onSave: (l: CRMLead) => void }) {
+function LeadForm({
+  lead,
+  stages,
+  tags: available,
+  onBack,
+  onSave,
+}: {
+  lead: CRMLead | null;
+  stages: string[];
+  /** Etiquetas usadas nos clientes. */
+  tags: string[];
+  onBack: () => void;
+  onSave: (l: CRMLead) => void;
+}) {
   const colors = useColors();
   const styles = useStyles();
   const [name, setName] = useState(lead?.clientName ?? '');
   const [phone, setPhone] = useState(lead?.phone ?? '');
   const [notes, setNotes] = useState(lead?.notes ?? '');
   const [stage, setStage] = useState(lead?.stage ?? stages[0]);
+  const [tags, setTags] = useState<string[]>(lead?.tags ?? []);
+  const [newTag, setNewTag] = useState<string | null>(null);
+  const link = whatsappLink(phone);
+
+  /** Etiqueta digitada entra na lista do cliente (sem repetir). */
+  const withTyped = (list: string[]) => {
+    const typed = cleanTag(newTag ?? '');
+    return typed && !list.some(x => x.toLowerCase() === typed.toLowerCase()) ? [...list, typed] : list;
+  };
 
   const save = () => {
     if (!name.trim()) {
@@ -266,6 +371,7 @@ function LeadForm({ lead, stages, onBack, onSave }: { lead: CRMLead | null; stag
       phone: phone.trim(),
       notes: notes.trim() || undefined,
       stage,
+      tags: withTyped(tags).length ? withTyped(tags) : undefined,
       createdAt: lead?.createdAt ?? now,
       lastContactAt: lead?.lastContactAt ?? now,
     });
@@ -282,13 +388,54 @@ function LeadForm({ lead, stages, onBack, onSave }: { lead: CRMLead | null; stag
     <Page>
       <SubHeader title={lead ? t('Editar cliente') : t('Novo cliente')} onBack={onBack} />
       <Card>
-        {input('Nome', name, setName, 'Nome do cliente')}
-        {input('Telefone / WhatsApp', phone, setPhone, 'Opcional', { keyboardType: 'phone-pad' })}
-        {input('Anotações', notes, setNotes, 'Interesse, orçamento, preferências...', { multiline: true, style: [styles.input, styles.textArea] })}
+        {input(t('Nome'), name, setName, t('Nome do cliente'))}
+        {input(t('WhatsApp do cliente'), phone, setPhone, t('Com DDD (opcional)'), { keyboardType: 'phone-pad', testID: 'lead-phone' })}
+        {/* O número vira o link da conversa */}
+        {phone.trim() ? (
+          <Text style={[styles.hint, !link && styles.hintError]}>
+            {link ? t('Link da conversa: {link}', { link: link.replace('https://', '') }) : t('Número incompleto: inclua o DDD.')}
+          </Text>
+        ) : null}
+        {input(t('Anotações'), notes, setNotes, t('Interesse, orçamento, preferências...'), { multiline: true, style: [styles.input, styles.textArea] })}
       </Card>
       <Card>
         <CardTitle>{t('Etapa')}</CardTitle>
         <ChoiceRow onCard options={stages.map(s => ({ value: s, label: t(s) }))} value={stage} onChange={setStage} />
+      </Card>
+      <Card>
+        <CardTitle>{t('Etiquetas')}</CardTitle>
+        <TagPicker
+          available={available}
+          selected={tags}
+          onToggle={tag => setTags(list => toggleTag(list, tag))}
+          onNew={newTag === null ? () => setNewTag('') : undefined}
+        />
+        {newTag !== null && (
+          <View style={styles.newTag}>
+            <TextInput
+              testID="lead-new-tag"
+              style={[styles.input, styles.flex]}
+              autoFocus
+              value={newTag}
+              onChangeText={setNewTag}
+              placeholder={t('Ex: Quente, Indicação, VIP')}
+              placeholderTextColor={colors.textMuted}
+              onSubmitEditing={() => {
+                setTags(withTyped);
+                setNewTag(null);
+              }}
+              returnKeyType="done"
+            />
+            <Button
+              label={t('Adicionar')}
+              variant="secondary"
+              onPress={() => {
+                setTags(withTyped);
+                setNewTag(null);
+              }}
+            />
+          </View>
+        )}
       </Card>
       <Button label={t('Salvar')} onPress={save} />
     </Page>
@@ -353,6 +500,11 @@ const useStyles = makeStyles(colors => ({
   profile: { flexDirection: 'row', alignItems: 'center' },
   profileName: { ...typography.title, color: colors.text },
   agendaLine: { fontSize: 14, color: colors.text },
+  leadBody: { gap: 3 },
+  link: { fontSize: 13, color: colors.primaryText, marginTop: 2 },
+  hint: { fontSize: 12, color: colors.textMuted },
+  hintError: { color: colors.danger },
+  newTag: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   field: { gap: spacing.xs },
   label: { ...typography.label, color: colors.textSecondary },
   input: {

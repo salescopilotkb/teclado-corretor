@@ -20,6 +20,8 @@ const INPUT_TYPE = {
   name: 0x1 | 0x2000, // cada palavra com maiúscula
   phone: 0x3,
   money: 0x2, // só números: o valor é montado como em maquininha
+  search: 0x1 | 0xb0, // busca: sem maiúscula nem correção automática
+  url: 0x1 | 0x10, // link: sem maiúscula nem correção automática
 } as const;
 
 /** Campos que abrem o teclado já nos números. */

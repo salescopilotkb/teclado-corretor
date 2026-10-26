@@ -1,8 +1,11 @@
 /**
- * Gravador de áudio do app (atalhos de áudio). No Android usa o módulo nativo
- * KeyconAudioRecorder (M4A/AAC); a permissão do microfone é pedida na hora.
+ * Gravador de áudio dos atalhos, no app e no teclado. No Android usa o módulo
+ * nativo KeyconAudioRecorder (M4A/AAC); a permissão do microfone é pedida na
+ * hora. No teclado não há Activity para o PermissionsAndroid: o pedido sai
+ * pela tela invisível do KeyboardBridge (MediaPickActivity).
  */
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import { KeyboardBridge } from './KeyboardBridge';
 import type { LocalMedia } from '../services/mediaUpload';
 import { t } from '../i18n';
 
@@ -19,8 +22,15 @@ export class RecorderError extends Error {}
 /** Gravar está disponível neste aparelho. */
 export const canRecord = Platform.OS === 'android' && !!Native;
 
-async function ensureMicPermission(): Promise<void> {
+const BLOCKED_MESSAGE = 'O microfone está bloqueado para o KEYCON. Libere em Configurações › Apps › KEYCON › Permissões.';
+
+async function ensureMicPermission(fromKeyboard: boolean): Promise<void> {
   if (Platform.OS !== 'android') return;
+  if (fromKeyboard) {
+    const state = await KeyboardBridge.requestMicPermission();
+    if (state === 'granted') return;
+    throw new RecorderError(state === 'blocked' ? t(BLOCKED_MESSAGE) : t('Sem permissão para usar o microfone.'));
+  }
   const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
     title: t('Gravar áudio'),
     message: t('O KEYCON usa o microfone só para gravar os seus atalhos de áudio.'),
@@ -29,16 +39,15 @@ async function ensureMicPermission(): Promise<void> {
   });
   if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
     throw new RecorderError(
-      granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
-        ? t('O microfone está bloqueado para o KEYCON. Libere em Configurações › Apps › KEYCON › Permissões.')
-        : t('Sem permissão para usar o microfone.'),
+      granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ? t(BLOCKED_MESSAGE) : t('Sem permissão para usar o microfone.'),
     );
   }
 }
 
-export async function startRecording(): Promise<void> {
+/** `fromKeyboard`: gravando de dentro do teclado (a permissão é pedida pelo KeyboardBridge). */
+export async function startRecording({ fromKeyboard = false }: { fromKeyboard?: boolean } = {}): Promise<void> {
   if (!Native) throw new RecorderError(t('Gravação disponível só no aplicativo Android por enquanto.'));
-  await ensureMicPermission();
+  await ensureMicPermission(fromKeyboard);
   try {
     await Native.start();
   } catch (e) {

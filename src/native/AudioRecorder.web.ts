@@ -15,7 +15,8 @@ let recorder: any = null;
 let chunks: Blob[] = [];
 let startedAt = 0;
 
-export async function startRecording(): Promise<void> {
+/** Mesma assinatura do AudioRecorder.ts (no navegador o pedido do microfone é do próprio navegador). */
+export async function startRecording(_options: { fromKeyboard?: boolean } = {}): Promise<void> {
   if (!canRecord) throw new RecorderError(t('Este navegador não grava áudio.'));
   let stream: any;
   try {

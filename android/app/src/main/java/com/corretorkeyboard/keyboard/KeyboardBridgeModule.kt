@@ -1,8 +1,10 @@
 package com.corretorkeyboard.keyboard
 
 import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import com.facebook.react.bridge.Arguments
@@ -76,6 +78,11 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
         withService(promise) { it.replaceTextBeforeCursor(count.toInt(), text) }
 
     /** Alterna para o próximo teclado ou exibe o seletor de métodos de entrada */
+    /** Vibração curta de "pegou o item" (arrastar os botões do menu). */
+    @ReactMethod
+    fun hapticLongPress(promise: Promise) =
+        withService(promise) { it.hapticLongPress() }
+
     /** Teclado em tela grande (CRM) ou de volta ao tamanho normal. */
     @ReactMethod
     fun setExpanded(expanded: Boolean, promise: Promise) =
@@ -112,6 +119,27 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
                 promise.resolve(true)
             } catch (t: Throwable) {
                 promise.reject("E_PICKER", t.message, t)
+            }
+        }
+    }
+
+    /**
+     * Abre um link (ex.: https://wa.me/5511... para conversar com o cliente).
+     * Pelo contexto do teclado visível: o Android deixa abrir mesmo com o app
+     * KEYCON em segundo plano. O WhatsApp abre direto na conversa.
+     */
+    @ReactMethod
+    fun openUrl(url: String, promise: Promise) {
+        UiThreadUtil.runOnUiThread {
+            try {
+                val context = CustomKeyboardService.instance ?: reactApplicationContext
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                promise.resolve(true)
+            } catch (_: ActivityNotFoundException) {
+                promise.reject("E_OPEN_URL", "Nenhum app encontrado para abrir o link.")
+            } catch (t: Throwable) {
+                promise.reject("E_OPEN_URL", t.message ?: "Não foi possível abrir o link.", t)
             }
         }
     }
@@ -286,7 +314,16 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
      * em foco (ex.: WhatsApp). Resolve "direct" ou "chooser".
      */
     @ReactMethod
-    fun shareMedia(urls: ReadableArray, promise: Promise) {
+    fun shareMedia(urls: ReadableArray, promise: Promise) = share(urls, null, promise)
+
+    /**
+     * Como shareMedia, com um texto de legenda junto da foto (ficha do
+     * produto): no WhatsApp a foto e o texto vão numa mensagem só.
+     */
+    @ReactMethod
+    fun shareWithCaption(urls: ReadableArray, caption: String, promise: Promise) = share(urls, caption, promise)
+
+    private fun share(urls: ReadableArray, caption: String?, promise: Promise) {
         val list = (0 until urls.size()).mapNotNull { urls.getString(it) }
         if (list.isEmpty()) {
             promise.reject("E_EMPTY", "Nenhum arquivo para enviar.")
@@ -303,7 +340,7 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
                 try {
                     val service = CustomKeyboardService.instance
                     val context = service ?: reactApplicationContext
-                    promise.resolve(MediaFiles.share(context, files, service?.targetPackage))
+                    promise.resolve(MediaFiles.share(context, files, service?.targetPackage, caption))
                 } catch (t: Throwable) {
                     promise.reject("E_SHARE", t.message ?: "Não foi possível abrir o compartilhamento.", t)
                 }
@@ -313,8 +350,8 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
 
     /**
      * Foto ou vídeo para a seção Arquivos, escolhido de dentro do teclado:
-     * source = "gallery", "gallery-photo" (só fotos), "camera-photo" ou
-     * "camera-video". Resolve com o
+     * source = "gallery", "gallery-photo" (só fotos), "camera-photo",
+     * "camera-video" ou "audio" (arquivos de áudio). Resolve com o
      * arquivo no cache ({ uri, name, mimeType, size, durationMs }) ou null se a
      * pessoa cancelar.
      */
@@ -338,10 +375,34 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
                         }
                         is MediaPickActivity.Result.Cancelled -> promise.resolve(null)
                         is MediaPickActivity.Result.Error -> promise.reject("E_PICK", result.message)
+                        is MediaPickActivity.Result.Permission -> promise.resolve(null)
                     }
                 }
             } catch (t: Throwable) {
                 promise.reject("E_PICK", t.message ?: "Não foi possível abrir a galeria.", t)
+            }
+        }
+    }
+
+    /**
+     * Permissão do microfone pedida de dentro do teclado (o PermissionsAndroid
+     * do React Native precisa de uma Activity, que o teclado não tem).
+     * Resolve "granted", "denied" ou "blocked".
+     */
+    @ReactMethod
+    fun requestMicPermission(promise: Promise) {
+        UiThreadUtil.runOnUiThread {
+            val context = CustomKeyboardService.instance ?: reactApplicationContext
+            if (MediaPickActivity.hasMicPermission(context)) {
+                promise.resolve("granted")
+                return@runOnUiThread
+            }
+            try {
+                MediaPickActivity.start(context, MediaPickActivity.SOURCE_MIC_PERMISSION) { result ->
+                    promise.resolve(if (result is MediaPickActivity.Result.Permission) result.state else "denied")
+                }
+            } catch (t: Throwable) {
+                promise.reject("E_PERMISSION", t.message ?: "Não foi possível pedir a permissão do microfone.", t)
             }
         }
     }

@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+import type { ReactNode } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { glassBorder, makeStyles, radius, spacing, useColors } from '../theme';
 import type { IconName } from './Icon';
@@ -15,12 +16,14 @@ interface Props {
   imageUri?: string;
   onPress: () => void;
   onLongPress?: () => void;
+  /** Ação à direita (ex.: botão "Usar"), embaixo do meta. */
+  trailing?: ReactNode;
 }
 
 /**
  * Card de lista do KEYCON: superfície branca/grafite, sem bordas, raio de 12.
  */
-export const ItemCard = memo(({ testID, title, subtitle, meta, icon, imageUri, onPress, onLongPress }: Props) => {
+export const ItemCard = memo(({ testID, title, subtitle, meta, icon, imageUri, onPress, onLongPress, trailing }: Props) => {
   const colors = useColors();
   const styles = useStyles();
   return (
@@ -39,7 +42,14 @@ export const ItemCard = memo(({ testID, title, subtitle, meta, icon, imageUri, o
         <Text style={styles.title} numberOfLines={1}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text> : null}
       </View>
-      {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+      {trailing ? (
+        <View style={styles.side}>
+          {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+          {trailing}
+        </View>
+      ) : meta ? (
+        <Text style={styles.meta}>{meta}</Text>
+      ) : null}
     </Pressable>
   );
 });
@@ -74,6 +84,7 @@ const useStyles = makeStyles(colors => ({
     marginTop: 2,
     lineHeight: 18,
   },
+  side: { alignItems: 'flex-end', gap: 4 },
   meta: {
     color: colors.textSecondary,
     fontSize: 12,

@@ -15,6 +15,8 @@ import type {
   FileFolder,
   FilesData,
   KeyboardData,
+  LinkShortcut,
+  MenuTab,
   MediaItem,
   Product,
   ProductFolder,
@@ -45,7 +47,12 @@ const KEYS = {
   /** Passos do "Primeiros passos" que o app não consegue detectar sozinho. */
   stepsDone: 'app.stepsDone',
   legacyDemoPurged: 'app.legacyDemoPurged',
+  /** Ordem dos botões do menu do teclado (segurar e arrastar). */
+  menuOrder: 'keyboard.menuOrder',
 } as const;
+
+/** Ordem padrão do menu do teclado. */
+export const DEFAULT_MENU_ORDER: MenuTab[] = ['files', 'products', 'shortcuts', 'agenda', 'crm', 'more'];
 
 /** Dados do usuário (apagados ao criar conta ou ao trocar de conta). */
 const USER_DATA_KEYS = [
@@ -61,7 +68,7 @@ const USER_DATA_KEYS = [
 
 const DEFAULT_THEME: ThemePreference = 'dark';
 const EMPTY_SELLER: SellerProfile = { name: '', business: '', phone: '', segment: 'general', language: 'pt', market: 'BR' };
-const EMPTY_SHORTCUTS: ShortcutsData = { texts: [], audios: [] };
+const EMPTY_SHORTCUTS: ShortcutsData = { texts: [], audios: [], links: [] };
 const EMPTY_FILES: FilesData = { folders: [], files: [] };
 
 function getJSON<T>(key: string, fallback: T): T {
@@ -119,6 +126,8 @@ export const Repo = {
     return {
       texts: Array.isArray(sc?.texts) ? sc.texts : [],
       audios: Array.isArray(sc?.audios) ? sc.audios : [],
+      // Atalhos salvos antes dos links não têm a lista
+      links: Array.isArray(sc?.links) ? sc.links.filter(l => l && l.id && l.url) : [],
     };
   },
   setShortcuts: (s: ShortcutsData) => setJSON(KEYS.shortcuts, s),
@@ -147,6 +156,15 @@ export const Repo = {
     };
   },
   setFiles: (f: FilesData) => setJSON(KEYS.files, f),
+
+  /** Ordem salva; botões novos (de versões futuras) entram no fim, os que saíram somem. */
+  getMenuOrder: (): MenuTab[] => {
+    const saved = getJSON<string[]>(KEYS.menuOrder, []);
+    const known = (Array.isArray(saved) ? saved : []).filter((k): k is MenuTab => DEFAULT_MENU_ORDER.includes(k as MenuTab));
+    const unique = [...new Set(known)];
+    return [...unique, ...DEFAULT_MENU_ORDER.filter(k => !unique.includes(k))];
+  },
+  setMenuOrder: (order: MenuTab[]) => setJSON(KEYS.menuOrder, order),
 
   getTheme: (): ThemePreference => (storage.getString(KEYS.theme) as ThemePreference) || DEFAULT_THEME,
   setTheme: (t: ThemePreference) => storage.set(KEYS.theme, t),
@@ -351,6 +369,18 @@ export const Repo = {
     this.setShortcuts({ ...sc, audios: sc.audios.filter(a => a.id !== id) });
   },
 
+  /** Cria ou atualiza o atalho de link (pelo id). */
+  saveLinkShortcut(link: LinkShortcut): void {
+    const sc = this.getShortcuts();
+    const exists = sc.links.some(l => l.id === link.id);
+    this.setShortcuts({ ...sc, links: exists ? sc.links.map(l => (l.id === link.id ? link : l)) : [...sc.links, link] });
+  },
+
+  deleteLinkShortcut(id: string): void {
+    const sc = this.getShortcuts();
+    this.setShortcuts({ ...sc, links: sc.links.filter(l => l.id !== id) });
+  },
+
   loadAll(): KeyboardData {
     return {
       seller: this.getSeller(),
@@ -391,7 +421,7 @@ function purgeLegacyDemoData(): void {
   }
   if (storage.contains(KEYS.shortcuts)) {
     const sc = Repo.getShortcuts();
-    Repo.setShortcuts({ texts: drop(sc.texts, LEGACY_DEMO_IDS.texts), audios: drop(sc.audios, LEGACY_DEMO_IDS.audios) });
+    Repo.setShortcuts({ ...sc, texts: drop(sc.texts, LEGACY_DEMO_IDS.texts), audios: drop(sc.audios, LEGACY_DEMO_IDS.audios) });
   }
   if (storage.contains(KEYS.agenda)) Repo.setAgenda(drop(Repo.getAgenda(), LEGACY_DEMO_IDS.agenda));
   if (storage.contains(KEYS.crm)) Repo.setCRM(drop(Repo.getCRM(), LEGACY_DEMO_IDS.crm));

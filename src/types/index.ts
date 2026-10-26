@@ -64,9 +64,19 @@ export interface AudioShortcut {
   storagePath?: string;
 }
 
+/** Link para envio rápido (site, catálogo, agenda online, Pix...). */
+export interface LinkShortcut {
+  id: string;
+  title: string;
+  url: string;
+  /** Texto que vai antes do link na mensagem (opcional). */
+  message?: string;
+}
+
 export interface ShortcutsData {
   texts: TextShortcut[];
   audios: AudioShortcut[];
+  links: LinkShortcut[];
 }
 
 /** Ramo do negócio, escolhido no cadastro (ver src/segments). */
@@ -135,6 +145,8 @@ export interface CRMLead {
   lastContact?: string;
   notes?: string;
   createdAt?: string;
+  /** Etiquetas livres para organizar os clientes ("Quente", "Indicação", "VIP"...). */
+  tags?: string[];
 }
 
 /** Pasta da seção Arquivos. parentId null = pasta na raiz. */
@@ -165,10 +177,13 @@ export interface FilesData {
   files: SavedFile[];
 }
 
-/** Botões principais do menu do teclado + tela de digitação */
-export type MainSystemTab = 'products' | 'shortcuts' | 'files' | 'copilot' | 'more' | 'keyboard';
+/** Botões do menu do teclado (a ordem é escolhida pelo usuário). */
+export type MenuTab = 'files' | 'products' | 'shortcuts' | 'agenda' | 'crm' | 'more';
 
-export type MoreSubMenu = 'agenda' | 'crm' | 'settings' | 'diagnostics' | null;
+/** Botões do menu + o teclado de letras (ícone fixo no topo). */
+export type MainSystemTab = MenuTab | 'keyboard';
+
+export type MoreSubMenu = 'copilot' | 'settings' | 'diagnostics' | null;
 
 export interface KeyboardData {
   seller: SellerProfile;

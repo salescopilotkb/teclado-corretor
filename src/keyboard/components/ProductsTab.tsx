@@ -24,8 +24,9 @@ import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touc
 import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
 import { ItemCard } from './ItemCard';
-import { ActionButton, BarButton, ConfirmDelete } from './KeyboardButtons';
+import { ActionButton, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
+import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
 import { ChoiceRow, KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
 
@@ -38,6 +39,8 @@ interface Props {
   onSendImage: (url: string, title: string) => void;
   /** Compartilhamento do Android; fallbackText é inserido se falhar. */
   onShare: (urls: string[], fallbackText: string) => void;
+  /** Foto com o texto de legenda (no WhatsApp: uma mensagem só). */
+  onShareWithCaption: (urls: string[], caption: string) => void;
   /** Os formulários abrem com o teclado em tela grande. */
   onExpandedChange: (expanded: boolean) => void;
   /** Depois de gravar: relê os dados. */
@@ -48,11 +51,12 @@ const photoLink = (m: MediaItem) => `[${tSell('Foto')}] ${m.title}: ${m.url}`;
 
 type Screen =
   | { name: 'browse' }
+  | { name: 'search' }
   | { name: 'product'; id: string }
   | { name: 'product-form'; id: string | null }
   | { name: 'folder-form'; id: string | null };
 
-export function ProductsTab({ folders, segment, onInsert, onSendImage, onExpandedChange, onChanged }: Props) {
+export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWithCaption, onExpandedChange, onChanged }: Props) {
   /** Pasta aberta (null = lista de pastas). */
   const [folderId, setFolderId] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'browse' });
@@ -63,7 +67,8 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onExpande
     if (folderId && !folder) setFolderId(null);
   }, [folderId, folder]);
 
-  const editing = screen.name === 'product-form' || screen.name === 'folder-form';
+  // Formulários e busca: o teclado de letras precisa da tela grande
+  const editing = screen.name === 'product-form' || screen.name === 'folder-form' || screen.name === 'search';
   useEffect(() => {
     onExpandedChange(editing);
     if (!editing) return;
@@ -75,7 +80,76 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onExpande
   useEffect(() => () => onExpandedChange(false), [onExpandedChange]);
 
   const browse = () => setScreen({ name: 'browse' });
+  /**
+   * "Usar" e "Enviar": o produto numa mensagem só — a imagem com nome,
+   * categoria, valor e descrição na legenda. Sem imagem, vai só o texto.
+   */
+  const useProduct = (p: Product, f: ProductFolder) => {
+    const text = formatProductMessage(p, f, segment);
+    const photo = p.photos[0]?.url;
+    if (photo) onShareWithCaption([photo], text);
+    else onInsert(text);
+  };
   const locate = (productId: string) => folders.find(f => f.products.some(p => p.id === productId));
+
+  if (screen.name === 'search') {
+    return (
+      <SearchPanel testID="products-search" placeholder={t('Buscar {items}', { items: segment.terms.items })} onClose={browse}>
+        {query => {
+          const hitFolders = folders.filter(f => matches(query, f.name, f.description));
+          const hitProducts = folders
+            .flatMap(f => f.products.map(p => ({ p, f })))
+            .filter(({ p, f }) => matches(query, p.title, p.shortDescription, f.name, ...(p.attributes ?? []).map(a => a.value)))
+            .slice(0, MAX_RESULTS);
+          if (!hitFolders.length && !hitProducts.length) return <NoResults query={query} />;
+          return (
+            <>
+              {hitFolders.length > 0 && <ResultsSection title={t('Categorias')} />}
+              {hitFolders.map(f => (
+                <ItemCard
+                  key={f.id}
+                  testID={`search-folder-${f.id}`}
+                  title={f.name}
+                  meta={f.products.length === 1 ? t('1 item') : t('{n} itens', { n: f.products.length })}
+                  icon="pasta"
+                  onPress={() => {
+                    setFolderId(f.id);
+                    browse();
+                  }}
+                />
+              ))}
+              {hitProducts.length > 0 && <ResultsSection title={segment.terms.catalog} />}
+              {hitProducts.map(({ p, f }) => (
+                <ItemCard
+                  key={p.id}
+                  testID={`search-product-${p.id}`}
+                  title={p.title}
+                  subtitle={f.name}
+                  meta={formatPrice(p, segment)}
+                  imageUri={p.photos[0]?.url}
+                  icon={!p.photos[0]?.url ? 'foto' : undefined}
+                  onPress={() => {
+                    setFolderId(f.id);
+                    setScreen({ name: 'product', id: p.id });
+                  }}
+                  trailing={
+                    <UseButton
+                      testID={`use-search-product-${p.id}`}
+                      onPress={() => {
+                        // Usou: fecha a busca e o teclado volta ao tamanho normal
+                        browse();
+                        useProduct(p, f);
+                      }}
+                    />
+                  }
+                />
+              ))}
+            </>
+          );
+        }}
+      </SearchPanel>
+    );
+  }
 
   if (screen.name === 'folder-form') {
     const target = screen.id ? folders.find(f => f.id === screen.id) : undefined;
@@ -128,6 +202,7 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onExpande
           onBack={browse}
           onInsert={onInsert}
           onSendImage={onSendImage}
+          onUse={() => useProduct(product, from)}
           onEdit={() => setScreen({ name: 'product-form', id: product.id })}
           onDelete={() => {
             deleteProduct(from.id, product);
@@ -150,6 +225,8 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onExpande
       onNewProduct={() => setScreen({ name: 'product-form', id: null })}
       onNewFolder={() => setScreen({ name: 'folder-form', id: null })}
       onEditFolder={() => folder && setScreen({ name: 'folder-form', id: folder.id })}
+      onSearch={() => setScreen({ name: 'search' })}
+      onUseProduct={useProduct}
     />
   );
 }
@@ -166,6 +243,8 @@ function Browser({
   onNewProduct,
   onNewFolder,
   onEditFolder,
+  onSearch,
+  onUseProduct,
 }: {
   folders: ProductFolder[];
   folder?: ProductFolder;
@@ -176,6 +255,8 @@ function Browser({
   onNewProduct: () => void;
   onNewFolder: () => void;
   onEditFolder: () => void;
+  onSearch: () => void;
+  onUseProduct: (p: Product, f: ProductFolder) => void;
 }) {
   const colors = useColors();
   const styles = useStyles();
@@ -202,6 +283,7 @@ function Browser({
         )}
         <BarButton testID="products-new" icon="adicionar" label={t('Novo {item}', { item })} primary onPress={onNewProduct} />
       </View>
+      <SearchLauncher testID="products-search-open" placeholder={t('Buscar {items}', { items })} onPress={onSearch} />
 
       {folder ? (
         <FlatList
@@ -221,6 +303,7 @@ function Browser({
               imageUri={p.photos[0]?.url}
               icon={!p.photos[0]?.url ? 'foto' : undefined}
               onPress={() => onOpenProduct(p.id)}
+              trailing={<UseButton testID={`use-product-${p.id}`} onPress={() => onUseProduct(p, folder)} />}
             />
           )}
         />
@@ -260,6 +343,7 @@ function ProductDetail({
   onBack,
   onInsert,
   onSendImage,
+  onUse,
   onEdit,
   onDelete,
 }: {
@@ -269,6 +353,8 @@ function ProductDetail({
   onBack: () => void;
   onInsert: (text: string) => void;
   onSendImage: (url: string, title: string) => void;
+  /** O produto inteiro numa mensagem (imagem + ficha). */
+  onUse: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -317,10 +403,13 @@ function ProductDetail({
           {product.shortDescription ? <Text style={styles.productDesc}>{product.shortDescription}</Text> : null}
         </View>
 
-        <Pressable testID="product-insert" style={styles.actionBtn} onPress={() => onInsert(formatProductMessage(product, folder, segment))}>
+        <Pressable testID="product-insert" style={styles.actionBtn} onPress={onUse}>
           <CoralSheen radius={radius.sm} />
-          <Text style={styles.actionBtnText}>{t('Inserir ficha do {item}', { item: segment.terms.item })}</Text>
+          <Text style={styles.actionBtnText}>
+            {photo?.url ? t('Enviar {item} com a foto', { item: segment.terms.item }) : t('Inserir ficha do {item}', { item: segment.terms.item })}
+          </Text>
         </Pressable>
+        {photo?.url ? <Text style={styles.sendHint}>{t('A foto vai com nome, categoria, valor e descrição, numa mensagem só.')}</Text> : null}
       </ScrollView>
     </View>
   );
@@ -328,7 +417,7 @@ function ProductDetail({
 
 // ── Cadastro / edição do produto ────────────────────────────────────────
 
-/** Opção "nova pasta" na escolha de categoria. */
+/** Opção "nova categoria" (cria uma pasta) na escolha de categoria. */
 const NEW_FOLDER = '__new__';
 
 function ProductForm({
@@ -353,8 +442,10 @@ function ProductForm({
   const [error, setError] = useState<string | null>(null);
   const uploader = useUploader();
 
+  // Mesma ordem do app: categoria, nome, preço, descrição (o ↵ segue essa ordem)
   const fields = useMemo<FormFieldSpec[]>(
     () => [
+      ...(category === NEW_FOLDER ? [{ key: 'newCategoryName', label: 'Nome da nova categoria', placeholder: 'Toque e digite' }] : []),
       { key: 'title', label: 'Nome do produto', placeholder: segment.examples.itemTitle || 'Toque e digite' },
       {
         key: 'price',
@@ -365,12 +456,15 @@ function ProductForm({
         format: digits => formatMoney(moneyFromDigits(digits, market), market),
       },
       { key: 'desc', label: 'Descrição', placeholder: segment.examples.itemDescription || 'Opcional', kind: 'multiline' },
-      ...(category === NEW_FOLDER ? [{ key: 'newCategoryName', label: 'Nome da nova pasta', placeholder: 'Toque e digite' }] : []),
     ],
     [category, market, segment],
   );
   const form = useKeyboardForm(fields, { title: initial.title, price: initial.price, desc: initial.desc, newCategoryName: '' });
   const activeSpec = fields.find(f => f.key === form.active) ?? fields[0];
+  const field = (key: string) => {
+    const spec = fields.find(f => f.key === key)!;
+    return <KeyboardFormField key={key} spec={spec} value={form.values[key] ?? ''} active={form.active === key} onPress={() => form.setActive(key)} />;
+  };
 
   const pickImage = (source: KeyboardPickSource) => {
     setError(null);
@@ -404,7 +498,7 @@ function ProductForm({
 
   const categories = [
     ...folders.map(f => ({ value: f.id, label: f.name })),
-    { value: NEW_FOLDER, label: t('+ Nova pasta') },
+    { value: NEW_FOLDER, label: `+ ${t('Nova categoria')}` },
   ];
 
   return (
@@ -423,10 +517,6 @@ function ProductForm({
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
-        {fields.slice(0, 2).map(f => (
-          <KeyboardFormField key={f.key} spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
-        ))}
-
         <Text style={styles.section}>{t('Categoria')}</Text>
         <ChoiceRow
           options={categories}
@@ -438,16 +528,10 @@ function ProductForm({
             else if (form.active === 'newCategoryName') form.setActive('title');
           }}
         />
-        {category === NEW_FOLDER && (
-          <KeyboardFormField
-            spec={fields.find(f => f.key === 'newCategoryName')!}
-            value={form.values.newCategoryName ?? ''}
-            active={form.active === 'newCategoryName'}
-            onPress={() => form.setActive('newCategoryName')}
-          />
-        )}
-
-        <KeyboardFormField spec={fields[2]} value={form.values.desc ?? ''} active={form.active === 'desc'} onPress={() => form.setActive('desc')} />
+        {category === NEW_FOLDER && field('newCategoryName')}
+        {field('title')}
+        {field('price')}
+        {field('desc')}
 
         <Text style={styles.section}>{t('Imagem do produto')}</Text>
         <View style={styles.imageRow}>
@@ -608,6 +692,7 @@ const useStyles = makeStyles(colors => ({
     alignItems: 'center',
     ...coralGlass(colors, { pill: false }),
   },
+  sendHint: { fontSize: 12, lineHeight: 17, color: colors.textMuted, textAlign: 'center' },
   actionBtnText: { ...onCoralText, color: colors.onPrimary, fontSize: 15, fontWeight: '600' },
   form: { padding: spacing.sm, gap: spacing.sm },
   section: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginTop: spacing.xs },

@@ -95,7 +95,7 @@ function HomeRoot({ steps, keyboardReady, keyboardHalfway, onSection, onNavigate
   const folders = Repo.getFolders();
   const itemCount = folders.reduce((n, f) => n + f.products.length, 0);
   const shortcuts = Repo.getShortcuts();
-  const shortcutCount = shortcuts.texts.length + shortcuts.audios.length;
+  const shortcutCount = shortcuts.texts.length + shortcuts.audios.length + shortcuts.links.length;
   const files = Repo.getFiles();
 
   const doneCount = steps.filter(s => s.done).length;
@@ -154,7 +154,7 @@ function HomeRoot({ steps, keyboardReady, keyboardHalfway, onSection, onNavigate
         <MenuRow
           icon="atalhos"
           title={t('Atalhos')}
-          subtitle={t('Textos e áudios prontos')}
+          subtitle={t('Textos, áudios e links prontos')}
           value={`${shortcutCount}`}
           onPress={() => onSection('shortcuts')}
         />

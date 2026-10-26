@@ -35,7 +35,7 @@ function slidesFor(segment: SegmentProfile): Slide[] {
     {
       icon: 'atalhos',
       title: t('Crie atalhos'),
-      text: t('Salve os textos e áudios que você manda sempre e envie com um toque.'),
+      text: t('Salve os textos, áudios e links que você manda sempre e envie com um toque, pelo app ou pelo próprio teclado.'),
     },
     {
       icon: 'arquivos',
@@ -55,7 +55,7 @@ function slidesFor(segment: SegmentProfile): Slide[] {
     {
       icon: 'ia',
       title: t('Respostas com IA'),
-      text: t('Copie a mensagem do cliente e toque em IA: o KEYCON sugere a resposta.'),
+      text: t('Copie a mensagem do cliente e toque em Mais › IA no teclado: o KEYCON sugere a resposta.'),
     },
     {
       icon: 'respostas',

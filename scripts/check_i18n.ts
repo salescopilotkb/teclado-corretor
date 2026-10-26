@@ -20,7 +20,7 @@ const src = path.join(root, 'src');
 const load = (p: string) => import(pathToFileURL(p).href);
 
 /** Constantes cujos textos a tela passa por t() (t(item.label), t(spec.label)...). */
-const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'FOLDER_FIELDS', 'THEME_LABEL']);
+const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL']);
 const TRANSLATED_PROPS = new Set(['label', 'placeholder']);
 
 /**
@@ -37,6 +37,9 @@ const EXTRA_KEYS = [
   'Escolha uma foto ou um vídeo.',
   'O arquivo passa de 50 MB. Escolha um menor.',
   'O vídeo passa de 50 MB. Grave um mais curto.',
+  'Escolha uma foto, um vídeo ou um áudio.',
+  'O áudio passa de 50 MB.',
+  'Não foi possível pedir a permissão do microfone.',
   'Nome do arquivo',
   'Nome da pasta',
   'Toque e digite',
@@ -45,7 +48,7 @@ const EXTRA_KEYS = [
   'Preço',
   'Preço (opcional)',
   'Descrição',
-  'Nome da nova pasta',
+  'Nome da nova categoria',
 ];
 
 const used = new Map<string, string>(); // chave → onde aparece

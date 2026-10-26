@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Repo } from '../../storage/storage';
-import type { AudioShortcut, ShortcutsData, TextShortcut } from '../../types';
+import type { AudioShortcut, LinkShortcut, ShortcutsData, TextShortcut } from '../../types';
+import { deleteShortcut, saveLinkShortcut } from '../../shortcuts/shortcuts';
 import { normalizeUrl } from '../../utils/formatters';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { Icon, IconTile } from '../../keyboard/components/Icon';
@@ -42,6 +43,17 @@ interface AudioForm {
 
 const EMPTY_AUDIO_FORM: AudioForm = { id: null, title: '', url: '', duration: '', transcript: '' };
 
+interface LinkForm {
+  id: string | null;
+  title: string;
+  url: string;
+  message: string;
+}
+
+const EMPTY_LINK_FORM: LinkForm = { id: null, title: '', url: '', message: '' };
+
+type ShortcutTab = 'text' | 'audio' | 'link';
+
 function confirmDelete(title: string, onConfirm: () => void) {
   Alert.alert(t('Excluir atalho'), t('Deseja excluir "{title}"?', { title }), [
     { text: t('Cancelar'), style: 'cancel' },
@@ -53,7 +65,8 @@ export function ShortcutsManagerScreen() {
   const colors = useColors();
   const styles = useStyles();
   const [shortcuts, setShortcuts] = useState<ShortcutsData>(() => Repo.getShortcuts());
-  const [activeTab, setActiveTab] = useState<'text' | 'audio'>('text');
+  const [activeTab, setActiveTab] = useState<ShortcutTab>('text');
+  const [linkForm, setLinkForm] = useState<LinkForm | null>(null);
 
   const [textForm, setTextForm] = useState<TextForm | null>(null);
   const [audioForm, setAudioForm] = useState<AudioForm | null>(null);
@@ -147,9 +160,10 @@ export function ShortcutsManagerScreen() {
     setShortcuts(Repo.getShortcuts());
   };
 
-  const switchTab = (tab: 'text' | 'audio') => {
+  const switchTab = (tab: ShortcutTab) => {
     setActiveTab(tab);
     setTextForm(null);
+    setLinkForm(null);
     if (audioForm) closeAudioForm();
   };
 
@@ -212,6 +226,27 @@ export function ShortcutsManagerScreen() {
     Alert.alert(t('Sucesso'), audioForm.id ? t('Áudio atualizado!') : t('Atalho de áudio adicionado e sincronizado com o teclado!'));
   };
 
+  // Mesma regra do teclado (src/shortcuts)
+  const handleSaveLink = () => {
+    if (!linkForm) return;
+    const result = saveLinkShortcut(linkForm.id, linkForm.title, linkForm.url, linkForm.message);
+    if (!result.ok) {
+      Alert.alert(t('Atenção'), result.error);
+      return;
+    }
+    refreshShortcuts();
+    setLinkForm(null);
+    Alert.alert(t('Sucesso'), linkForm.id ? t('Atalho atualizado!') : t('Atalho de link criado e sincronizado com o teclado!'));
+  };
+
+  const handleDeleteLink = (item: LinkShortcut) => {
+    confirmDelete(item.title, () => {
+      deleteShortcut('link', item.id);
+      refreshShortcuts();
+      if (linkForm?.id === item.id) setLinkForm(null);
+    });
+  };
+
   const handleDeleteText = (item: TextShortcut) => {
     confirmDelete(item.title, () => {
       Repo.deleteTextShortcut(item.id);
@@ -251,12 +286,13 @@ export function ShortcutsManagerScreen() {
           style={styles.addBtn}
           onPress={() => {
             if (activeTab === 'text') setTextForm({ id: null, title: '', text: '' });
+            else if (activeTab === 'link') setLinkForm(EMPTY_LINK_FORM);
             else setAudioForm(EMPTY_AUDIO_FORM);
           }}>
           <CoralSheen />
           <Icon name="adicionar" size={18} color={colors.onPrimary} />
           <Text style={styles.addBtnText}>
-            {activeTab === 'text' ? t('Novo texto') : t('Novo áudio')}
+            {activeTab === 'text' ? t('Novo texto') : activeTab === 'link' ? t('Novo link') : t('Novo áudio')}
           </Text>
         </Pressable>
       </View>
@@ -273,9 +309,59 @@ export function ShortcutsManagerScreen() {
           style={[styles.toggleBtn, activeTab === 'audio' && styles.toggleBtnActive]}
           onPress={() => switchTab('audio')}>
           <Text style={[styles.toggleText, activeTab === 'audio' && styles.toggleTextActive]}>
-            {t('Áudios Rápidos ({length})', { length: shortcuts.audios.length })}</Text>
+            {t('Áudios ({length})', { length: shortcuts.audios.length })}</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.toggleBtn, activeTab === 'link' && styles.toggleBtnActive]}
+          onPress={() => switchTab('link')}>
+          <Text style={[styles.toggleText, activeTab === 'link' && styles.toggleTextActive]}>
+            {t('Links ({length})', { length: shortcuts.links.length })}</Text>
         </Pressable>
       </View>
+
+      {/* Formulário de Link (criar / editar) */}
+      {linkForm && (
+        <ScrollView style={styles.formContainer} keyboardShouldPersistTaps="handled">
+          <Text style={styles.sectionTitle}>{linkForm.id ? t('Editar link') : t('Novo link')}</Text>
+          <Text style={styles.label}>{t('Título')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t('Ex: Catálogo, Agendar horário')}
+            placeholderTextColor={colors.textMuted}
+            value={linkForm.title}
+            onChangeText={title => setLinkForm({ ...linkForm, title })}
+          />
+          <Text style={styles.label}>{t('Link')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="https://"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="url"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={linkForm.url}
+            onChangeText={url => setLinkForm({ ...linkForm, url })}
+          />
+          <Text style={styles.label}>{t('Mensagem antes do link (opcional)')}</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder={t('Ex: Veja nosso catálogo:')}
+            placeholderTextColor={colors.textMuted}
+            multiline
+            value={linkForm.message}
+            onChangeText={message => setLinkForm({ ...linkForm, message })}
+          />
+          <View style={styles.formBtnsRow}>
+            <Pressable style={styles.cancelBtn} onPress={() => setLinkForm(null)}>
+              <Text style={styles.cancelBtnText}>{t('Cancelar')}</Text>
+            </Pressable>
+            <Pressable style={styles.saveBtn} onPress={handleSaveLink}>
+              <CoralSheen />
+              <Text style={styles.saveBtnText}>{t('Salvar Atalho')}</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      )}
 
       {/* Formulário de Texto (criar / editar) */}
       {textForm && (
@@ -417,7 +503,40 @@ export function ShortcutsManagerScreen() {
       )}
 
       {/* Lista de Atalhos */}
-      {activeTab === 'text' ? (
+      {activeTab === 'link' ? (
+        <FlatList
+          data={shortcuts.links}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            linkForm ? null : (
+              <EmptyState
+                icon="compartilhar"
+                title={t('Nenhum link')}
+                text={t('Salve os links que você manda sempre (catálogo, agenda online, site) e envie pelo teclado com um toque.')}
+                actionLabel={t('Criar atalho de link')}
+                onAction={() => setLinkForm(EMPTY_LINK_FORM)}
+              />
+            )
+          }
+          renderItem={({ item }) => (
+            <View style={styles.itemCard}>
+              <View style={styles.itemHead}>
+                <IconTile name="compartilhar" size={36} />
+                <Text style={styles.itemTitle}>{item.title}</Text>
+              </View>
+              {item.message ? <Text style={styles.itemSub} numberOfLines={2}>{item.message}</Text> : null}
+              <Text style={styles.urlText} numberOfLines={1}>
+                {item.url}
+              </Text>
+              {renderItemActions(
+                () => setLinkForm({ id: item.id, title: item.title, url: item.url, message: item.message ?? '' }),
+                () => handleDeleteLink(item),
+              )}
+            </View>
+          )}
+        />
+      ) : activeTab === 'text' ? (
         <FlatList
           data={shortcuts.texts}
           keyExtractor={item => item.id}

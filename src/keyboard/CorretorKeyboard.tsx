@@ -1,16 +1,19 @@
 /**
  * CorretorKeyboard.tsx — Componente RAIZ do teclado KEYCON.
- * Menu com os botões do sistema mantido SEMPRE VISÍVEL no topo do teclado:
- * ABC (teclado de letras próprio), Produtos, Atalhos, Arquivos, IA e Mais.
+ * Menu SEMPRE VISÍVEL no topo do teclado: logotipo e ícone do teclado de
+ * letras (fixo) em cima; embaixo Arquivos, Produtos, Atalhos, Agenda, CRM e
+ * Mais, na ordem que o usuário escolher (segurar e arrastar).
  */
 import { t, tSell } from '../i18n';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { KeyboardBridge } from '../native/KeyboardBridge';
 import { LoginRequiredPanel } from './components/LoginRequiredPanel';
-import type { KeyboardData, MainSystemTab, ThemePreference } from '../types';
-import { AICopilotTab } from './components/AICopilotTab';
+import { Repo } from '../storage/storage';
+import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, ThemePreference } from '../types';
 import { FilesTab } from './components/FilesTab';
+import { KeyboardAgenda } from './components/KeyboardAgenda';
+import { KeyboardCRM } from './components/KeyboardCRM';
 import { MoreTab } from './components/MoreTab';
 import { ProductsTab } from './components/ProductsTab';
 import { ShortcutsTab } from './components/ShortcutsTab';
@@ -100,25 +103,52 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   useEffect(() => {
     applyProfileLanguages(data.seller);
   }, [data.seller]);
-  const [tab, setTab] = useState<MainSystemTab>('products');
+  // O teclado sempre abre no teclado de letras (ABC)
+  const [tab, setTab] = useState<MainSystemTab>('keyboard');
   const [toast, setToast] = useState<string | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Evita disparar vários downloads ao tocar repetidas vezes. */
   const sending = useRef(false);
-  /** Última aba da área de vendas — o botão ABC volta para ela. */
+  /** Última aba da área de vendas — o botão do teclado volta para ela. */
   const lastSalesTab = useRef<MainSystemTab>('products');
   const segment = getSegment(data.seller.segment);
   /** Muda a cada campo novo: a aba Mais volta ao menu (o teclado já voltou ao tamanho normal). */
   const [moreVisit, setMoreVisit] = useState(0);
+  /** Ordem dos botões do menu (mesmo armazenamento do app). */
+  const [menuOrder, setMenuOrder] = useState<MenuTab[]>(() => Repo.getMenuOrder());
+  /** CRM → "Agendar": a agenda abre já com o cliente. */
+  const [scheduleFor, setScheduleFor] = useState<CRMLead | null>(null);
 
-  // CRM e Agenda: teclado em tela grande, sobre a conversa
   const setExpanded = useCallback((expanded: boolean) => {
     KeyboardBridge.setExpanded(expanded).catch(() => {});
   }, []);
 
-  // Ao fechar o teclado, a aba Mais volta ao menu inicial para o próximo uso
-  useEffect(() => KeyboardBridge.onKeyboardHide(() => setMoreVisit(v => v + 1)), []);
+  // Agenda e CRM: teclado em tela grande, sobre a conversa
+  const big = tab === 'agenda' || tab === 'crm';
+  useEffect(() => {
+    if (big) setExpanded(true);
+    else setExpanded(false);
+  }, [big, setExpanded]);
+
+  const reorderMenu = useCallback((order: MenuTab[]) => {
+    Repo.setMenuOrder(order);
+    setMenuOrder(order);
+  }, []);
+
+  // Ao fechar o teclado, a próxima abertura começa no teclado de letras e a aba
+  // Mais volta ao menu inicial. Exceção: fechou porque a galeria/câmera do
+  // próprio teclado abriu — ao voltar, continua onde estava (ex.: no cadastro)
+  useEffect(
+    () =>
+      KeyboardBridge.onKeyboardHide(() => {
+        if (KeyboardBridge.isPickingMedia()) return;
+        setTab('keyboard');
+        setScheduleFor(null);
+        setMoreVisit(v => v + 1);
+      }),
+    [],
+  );
 
   useEffect(() => {
     KeyboardBridge.notifyReady();
@@ -214,9 +244,47 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
     [showToast],
   );
 
-  // ABC alterna entre a área de vendas e o teclado de letras (como no simulador).
+  /** Agenda e CRM: enviou para a conversa, volta ao teclado de letras e mostra a conversa. */
+  const sendAndClose = useCallback(
+    (text: string) => {
+      insert(text);
+      setScheduleFor(null);
+      setTab('keyboard');
+    },
+    [insert],
+  );
+
+  /**
+   * Foto com o texto de legenda (ficha do produto): no WhatsApp vão juntos,
+   * numa mensagem só — a pessoa só escolhe a conversa. Se não der para
+   * compartilhar, insere o texto (sem a foto) e avisa.
+   */
+  const shareWithCaption = useCallback(
+    async (urls: string[], caption: string) => {
+      if (sending.current) {
+        showToast(t('Aguarde o envio anterior'));
+        return;
+      }
+      sending.current = true;
+      showToast(t('Baixando foto...'), 60000);
+      try {
+        await KeyboardBridge.shareWithCaption(urls, caption);
+        showToast(t('Escolha a conversa: a foto vai com o texto, numa mensagem só'), 3500);
+      } catch (e) {
+        const reason = describeError(e);
+        const ok = await KeyboardBridge.insertText(caption).catch(() => false);
+        showToast(ok ? t('{v} Texto inserido sem a foto.', { v: sentence(reason) }) : reason, 4000);
+      } finally {
+        sending.current = false;
+      }
+    },
+    [showToast],
+  );
+
+  // O botão do teclado alterna entre a área de vendas e o teclado de letras (como no simulador).
   // A troca para outro teclado do sistema (Gboard etc.) fica na tecla 🌐.
   const handleTabChange = useCallback((newTab: MainSystemTab) => {
+    setScheduleFor(null);
     setTab(current => {
       if (newTab === 'keyboard' && current === 'keyboard') return lastSalesTab.current;
       if (newTab !== 'keyboard') lastSalesTab.current = newTab;
@@ -229,7 +297,13 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       {/* Liquid Glass discreto: aurora suave atrás do menu, dos cards e das teclas */}
       <Aurora intensity={0.55} />
       {/* Menu com os botões do sistema SEMPRE VISÍVEL no topo */}
-      <SystemMenuBar active={tab} onChange={handleTabChange} catalogLabel={segment.terms.catalog} />
+      <SystemMenuBar
+        active={tab}
+        onChange={handleTabChange}
+        order={menuOrder}
+        onReorder={reorderMenu}
+        catalogLabel={segment.terms.catalog}
+      />
 
       {/* Área de conteúdo: teclado de letras ou área de vendas */}
       <View style={styles.content}>
@@ -243,12 +317,13 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onInsert={insert}
             onSendImage={sendImage}
             onShare={shareMedia}
+            onShareWithCaption={shareWithCaption}
             onExpandedChange={setExpanded}
             onChanged={onDataChanged}
           />
         )}
         {loggedIn && tab === 'shortcuts' && (
-          <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} />
+          <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} onExpandedChange={setExpanded} onChanged={onDataChanged} />
         )}
         {loggedIn && tab === 'files' && (
           <FilesTab
@@ -260,19 +335,33 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onChanged={onDataChanged}
           />
         )}
-        {loggedIn && tab === 'copilot' && <AICopilotTab onInsert={insert} />}
-        {loggedIn && tab === 'more' && (
-          <MoreTab
-            key={moreVisit}
+        {loggedIn && tab === 'agenda' && (
+          <KeyboardAgenda
             agenda={data.agenda}
-            crm={data.crm}
-            segment={segment}
-            theme={data.theme}
-            onThemeChange={onThemeChange}
-            onInsert={insert}
-            onExpandedChange={setExpanded}
-            onDataChanged={onDataChanged}
+            leads={data.crm}
+            presetClient={scheduleFor}
+            onInsert={sendAndClose}
+            onChanged={onDataChanged}
+            onClose={() => handleTabChange('keyboard')}
           />
+        )}
+        {loggedIn && tab === 'crm' && (
+          <KeyboardCRM
+            segment={segment}
+            leads={data.crm}
+            agenda={data.agenda}
+            onInsert={sendAndClose}
+            onChanged={onDataChanged}
+            onClose={() => handleTabChange('keyboard')}
+            onSchedule={lead => {
+              lastSalesTab.current = 'agenda';
+              setTab('agenda');
+              setScheduleFor(lead);
+            }}
+          />
+        )}
+        {loggedIn && tab === 'more' && (
+          <MoreTab key={moreVisit} theme={data.theme} onThemeChange={onThemeChange} onInsert={insert} />
         )}
 
         {toast && (

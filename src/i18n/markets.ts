@@ -41,6 +41,25 @@ export const MARKETS: Market[] = [
   { id: 'CA', country: 'Canada', language: 'en', currency: 'CAD', symbol: 'CA$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(416) 555-0123' },
 ];
 
+/**
+ * DDI do país e quantos dígitos tem um celular sem ele (sem o 0 da frente).
+ * Usado para montar o link do WhatsApp quando o número é digitado sem o DDI.
+ * Argentina: o WhatsApp pede o 9 de celular depois do 54.
+ */
+export const DIALING: Record<MarketId, { code: string; national: number }> = {
+  BR: { code: '55', national: 11 },
+  US_EN: { code: '1', national: 10 },
+  US_ES: { code: '1', national: 10 },
+  PT: { code: '351', national: 9 },
+  ES: { code: '34', national: 9 },
+  MX: { code: '52', national: 10 },
+  AR: { code: '549', national: 10 },
+  CO: { code: '57', national: 10 },
+  CL: { code: '56', national: 9 },
+  UK: { code: '44', national: 10 },
+  CA: { code: '1', national: 10 },
+};
+
 const BY_ID = new Map(MARKETS.map(m => [m.id, m]));
 
 export function isMarketId(value: unknown): value is MarketId {

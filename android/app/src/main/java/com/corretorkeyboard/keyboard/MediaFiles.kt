@@ -118,13 +118,15 @@ object MediaFiles {
      * o app em foco (ex.: WhatsApp); se ele não aceitar, mostra a lista de apps.
      * Retorna "direct" ou "chooser".
      */
-    fun share(context: Context, files: List<Downloaded>, preferredPackage: String?): String {
+    fun share(context: Context, files: List<Downloaded>, preferredPackage: String?, caption: String? = null): String {
         val uris = ArrayList(files.map { uriFor(context, it.file) })
         val intent = if (uris.size == 1) {
             Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, uris[0])
         } else {
             Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
         }
+        // Legenda: o WhatsApp manda a foto e o texto juntos, numa mensagem só
+        if (!caption.isNullOrEmpty()) intent.putExtra(Intent.EXTRA_TEXT, caption)
         intent.type = commonMimeType(files.map { it.mimeType })
         // ClipData garante a permissão de leitura de TODOS os arquivos para o app de destino
         intent.clipData = ClipData.newRawUri("", uris[0]).apply {

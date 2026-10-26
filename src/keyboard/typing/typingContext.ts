@@ -18,7 +18,7 @@ const LETTER = /[A-Za-zÀ-ÖØ-öø-ÿ]/;
 
 // Tipos de campo do Android (EditorInfo.inputType)
 const CLASS_TEXT = 0x1;
-const NO_ASSIST_VARIATIONS = new Set([0x10, 0x20, 0x80, 0x90, 0xd0, 0xe0]); // link, e-mail, senhas
+const NO_ASSIST_VARIATIONS = new Set([0x10, 0x20, 0x80, 0x90, 0xb0, 0xd0, 0xe0]); // link, e-mail, busca, senhas
 const FLAG_NO_SUGGESTIONS = 0x80000;
 /** Campo de nome: cada palavra começa com maiúscula ("Joana Lima"). */
 const FLAG_CAP_WORDS = 0x2000;

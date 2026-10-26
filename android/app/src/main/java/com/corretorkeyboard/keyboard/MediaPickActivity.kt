@@ -1,9 +1,11 @@
 package com.corretorkeyboard.keyboard
 
+import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
@@ -21,9 +23,10 @@ import java.util.concurrent.Executors
 /**
  * MediaPickActivity
  * ---------------------------------------------------------------------------
- * Tela invisível que o TECLADO abre para escolher uma foto ou um vídeo da
- * galeria, ou para usar a câmera. O teclado é um serviço (não uma Activity),
- * então não consegue abrir a galeria e receber a resposta sozinho.
+ * Tela invisível que o TECLADO abre para escolher uma foto, um vídeo ou um
+ * áudio do celular, para usar a câmera e para pedir a permissão do microfone
+ * (gravar atalhos de áudio). O teclado é um serviço (não uma Activity), então
+ * não consegue abrir o seletor nem o pedido de permissão e receber a resposta.
  *
  * Fica numa tarefa própria (taskAffinity vazio no manifesto): ao terminar, a
  * conversa que estava aberta volta para a frente, e não o app KEYCON.
@@ -40,6 +43,8 @@ class MediaPickActivity : Activity() {
         data class Ok(val picked: Picked) : Result()
         object Cancelled : Result()
         data class Error(val message: String) : Result()
+        /** Pedido do microfone: "granted", "denied" ou "blocked" (negou com "não perguntar de novo"). */
+        data class Permission(val state: String) : Result()
     }
 
     /** Arquivo onde a câmera grava (sobrevive à recriação da tela). */
@@ -58,6 +63,8 @@ class MediaPickActivity : Activity() {
             when (val source = intent.getStringExtra(EXTRA_SOURCE)) {
                 SOURCE_CAMERA_PHOTO, SOURCE_CAMERA_VIDEO -> openCamera(source == SOURCE_CAMERA_VIDEO)
                 SOURCE_GALLERY_PHOTO -> openGallery(photosOnly = true)
+                SOURCE_AUDIO -> openAudioFiles()
+                SOURCE_MIC_PERMISSION -> requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
                 else -> openGallery(photosOnly = false)
             }
         } catch (_: ActivityNotFoundException) {
@@ -89,6 +96,27 @@ class MediaPickActivity : Activity() {
                 .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
         }
         startActivityForResult(intent, REQUEST_GALLERY)
+    }
+
+    /** Arquivos de áudio do celular (mp3, m4a, ogg, wav...), pelo seletor de arquivos do sistema. */
+    private fun openAudioFiles() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("audio/*")
+            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "application/ogg"))
+        startActivityForResult(intent, REQUEST_AUDIO)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_MIC) return
+        val state = when {
+            grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED -> "granted"
+            // Negou e marcou "não perguntar de novo": só nas Configurações do Android
+            !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO) -> "blocked"
+            else -> "denied"
+        }
+        finishWith(Result.Permission(state))
     }
 
     /** Câmera do próprio celular: o KEYCON não precisa da permissão de câmera. */
@@ -156,9 +184,13 @@ class MediaPickActivity : Activity() {
         const val SOURCE_GALLERY_PHOTO = "gallery-photo"
         const val SOURCE_CAMERA_PHOTO = "camera-photo"
         const val SOURCE_CAMERA_VIDEO = "camera-video"
+        const val SOURCE_AUDIO = "audio"
+        const val SOURCE_MIC_PERMISSION = "mic-permission"
 
         private const val REQUEST_GALLERY = 1
         private const val REQUEST_CAMERA = 2
+        private const val REQUEST_AUDIO = 3
+        private const val REQUEST_MIC = 4
         private const val STATE_CAMERA_FILE = "cameraFile"
         private const val STATE_CAMERA_MIME = "cameraMime"
         private const val DIR = "picked"
@@ -171,6 +203,10 @@ class MediaPickActivity : Activity() {
         /** Quem pediu o arquivo (o KeyboardBridge). Chamado uma única vez. */
         @Volatile
         private var callback: ((Result) -> Unit)? = null
+
+        /** O microfone já está liberado para o KEYCON? */
+        fun hasMicPermission(context: Context): Boolean =
+            context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
         /** Abre o seletor; o resultado chega em [onResult] (na main thread). */
         fun start(context: Context, source: String, onResult: (Result) -> Unit) {
@@ -200,8 +236,9 @@ class MediaPickActivity : Activity() {
         private fun copyFromUri(context: Context, uri: Uri): Picked {
             val resolver = context.contentResolver
             val mime = resolver.getType(uri)?.lowercase() ?: "application/octet-stream"
-            if (!mime.startsWith("image/") && !mime.startsWith("video/")) {
-                throw MediaFiles.MediaException("Escolha uma foto ou um vídeo.")
+            val audio = mime.startsWith("audio/") || mime == "application/ogg"
+            if (!mime.startsWith("image/") && !mime.startsWith("video/") && !audio) {
+                throw MediaFiles.MediaException("Escolha uma foto, um vídeo ou um áudio.")
             }
             var name: String? = null
             var size = -1L
@@ -235,14 +272,21 @@ class MediaPickActivity : Activity() {
             return prepareFile(context, target, mime, name ?: target.name)
         }
 
-        /** Foto: reduz para JPEG de até 2048 px (GIF e PNG ficam como estão). Vídeo: lê a duração. */
+        /** Foto: reduz para JPEG de até 2048 px (GIF e PNG ficam como estão). Vídeo e áudio: lê a duração. */
         private fun prepareFile(context: Context, file: File, mime: String, name: String): Picked {
             if (mime.startsWith("video/")) {
                 if (file.length() > MAX_BYTES) {
                     file.delete()
                     throw MediaFiles.MediaException("O vídeo passa de 50 MB. Grave um mais curto.")
                 }
-                return Picked(file, name, mime, videoDuration(file))
+                return Picked(file, name, mime, mediaDuration(file))
+            }
+            if (mime.startsWith("audio/") || mime == "application/ogg") {
+                if (file.length() > MAX_BYTES) {
+                    file.delete()
+                    throw MediaFiles.MediaException("O áudio passa de 50 MB.")
+                }
+                return Picked(file, name, mime, mediaDuration(file))
             }
             if (mime == "image/gif" || mime == "image/png") return Picked(file, name, mime, null)
             val jpeg = shrinkPhoto(context, file) ?: return Picked(file, name, mime, null)
@@ -282,7 +326,7 @@ class MediaPickActivity : Activity() {
             return out
         }
 
-        private fun videoDuration(file: File): Long? {
+        private fun mediaDuration(file: File): Long? {
             val retriever = MediaMetadataRetriever()
             return try {
                 retriever.setDataSource(file.absolutePath)

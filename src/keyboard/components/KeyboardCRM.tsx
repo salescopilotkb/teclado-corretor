@@ -1,12 +1,26 @@
 /**
- * CRM no teclado expandido: funil por etapa, clientes, ficha do cliente e
- * cadastro. Tudo grava no mesmo armazenamento do app (Repo).
+ * CRM no teclado expandido: funil por etapa, etiquetas, clientes, ficha do
+ * cliente e cadastro. "Conversar" abre a conversa do cliente no WhatsApp (o
+ * número vira um link wa.me). Tudo grava no mesmo armazenamento do app (Repo).
  */
 import { t } from '../../i18n';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { formatDayLong, upcoming } from '../../agenda/agenda';
-import { countByStage, initials, lastContactLabel, newLeadId, sortLeads, stagesFor } from '../../crm/crm';
+import {
+  allTags,
+  cleanTag,
+  countByStage,
+  hasTag,
+  initials,
+  lastContactLabel,
+  newLeadId,
+  sortLeads,
+  stagesFor,
+  toggleTag,
+  whatsappLink,
+} from '../../crm/crm';
+import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { SegmentProfile } from '../../segments/segments';
 import { Repo } from '../../storage/storage';
 import type { CRMLead, ScheduleItem } from '../../types';
@@ -14,8 +28,12 @@ import { formatFollowUp } from '../../utils/formatters';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, useColors } from '../theme';
 import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
+import type { IconName } from './Icon';
+import { ActionButton, UseButton } from './KeyboardButtons';
 import { ChoiceRow, KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
+import { MAX_RESULTS, NoResults, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
+import { TagFilter, TagList, TagPicker } from './TagChips';
 
 interface Props {
   segment: SegmentProfile;
@@ -30,12 +48,50 @@ interface Props {
   onSchedule: (lead: CRMLead) => void;
 }
 
-type View_ = { name: 'list' } | { name: 'detail'; id: string } | { name: 'form'; id: string | null };
+type View_ = { name: 'list' } | { name: 'search' } | { name: 'detail'; id: string } | { name: 'form'; id: string | null };
 
 export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClose, onChanged, onSchedule }: Props) {
   const [view, setView] = useState<View_>({ name: 'list' });
   const safeLeads = leads || [];
   const safeAgenda = agenda || [];
+
+  /** "Conversar": abre a conversa no WhatsApp e registra o contato de hoje. */
+  const talk = (lead: CRMLead) => {
+    const link = whatsappLink(lead.phone);
+    if (!link) return;
+    // Sem app para abrir o link: põe o link na conversa atual
+    KeyboardBridge.openUrl(link).catch(() => onInsert(link));
+    Repo.saveLead({ ...lead, lastContactAt: new Date().toISOString() });
+    onChanged();
+  };
+
+  if (view.name === 'search') {
+    return (
+      <SearchPanel testID="crm-search" placeholder={t('Buscar clientes')} onClose={() => setView({ name: 'list' })}>
+        {query => {
+          const digits = query.replace(/\D/g, '');
+          const found = sortLeads(safeLeads)
+            .filter(
+              l =>
+                matches(query, l.clientName, l.notes, l.stage, t(l.stage), ...(l.tags ?? [])) ||
+                // Telefone: acha pelos números, com ou sem espaço e traço
+                (digits.length >= 3 && (l.phone ?? '').replace(/\D/g, '').includes(digits)),
+            )
+            .slice(0, MAX_RESULTS);
+          if (!found.length) return <NoResults query={query} />;
+          return found.map(item => (
+            <LeadRow
+              key={item.id}
+              lead={item}
+              testID={`search-lead-${item.id}`}
+              onPress={() => setView({ name: 'detail', id: item.id })}
+              onTalk={() => talk(item)}
+            />
+          ));
+        }}
+      </SearchPanel>
+    );
+  }
 
   if (view.name === 'form') {
     const editing = view.id ? safeLeads.find(l => l.id === view.id) ?? null : null;
@@ -44,6 +100,7 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
         segment={segment}
         lead={editing}
         onCancel={() => setView(editing ? { name: 'detail', id: editing.id } : { name: 'list' })}
+        tags={allTags(safeLeads)}
         onSaved={lead => {
           Repo.saveLead(lead);
           onChanged();
@@ -75,6 +132,8 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
           }}
           onInsert={onInsert}
           onSchedule={() => onSchedule(lead)}
+          onTalk={() => talk(lead)}
+          tags={allTags(safeLeads)}
         />
       );
     }
@@ -87,6 +146,8 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
       onClose={onClose}
       onOpen={id => setView({ name: 'detail', id })}
       onNew={() => setView({ name: 'form', id: null })}
+      onSearch={() => setView({ name: 'search' })}
+      onTalk={talk}
     />
   );
 }
@@ -99,24 +160,34 @@ function LeadList({
   onClose,
   onOpen,
   onNew,
+  onSearch,
+  onTalk,
 }: {
   segment: SegmentProfile;
   leads: CRMLead[];
   onClose: () => void;
   onOpen: (id: string) => void;
   onNew: () => void;
+  onSearch: () => void;
+  onTalk: (lead: CRMLead) => void;
 }) {
   const colors = useColors();
   const styles = useStyles();
   const safeLeads = leads || [];
   const [stage, setStage] = useState<string | null>(null);
+  const [tag, setTag] = useState<string | null>(null);
   const stages = stagesFor(segment, safeLeads);
   const counts = countByStage(safeLeads);
-  const shown = useMemo(() => sortLeads(stage ? safeLeads.filter(l => l.stage === stage) : safeLeads), [safeLeads, stage]);
+  const tags = allTags(safeLeads);
+  const shown = useMemo(
+    () => sortLeads(safeLeads.filter(l => (!stage || l.stage === stage) && (!tag || hasTag(l, tag)))),
+    [safeLeads, stage, tag],
+  );
 
   return (
     <View style={styles.flex}>
       <Header title={t('Clientes')} count={safeLeads.length} onBack={onClose} actionLabel={t('Novo cliente')} onAction={onNew} />
+      <SearchLauncher testID="crm-search-open" placeholder={t('Buscar clientes')} onPress={onSearch} />
 
       {/* Funil: uma "coluna" por etapa, com a quantidade */}
       <ScrollView
@@ -130,6 +201,11 @@ function LeadList({
           <StageTab key={s} index={i + 1} label={t(s)} count={counts.get(s) ?? 0} active={stage === s} onPress={() => setStage(s)} />
         ))}
       </ScrollView>
+      {tags.length > 0 && (
+        <View style={styles.tagFilter}>
+          <TagFilter tags={tags} value={tag} onChange={setTag} />
+        </View>
+      )}
 
       <FlatList
         data={shown}
@@ -140,35 +216,47 @@ function LeadList({
           <View style={styles.empty}>
             <Icon name="clientes" size={32} color={colors.textMuted} />
             <Text style={styles.emptyText}>
-              {leads.length ? t('Nenhum cliente nesta etapa.') : t('Cadastre seu primeiro cliente para acompanhar o funil de vendas.')}
+              {leads.length
+                ? tag
+                  ? t('Nenhum cliente com esta etiqueta nesta etapa.')
+                  : t('Nenhum cliente nesta etapa.')
+                : t('Cadastre seu primeiro cliente para acompanhar o funil de vendas.')}
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <Pressable
-            testID={`lead-${item.id}`}
-            style={({ pressed }) => [styles.leadCard, pressed && styles.pressed]}
-            onPress={() => onOpen(item.id)}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials(item.clientName)}</Text>
-            </View>
-            <View style={styles.flex}>
-              <Text style={styles.leadName} numberOfLines={1}>
-                {item.clientName}
-              </Text>
-              <Text style={styles.leadMeta} numberOfLines={1}>
-                {item.phone || t('Sem telefone')} · {lastContactLabel(item)}
-              </Text>
-            </View>
-            <View style={styles.stagePill}>
-              <Text style={styles.stagePillText} numberOfLines={1}>
-                {t(item.stage)}
-              </Text>
-            </View>
-          </Pressable>
-        )}
+        renderItem={({ item }) => <LeadRow lead={item} testID={`lead-${item.id}`} onPress={() => onOpen(item.id)} onTalk={() => onTalk(item)} />}
       />
     </View>
+  );
+}
+
+/**
+ * Cliente na lista (e nos resultados da busca): iniciais, nome, etapa, último
+ * contato e etiquetas. "Conversar" abre a conversa no WhatsApp.
+ */
+function LeadRow({ lead, onPress, onTalk, testID }: { lead: CRMLead; onPress: () => void; onTalk: () => void; testID?: string }) {
+  const styles = useStyles();
+  const canTalk = !!whatsappLink(lead.phone);
+  return (
+    <Pressable testID={testID} style={({ pressed }) => [styles.leadCard, pressed && styles.pressed]} onPress={onPress}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{initials(lead.clientName)}</Text>
+      </View>
+      <View style={[styles.flex, styles.leadBody]}>
+        <Text style={styles.leadName} numberOfLines={1}>
+          {lead.clientName}
+        </Text>
+        <Text style={styles.leadMeta} numberOfLines={1}>
+          {t(lead.stage)} · {lastContactLabel(lead)}
+        </Text>
+        <TagList tags={lead.tags} max={3} />
+      </View>
+      {canTalk ? (
+        <UseButton testID={testID && `${testID}-talk`} label={t('Conversar')} onPress={onTalk} />
+      ) : (
+        <Text style={styles.noPhone}>{t('Sem WhatsApp')}</Text>
+      )}
+    </Pressable>
   );
 }
 
@@ -198,6 +286,8 @@ function LeadDetail({
   onDelete,
   onInsert,
   onSchedule,
+  onTalk,
+  tags,
 }: {
   segment: SegmentProfile;
   lead: CRMLead;
@@ -209,8 +299,12 @@ function LeadDetail({
   onDelete: () => void;
   onInsert: (text: string) => void;
   onSchedule: () => void;
+  onTalk: () => void;
+  /** Etiquetas usadas nos clientes (para ligar/desligar na ficha). */
+  tags: string[];
 }) {
   const styles = useStyles();
+  const link = whatsappLink(lead.phone);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const next = upcoming(agenda, 2);
   const touch = (changes: Partial<CRMLead>) => onSave({ ...lead, ...changes, lastContactAt: new Date().toISOString() });
@@ -225,6 +319,11 @@ function LeadDetail({
           </View>
           <View style={styles.flex}>
             <Text style={styles.detailPhone}>{lead.phone || t('Sem telefone')}</Text>
+            {link ? (
+              <Text style={styles.link} numberOfLines={1}>
+                {link.replace('https://', '')}
+              </Text>
+            ) : null}
             <Text style={styles.leadMeta}>{t('Último contato: {lastContactLabellead}', { lastContactLabellead: lastContactLabel(lead).toLowerCase() })}</Text>
           </View>
         </View>
@@ -236,12 +335,21 @@ function LeadDetail({
           onChange={stage => onSave({ ...lead, stage })}
         />
 
+        <Text style={styles.section}>{t('Etiquetas')}</Text>
+        <TagPicker
+          available={tags}
+          selected={lead.tags ?? []}
+          onToggle={tag => onSave({ ...lead, tags: toggleTag(lead.tags ?? [], tag) })}
+          onNew={onEdit}
+        />
+
         <Text style={styles.section}>{t('Ações')}</Text>
         <View style={styles.actions}>
+          {link ? <Action testID="lead-talk" icon="compartilhar" label={t('Conversar no WhatsApp')} primary onPress={onTalk} /> : null}
           <Action
             icon="respostas"
             label={t('Enviar mensagem de retorno')}
-            primary
+            primary={!link}
             onPress={() => {
               touch({});
               onInsert(formatFollowUp(lead.clientName.split(/\s+/)[0], segment.id));
@@ -249,7 +357,7 @@ function LeadDetail({
           />
           <Action icon="calendario" label={t('Agendar')} onPress={onSchedule} />
           <Action icon="check" label={t('Registrar contato')} onPress={() => touch({})} />
-          {lead.phone ? <Action icon="adicionar" label={t('Inserir telefone')} onPress={() => onInsert(lead.phone)} /> : null}
+          {link ? <Action icon="adicionar" label={t('Inserir link do WhatsApp')} onPress={() => onInsert(link)} /> : null}
         </View>
 
         {next.length > 0 && (
@@ -282,11 +390,12 @@ function LeadDetail({
   );
 }
 
-function Action({ icon, label, primary, onPress }: { icon: 'respostas' | 'calendario' | 'check' | 'adicionar'; label: string; primary?: boolean; onPress: () => void }) {
+function Action({ icon, label, primary, onPress, testID }: { icon: IconName; label: string; primary?: boolean; onPress: () => void; testID?: string }) {
   const colors = useColors();
   const styles = useStyles();
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       style={({ pressed }) => [styles.action, primary && styles.actionPrimary, pressed && styles.pressed]}
       onPress={onPress}>
@@ -303,39 +412,71 @@ function Action({ icon, label, primary, onPress }: { icon: 'respostas' | 'calend
 
 const LEAD_FIELDS: FormFieldSpec[] = [
   { key: 'name', label: 'Nome do cliente', placeholder: 'Toque e digite', kind: 'name' },
-  { key: 'phone', label: 'Telefone / WhatsApp', placeholder: 'Opcional', kind: 'phone' },
+  { key: 'phone', label: 'WhatsApp do cliente', placeholder: 'Com DDD (opcional)', kind: 'phone' },
   { key: 'notes', label: 'Anotações', placeholder: 'Opcional: interesse, orçamento...' },
 ];
+
+const NEW_TAG_FIELD: FormFieldSpec = { key: 'newTag', label: 'Nova etiqueta', placeholder: 'Ex: Quente, Indicação, VIP' };
 
 function LeadForm({
   segment,
   lead,
+  tags: available,
   onCancel,
   onSaved,
 }: {
   segment: SegmentProfile;
   lead: CRMLead | null;
+  /** Etiquetas usadas nos clientes. */
+  tags: string[];
   onCancel: () => void;
   onSaved: (l: CRMLead) => void;
 }) {
   const styles = useStyles();
-  const form = useKeyboardForm(LEAD_FIELDS, {
+  const [addingTag, setAddingTag] = useState(false);
+  const fields = useMemo(() => (addingTag ? [...LEAD_FIELDS, NEW_TAG_FIELD] : LEAD_FIELDS), [addingTag]);
+  const form = useKeyboardForm(fields, {
     name: lead?.clientName ?? '',
     phone: lead?.phone ?? '',
     notes: lead?.notes ?? '',
+    newTag: '',
   });
   const [stage, setStage] = useState(lead?.stage ?? segment.crmStages[0]);
+  const [tags, setTags] = useState<string[]>(lead?.tags ?? []);
   const name = form.values.name.trim();
+  const link = whatsappLink(form.values.phone);
+  const activeSpec = fields.find(f => f.key === form.active);
+
+  // Abriu "Nova etiqueta": o teclado escreve nela
+  useEffect(() => {
+    if (addingTag) form.setActive('newTag');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addingTag]);
+
+  /** Etiqueta digitada entra na lista do cliente (sem repetir). */
+  const addTyped = (list: string[]) => {
+    const typed = cleanTag(form.values.newTag ?? '');
+    return typed && !list.some(x => x.toLowerCase() === typed.toLowerCase()) ? [...list, typed] : list;
+  };
+
+  const confirmTag = () => {
+    setTags(addTyped);
+    form.setValue('newTag', '');
+    setAddingTag(false);
+    form.setActive('name');
+  };
 
   const save = () => {
     if (!name) return;
     const now = new Date().toISOString();
+    const finalTags = addTyped(tags);
     onSaved({
       id: lead?.id ?? newLeadId(),
       clientName: name,
       phone: form.values.phone.trim(),
       notes: form.values.notes.trim() || undefined,
       stage,
+      tags: finalTags.length ? finalTags : undefined,
       createdAt: lead?.createdAt ?? now,
       lastContactAt: lead?.lastContactAt ?? now,
     });
@@ -352,12 +493,36 @@ function LeadForm({
       />
       <ScrollView style={styles.flex} contentContainerStyle={styles.form} keyboardShouldPersistTaps="always">
         {LEAD_FIELDS.map(f => (
-          <KeyboardFormField key={f.key} spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
+          <React.Fragment key={f.key}>
+            <KeyboardFormField spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
+            {/* O número vira o link da conversa */}
+            {f.key === 'phone' && form.values.phone.trim() ? (
+              <Text style={[styles.hint, !link && styles.hintError]}>
+                {link ? t('Link da conversa: {link}', { link: link.replace('https://', '') }) : t('Número incompleto: inclua o DDD.')}
+              </Text>
+            ) : null}
+          </React.Fragment>
         ))}
         <Text style={styles.section}>{t('Etapa')}</Text>
         <ChoiceRow options={segment.crmStages.map(s => ({ value: s, label: t(s) }))} value={stage} onChange={setStage} />
+
+        <Text style={styles.section}>{t('Etiquetas')}</Text>
+        <TagPicker available={available} selected={tags} onToggle={tag => setTags(list => toggleTag(list, tag))} onNew={addingTag ? undefined : () => setAddingTag(true)} />
+        {addingTag && (
+          <View style={styles.newTag}>
+            <View style={styles.flex}>
+              <KeyboardFormField
+                spec={NEW_TAG_FIELD}
+                value={form.values.newTag ?? ''}
+                active={form.active === 'newTag'}
+                onPress={() => form.setActive('newTag')}
+              />
+            </View>
+            <ActionButton testID="tag-add" icon="check" label={t('Adicionar')} onPress={confirmTag} />
+          </View>
+        )}
       </ScrollView>
-      <KeyboardFormKeys sink={form.sink} activeKey={form.active} />
+      <KeyboardFormKeys sink={form.sink} activeKey={form.active} spec={activeSpec} />
     </View>
   );
 }
@@ -488,6 +653,13 @@ const useStyles = makeStyles(colors => ({
   avatarTextLarge: { fontSize: 18 },
   leadName: { fontSize: 15, fontWeight: '600', color: colors.text },
   leadMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  leadBody: { gap: 3 },
+  noPhone: { fontSize: 11, color: colors.textMuted },
+  link: { fontSize: 12, color: colors.primaryText, marginTop: 1 },
+  tagFilter: { paddingHorizontal: spacing.sm, paddingBottom: spacing.xs },
+  hint: { fontSize: 12, color: colors.textMuted, marginTop: -2, paddingHorizontal: spacing.xs },
+  hintError: { color: colors.danger },
+  newTag: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   stagePill: {
     maxWidth: 120,
     paddingHorizontal: spacing.sm,

@@ -13,6 +13,7 @@ import android.net.Uri
 import android.text.TextUtils
 import android.util.Log
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -589,6 +590,15 @@ class CustomKeyboardService : InputMethodService() {
      * baixo continua com o campo de texto em foco: o que o JS inserir vai
      * direto para a conversa.
      */
+    /**
+     * Vibração curta de "pegou o item" (segurar um botão do menu para arrastar).
+     * Segue a vibração ao toque do Android e não precisa de permissão.
+     */
+    fun hapticLongPress(): Boolean {
+        val view = rootContainer ?: return false
+        return view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING)
+    }
+
     fun setExpanded(value: Boolean): Boolean {
         expanded = value
         rootContainer?.targetHeightPx = keyboardHeightPx()
