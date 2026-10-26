@@ -1,5 +1,5 @@
 import Foundation
-import React
+// React Native: cabeçalhos pelo CorretorKeyboardExtension-Bridging-Header.h
 
 /**
  * KeyboardBridge (iOS) — mesma API JS do módulo Android:
@@ -17,7 +17,7 @@ final class KeyboardBridge: RCTEventEmitter {
         KeyboardBridge.current = self
     }
 
-    override static func requiresMainQueueSetup() -> Bool { true }
+    @objc static func requiresMainQueueSetup() -> Bool { true }
     override func supportedEvents() -> [String]! { ["onKeyboardShow", "onKeyboardHide", "onSelectionChange"] }
     override func startObserving() { hasListeners = true }
     override func stopObserving() { hasListeners = false }

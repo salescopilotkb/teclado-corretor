@@ -1,0 +1,106 @@
+name: Build KEYCON iOS
+
+# Compila o app do iPhone (com o teclado) a cada commit, junto com o APK.
+# Sem conta Apple Developer ainda: compila para o simulador, sem assinatura.
+# Serve para saber se o código iOS compila; para instalar num iPhone é
+# preciso assinar com a conta da Apple (DEVELOPMENT_TEAM em ios/project.yml).
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+        with:
+          # Histórico completo: a versão do app é o número de commits
+          fetch-depth: 0
+
+      - name: Configurar Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Instalar Dependências NPM
+        run: npm ci
+
+      - name: Versão do app (a cada commit)
+        run: node scripts/write_build_info.js --github-env
+
+      - name: Selecionar Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Gerar projeto Xcode (XcodeGen)
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Instalar Pods
+        working-directory: ios
+        run: |
+          pod --version
+          pod install
+
+      - name: Compilar app e teclado (simulador)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace ios/CorretorKeyboard.xcworkspace \
+            -scheme CorretorKeyboard \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath ios/build \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$KEYCON_VERSION_NAME" \
+            CURRENT_PROJECT_VERSION="$KEYCON_VERSION_CODE" \
+            build 2>&1 | tee build-ios.log
+
+      - name: Exibir detalhes do erro se falhar
+        if: failure()
+        run: |
+          echo "=========================================="
+          echo "ERROS DA COMPILACAO:"
+          echo "=========================================="
+          grep -E "error:|fatal error|\*\* BUILD FAILED" build-ios.log | head -n 60 || true
+          echo "=========================================="
+          echo "ULTIMAS 150 LINHAS DO LOG:"
+          echo "=========================================="
+          tail -n 150 build-ios.log || true
+
+      - name: Salvar Log de Erro como Artefato
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: build-ios.log
+
+      - name: Conferir o teclado dentro do app
+        if: success()
+        run: |
+          APP=ios/build/Build/Products/Release-iphonesimulator/CorretorKeyboard.app
+          ls "$APP/PlugIns/CorretorKeyboardExtension.appex"
+          ls -la "$APP/main.jsbundle" "$APP/PlugIns/CorretorKeyboardExtension.appex/main.jsbundle"
+
+      - name: Compactar app do simulador
+        if: success()
+        run: |
+          cd ios/build/Build/Products/Release-iphonesimulator
+          zip -qry "$GITHUB_WORKSPACE/KEYCON-iOS-simulador-v${{ env.KEYCON_VERSION_NAME }}.zip" CorretorKeyboard.app
+
+      - name: Salvar app do simulador como Artefato
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KEYCON-iOS-simulador-v${{ env.KEYCON_VERSION_NAME }}
+          path: KEYCON-iOS-simulador-v${{ env.KEYCON_VERSION_NAME }}.zip

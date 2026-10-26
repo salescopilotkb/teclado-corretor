@@ -47,7 +47,7 @@ serviço: cadastre seus produtos com fotos e envie tudo pelo teclado, dentro do 
 | Artes originais da marca (ícone, símbolo K, logotipos com e sem slogan) | `assets/` |
 | Versões otimizadas usadas no app + componente `KeyconLogo` / `KeyconMark` | `src/assets/brand/`, `src/keyboard/components/KeyconLogo.tsx` |
 | Ícone do app no Android (clássico, redondo e adaptativo) | `android/app/src/main/res/mipmap-*` |
-| Ícone do iPhone (App Store, 1024 × 1024 sem transparência) | `ios/AppIcon/AppIcon-1024.png` → arraste para o AppIcon no Xcode |
+| Ícone do iPhone (App Store, 1024 × 1024 sem transparência) | `ios/CorretorKeyboard/Images.xcassets/AppIcon.appiconset/AppIcon-1024.png` |
 
 Coral só em ações, marca e estados ativos; grafite como cor estrutural.
 
@@ -169,22 +169,26 @@ Copie `src/`, `index.js`, `backend/` e os arquivos de `android/` e `ios/` deste 
    “KEYCON” → no WhatsApp, troque de teclado (ícone ⌨️ na barra de navegação).
 
 ### 3. iOS
-1. Xcode → File › New › Target › **Custom Keyboard Extension** (`CorretorKeyboardExtension`).
-2. Substitua os arquivos gerados pelos de `ios/CorretorKeyboardExtension/` (aceite criar o bridging header).
-3. No `Podfile`, adicione o target da extensão herdando os pods do React:
-   ```ruby
-   target 'CorretorKeyboardExtension' do
-     inherit! :complete
-   end
-   ```
-4. Ative **App Groups** (`group.com.corretorkeyboard`) no app **e** na extensão, e adicione a
-   chave `AppGroup` também no `Info.plist` do app (o MMKV lê esta chave).
-5. Inclua `main.jsbundle` no "Copy Bundle Resources" da extensão (build de release).
-6. Fonte da marca: arraste os 4 arquivos `Inter-*.otf` de `android/app/src/main/assets/fonts/` para o
-   Xcode, marcando os dois targets (app e extensão), e adicione a lista `UIAppFonts` (igual à do
-   `Info.plist` da extensão) também no `Info.plist` do app. Depois rode `cd ios && pod install`
-   (o `react-native-svg` tem parte nativa).
-7. Ajustes › Geral › Teclado › Teclados › Adicionar › “KEYCON” → **Permitir Acesso Total**.
+O projeto Xcode é gerado pelo [XcodeGen](https://github.com/yonaskolb/XcodeGen) a partir de
+`ios/project.yml` (o `.xcodeproj` não vai para o git). Precisa de um Mac com Xcode 15.
+1. `brew install xcodegen` (uma vez).
+2. `cd ios && xcodegen generate && pod install`.
+3. Abra `ios/CorretorKeyboard.xcworkspace`. Em **Signing & Capabilities**, escolha o seu Team nos
+   dois alvos (`CorretorKeyboard` e `CorretorKeyboardExtension`) ou preencha `DEVELOPMENT_TEAM`
+   em `ios/project.yml`. Registre na conta da Apple os IDs `com.corretorkeyboard`,
+   `com.corretorkeyboard.keyboard` e o App Group `group.com.corretorkeyboard`.
+4. Rode no iPhone. Depois: Ajustes › Geral › Teclado › Teclados › Adicionar › “KEYCON” →
+   **Permitir Acesso Total**.
+
+O que já vem pronto no projeto:
+- App (`ios/CorretorKeyboard`) abre o componente `CorretorApp`; o teclado
+  (`ios/CorretorKeyboardExtension`) abre o `CorretorKeyboard`. Cada um leva o seu `main.jsbundle`.
+- App Group nos dois alvos (entitlements + chave `AppGroup` no `Info.plist`, que o MMKV lê):
+  app e teclado usam os mesmos dados.
+- Fonte Inter nos dois alvos (copiada de `android/app/src/main/assets/fonts/`) e ícone em
+  `ios/CorretorKeyboard/Images.xcassets/AppIcon.appiconset/`.
+- CI: `.github/workflows/build-ios.yml` compila app + teclado para o simulador, sem assinatura,
+  a cada commit (artefato `KEYCON-iOS-simulador-v…`).
 
 ### 4. Backend de IA
 ```bash

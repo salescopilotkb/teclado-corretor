@@ -1,5 +1,5 @@
 import UIKit
-import React
+// React Native: cabeçalhos pelo CorretorKeyboardExtension-Bridging-Header.h
 
 /**
  * KeyboardViewController — iOS Custom Keyboard Extension

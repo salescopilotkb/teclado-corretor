@@ -1,0 +1,123 @@
+# Projeto Xcode do KEYCON (iPhone), gerado pelo XcodeGen:
+#   cd ios && xcodegen generate && pod install
+# O CorretorKeyboard.xcodeproj não vai para o git: este arquivo é a fonte.
+#
+# Dois alvos, como no Android:
+#   CorretorKeyboard          → app (login, catálogo, configurações)
+#   CorretorKeyboardExtension → teclado (Custom Keyboard Extension)
+# Os dois usam o mesmo bundle JS (index.js) e o mesmo App Group
+# (group.com.corretorkeyboard), onde fica o MMKV compartilhado.
+name: CorretorKeyboard
+
+options:
+  bundleIdPrefix: com.corretorkeyboard
+  deploymentTarget:
+    iOS: "14.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    # A CI troca pela versão do commit (scripts/write_build_info.js)
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    VERSIONING_SYSTEM: apple-generic
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_BITCODE: NO
+    CLANG_CXX_LANGUAGE_STANDARD: c++20
+    CLANG_CXX_LIBRARY: libc++
+    CLANG_ENABLE_MODULES: YES
+    REACT_NATIVE_PATH: "${SRCROOT}/../node_modules/react-native"
+    OTHER_CPLUSPLUSFLAGS:
+      - "$(OTHER_CFLAGS)"
+      - "-DFOLLY_NO_CONFIG"
+      - "-DFOLLY_MOBILE=1"
+      - "-DFOLLY_USE_LIBCPP=1"
+      - "-DFOLLY_CFG_NO_COROUTINES=1"
+      - "-DFOLLY_HAVE_CLOCK_GETTIME=1"
+    LIBRARY_SEARCH_PATHS:
+      - "\"$(SDKROOT)/usr/lib/swift\""
+      - "\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\""
+      - "\"$(inherited)\""
+    OTHER_LDFLAGS:
+      - "$(inherited)"
+      - "-ObjC"
+      - "-lc++"
+    # Preencha com o Team ID da conta Apple Developer para instalar no iPhone
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  CorretorKeyboard:
+    type: application
+    platform: iOS
+    sources:
+      - path: CorretorKeyboard
+      - path: ../android/app/src/main/assets/fonts
+        group: Fonts
+        buildPhase: resources
+    dependencies:
+      - target: CorretorKeyboardExtension
+    settings:
+      base:
+        PRODUCT_NAME: CorretorKeyboard
+        PRODUCT_BUNDLE_IDENTIFIER: com.corretorkeyboard
+        INFOPLIST_FILE: CorretorKeyboard/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CorretorKeyboard/CorretorKeyboard.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
+    postCompileScripts:
+      - name: Bundle React Native code and images
+        script: |
+          set -e
+          WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"
+          REACT_NATIVE_XCODE="$REACT_NATIVE_PATH/scripts/react-native-xcode.sh"
+          /bin/sh -c "$WITH_ENVIRONMENT $REACT_NATIVE_XCODE"
+        inputFiles:
+          - "$(SRCROOT)/.xcode.env"
+          - "$(SRCROOT)/.xcode.env.local"
+
+  CorretorKeyboardExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: CorretorKeyboardExtension
+      - path: ../android/app/src/main/assets/fonts
+        group: Fonts
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: CorretorKeyboardExtension
+        PRODUCT_BUNDLE_IDENTIFIER: com.corretorkeyboard.keyboard
+        INFOPLIST_FILE: CorretorKeyboardExtension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CorretorKeyboardExtension/CorretorKeyboardExtension.entitlements
+        SWIFT_VERSION: "5.0"
+        SWIFT_OBJC_BRIDGING_HEADER: CorretorKeyboardExtension/CorretorKeyboardExtension-Bridging-Header.h
+        # O teclado usa os frameworks (Hermes) que vão dentro do app
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
+          - "@executable_path/../../Frameworks"
+    postCompileScripts:
+      # O teclado roda em outro processo e carrega o próprio main.jsbundle
+      - name: Bundle React Native code and images
+        script: |
+          set -e
+          WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"
+          REACT_NATIVE_XCODE="$REACT_NATIVE_PATH/scripts/react-native-xcode.sh"
+          /bin/sh -c "$WITH_ENVIRONMENT $REACT_NATIVE_XCODE"
+        inputFiles:
+          - "$(SRCROOT)/.xcode.env"
+          - "$(SRCROOT)/.xcode.env.local"
+
+schemes:
+  CorretorKeyboard:
+    build:
+      targets:
+        CorretorKeyboard: all
+        CorretorKeyboardExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release

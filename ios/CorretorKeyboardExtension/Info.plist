@@ -1,40 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Info.plist (trecho) do target CorretorKeyboardExtension -->
+<!-- Info.plist do target CorretorKeyboardExtension (teclado do KEYCON) -->
 <plist version="1.0">
 <dict>
-    <key>CFBundleDisplayName</key>
-    <string>KEYCON</string>
-    <!-- Fonte da marca (Inter). Adicione os arquivos de android/app/src/main/assets/fonts
-         ao "Copy Bundle Resources" deste target e do app; o Info.plist do app leva a mesma lista. -->
-    <key>UIAppFonts</key>
-    <array>
-        <string>Inter-Regular.otf</string>
-        <string>Inter-Medium.otf</string>
-        <string>Inter-SemiBold.otf</string>
-        <string>Inter-Bold.otf</string>
-    </array>
-    <!-- App Group compartilhado com o app principal (lido pelo react-native-mmkv) -->
-    <key>AppGroup</key>
-    <string>group.com.corretorkeyboard</string>
-    <key>NSExtension</key>
-    <dict>
-        <key>NSExtensionAttributes</key>
-        <dict>
-            <key>IsASCIICapable</key>
-            <true/>
-            <key>PrefersRightToLeft</key>
-            <false/>
-            <key>PrimaryLanguage</key>
-            <string>pt-BR</string>
-            <!-- Full Access: rede (IA) + leitura do UIPasteboard -->
-            <key>RequestsOpenAccess</key>
-            <true/>
-        </dict>
-        <key>NSExtensionPointIdentifier</key>
-        <string>com.apple.keyboard-service</string>
-        <key>NSExtensionPrincipalClass</key>
-        <string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
-    </dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>pt-BR</string>
+	<key>CFBundleDisplayName</key>
+	<string>KEYCON</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>XPC!</string>
+	<!-- A versão do teclado tem de ser a mesma do app -->
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- Fonte da marca (Inter), copiada de android/app/src/main/assets/fonts -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>Inter-Regular.otf</string>
+		<string>Inter-Medium.otf</string>
+		<string>Inter-SemiBold.otf</string>
+		<string>Inter-Bold.otf</string>
+	</array>
+	<!-- App Group compartilhado com o app principal (lido pelo react-native-mmkv) -->
+	<key>AppGroup</key>
+	<string>group.com.corretorkeyboard</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<key>IsASCIICapable</key>
+			<true/>
+			<key>PrefersRightToLeft</key>
+			<false/>
+			<key>PrimaryLanguage</key>
+			<string>pt-BR</string>
+			<!-- Acesso Total: rede (IA), dados do App Group, vibração e área de transferência -->
+			<key>RequestsOpenAccess</key>
+			<true/>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.keyboard-service</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>$(PRODUCT_MODULE_NAME).KeyboardViewController</string>
+	</dict>
 </dict>
 </plist>

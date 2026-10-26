@@ -10,3 +10,9 @@ android/.gradle/
 dist/
 # Versão do app, gerada a cada build (scripts/write_build_info.js)
 src/config/buildInfo.ts
+# iOS: projeto gerado pelo XcodeGen (ios/project.yml) e pods
+ios/Pods/
+ios/*.xcodeproj
+ios/*.xcworkspace
+ios/.xcode.env.local
+xcuserdata/
