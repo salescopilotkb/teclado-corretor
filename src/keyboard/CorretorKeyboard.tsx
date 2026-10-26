@@ -139,11 +139,11 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   // Agenda e CRM: teclado em tela grande, sobre a conversa
   const translatingRef = useRef(false);
   translatingRef.current = translating;
-  // Tradução: tela grande, com o campo da conversa (já traduzido) à vista em cima
+  // Tradução: só a faixa a mais sobre o teclado; a conversa e o campo dela ficam à vista
   useEffect(() => {
     if (!translating) return;
-    setHeightModeNow('expanded');
-    const off = KeyboardBridge.onKeyboardShow(() => setHeightModeNow('expanded'));
+    setHeightModeNow('translate');
+    const off = KeyboardBridge.onKeyboardShow(() => setHeightModeNow('translate'));
     return () => {
       off();
       // Fechou a tradução: volta ao tamanho da seção que estava aberta

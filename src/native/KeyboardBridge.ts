@@ -41,8 +41,8 @@ interface KeyboardBridgeNative {
 }
 
 /** De onde o teclado pega o arquivo da seção Arquivos. */
-/** Tamanho do teclado: normal, intermediário (Atalhos) ou tela grande. */
-export type HeightMode = 'normal' | 'tall' | 'expanded';
+/** Tamanho do teclado: normal, intermediário (Atalhos), tela grande ou tradução (normal + a faixa). */
+export type HeightMode = 'normal' | 'tall' | 'expanded' | 'translate';
 
 export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
 

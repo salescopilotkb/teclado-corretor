@@ -37,7 +37,7 @@ function Chat({ visible }: { visible: boolean }) {
   const [draft, setDraft] = useState('');
   /** CRM e Agenda: teclado em tela grande (como no celular). */
   /** Tamanho do teclado pedido pelo KEYCON: normal, intermediário (Atalhos) ou tela grande. */
-  const [heightMode, setHeightMode] = useState<'normal' | 'tall' | 'expanded'>('normal');
+  const [heightMode, setHeightMode] = useState<'normal' | 'tall' | 'expanded' | 'translate'>('normal');
   useEffect(() => WebKeyboardHost.onExpandedChange(setHeightMode), []);
   const draftRef = useRef('');
   const caret = useRef(0);

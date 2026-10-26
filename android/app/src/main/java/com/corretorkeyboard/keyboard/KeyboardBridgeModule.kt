@@ -91,6 +91,7 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
                 when (mode) {
                     "expanded" -> CustomKeyboardService.HEIGHT_EXPANDED
                     "tall" -> CustomKeyboardService.HEIGHT_TALL
+                    "translate" -> CustomKeyboardService.HEIGHT_TRANSLATE
                     else -> CustomKeyboardService.HEIGHT_NORMAL
                 },
             )

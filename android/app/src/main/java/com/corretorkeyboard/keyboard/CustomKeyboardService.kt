@@ -89,11 +89,14 @@ class CustomKeyboardService : InputMethodService() {
         /** Tamanho intermediário (Atalhos): metade da tela, nunca menor que o normal + 90 dp. */
         private const val TALL_SCREEN_FRACTION = 0.5f
         private const val TALL_EXTRA_DP = 90
+        /** Tradução: o normal + a faixa da tradução (idiomas, texto e prévia), nada além. */
+        private const val TRANSLATE_EXTRA_DP = 104
 
         /** Tamanhos do teclado pedidos pelo JS (KeyboardBridge.setHeightMode). */
         const val HEIGHT_NORMAL = 0
         const val HEIGHT_TALL = 1
         const val HEIGHT_EXPANDED = 2
+        const val HEIGHT_TRANSLATE = 3
 
         /** Sem a tela do JS após esse tempo, o placeholder mostra o diagnóstico e os botões. */
         private const val LOAD_TIMEOUT_MS = 10_000L
@@ -624,7 +627,7 @@ class CustomKeyboardService : InputMethodService() {
 
     /** Normal, intermediário (Atalhos) ou tela grande (formulários, CRM, Agenda). */
     fun setHeightMode(mode: Int): Boolean {
-        heightMode = mode.coerceIn(HEIGHT_NORMAL, HEIGHT_EXPANDED)
+        heightMode = mode.coerceIn(HEIGHT_NORMAL, HEIGHT_TRANSLATE)
         rootContainer?.targetHeightPx = keyboardHeightPx()
         return true
     }
@@ -660,6 +663,10 @@ class CustomKeyboardService : InputMethodService() {
         val portraitPx = (KEYBOARD_HEIGHT_DP * metrics.density).toInt()
         if (heightMode == HEIGHT_EXPANDED) {
             return (metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt().coerceAtLeast(portraitPx)
+        }
+        if (heightMode == HEIGHT_TRANSLATE) {
+            val translatePx = portraitPx + (TRANSLATE_EXTRA_DP * metrics.density).toInt()
+            return translatePx.coerceAtMost((metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt())
         }
         if (heightMode == HEIGHT_TALL) {
             val minTall = portraitPx + (TALL_EXTRA_DP * metrics.density).toInt()

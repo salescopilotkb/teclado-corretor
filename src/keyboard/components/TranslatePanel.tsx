@@ -1,8 +1,9 @@
 /**
  * Tradução simultânea no teclado (botão "Traduzir" do menu, ao lado do
- * ícone do teclado). A pessoa escreve no seu idioma numa caixa própria (o
- * teclado de letras do KEYCON escreve nela) e a tradução vai sendo escrita,
- * já traduzida, no campo de mensagem da conversa — é só enviar.
+ * ícone do teclado). A pessoa escreve no seu idioma numa faixa leve entre o
+ * menu e as teclas (o teclado de letras do KEYCON escreve nela) e a tradução
+ * vai sendo escrita, já traduzida, no campo de mensagem da conversa — é só
+ * enviar. O teclado cresce só a altura da faixa: a conversa fica à vista.
  *
  * Tradução: Google ML Kit no próprio aparelho (src/native/Translator).
  *
@@ -15,12 +16,12 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { getSellingLanguage, getTypingLanguage, setTypingLanguage, t } from '../../i18n';
 import type { Lang } from '../../i18n';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
-import { isSimulated, isTranslatorReady, translate, TRANSLATE_LANGUAGES } from '../../native/Translator';
+import { isTranslatorReady, translate, TRANSLATE_LANGUAGES } from '../../native/Translator';
 import type { TranslateLang } from '../../native/Translator';
 import { storage } from '../../storage/storage';
 import { glassBorder, makeStyles, radius, spacing, useColors } from '../theme';
 import { Icon } from './Icon';
-import { ChoiceRow, KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
+import { KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
 
 const PAIR_KEY = 'keyboard.translatePair';
@@ -28,6 +29,12 @@ const PAIR_KEY = 'keyboard.translatePair';
 const DEBOUNCE_MS = 350;
 /** O campo da conversa devolve no máximo ~200 caracteres antes do cursor. */
 const CHECK_TAIL = 150;
+
+/** Altura da faixa (idiomas, texto e prévia): o teclado cresce só isso (heightMode 'translate'). */
+const STRIP_HEIGHT = 104;
+/** Caracteres do fim do texto que cabem numa linha da faixa. */
+const FIELD_TAIL = 42;
+const PREVIEW_TAIL = 52;
 
 const FIELD: FormFieldSpec = { key: 'text', label: 'Sua mensagem', placeholder: 'Escreva no seu idioma', kind: 'multiline' };
 
@@ -165,81 +172,142 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
   const statusText =
     status === 'downloading'
       ? t('Baixando o tradutor deste idioma (só na primeira vez, cerca de 30 MB)...')
-      : status === 'working'
-        ? t('Traduzindo...')
-        : status === 'error'
-          ? error
-          : null;
+      : status === 'error'
+        ? error
+        : null;
 
   return (
     <View style={styles.root} testID="translate-panel">
-      <View style={styles.head}>
-        <Pressable testID="translate-source" accessibilityRole="button" style={styles.langBtn} onPress={() => setPicking(p => (p === 'source' ? null : 'source'))}>
-          <Text style={styles.langLabel}>{t('De')}</Text>
-          <Text style={styles.langName} numberOfLines={1}>
-            {labelOf(pair.source)}
-          </Text>
-        </Pressable>
-        <Pressable testID="translate-swap" accessibilityRole="button" accessibilityLabel={t('Inverter idiomas')} hitSlop={6} style={styles.swap} onPress={swap}>
-          <Icon name="traduzir" size={18} color={colors.primary} />
-        </Pressable>
-        <Pressable testID="translate-target" accessibilityRole="button" style={styles.langBtn} onPress={() => setPicking(p => (p === 'target' ? null : 'target'))}>
-          <Text style={styles.langLabel}>{t('Para')}</Text>
-          <Text style={styles.langName} numberOfLines={1}>
-            {labelOf(pair.target)}
-          </Text>
-        </Pressable>
-        <Pressable testID="translate-close" accessibilityRole="button" accessibilityLabel={t('Fechar tradução')} hitSlop={8} style={styles.close} onPress={onClose}>
-          <Icon name="fechar" size={20} color={colors.textMuted} />
-        </Pressable>
-      </View>
-
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="always">
-        {picking ? (
-          <ChoiceRow
-            options={TRANSLATE_LANGUAGES.map(l => ({ value: l.id as TranslateLang, label: l.label }))}
-            value={pair[picking]}
-            onChange={id => choose(picking, id)}
+      {/* Faixa leve entre o menu e as teclas: a conversa e o campo dela continuam à vista */}
+      <View style={styles.strip}>
+        <View style={styles.head}>
+          <LangChip
+            testID="translate-source"
+            label={t('De')}
+            name={labelOf(pair.source)}
+            open={picking === 'source'}
+            onPress={() => setPicking(p => (p === 'source' ? null : 'source'))}
           />
-        ) : null}
-        <KeyboardFormField spec={FIELD} value={text} active onPress={() => form.setActive('text')} />
-        <View style={styles.result} testID="translate-result">
-          <Text style={styles.resultLabel}>{t('Vai para a conversa ({lang})', { lang: labelOf(pair.target) })}</Text>
-          <Text style={[styles.resultText, !translated && styles.resultEmpty]} numberOfLines={4}>
-            {translated || t('A tradução aparece aqui e já entra no campo de mensagem.')}
-          </Text>
-          {statusText ? <Text style={[styles.status, status === 'error' && styles.statusError]}>{statusText}</Text> : null}
-          {isSimulated ? <Text style={styles.status}>{t('Versão de testes: tradução simulada.')}</Text> : null}
+          <Pressable testID="translate-swap" accessibilityRole="button" accessibilityLabel={t('Inverter idiomas')} hitSlop={8} style={styles.iconBtn} onPress={swap}>
+            <Icon name="traduzir" size={16} color={colors.primary} />
+          </Pressable>
+          <LangChip
+            testID="translate-target"
+            label={t('Para')}
+            name={labelOf(pair.target)}
+            open={picking === 'target'}
+            onPress={() => setPicking(p => (p === 'target' ? null : 'target'))}
+          />
+          <View style={styles.flex} />
+          <Pressable testID="translate-close" accessibilityRole="button" accessibilityLabel={t('Fechar tradução')} hitSlop={8} style={styles.iconBtn} onPress={onClose}>
+            <Icon name="fechar" size={18} color={colors.textMuted} />
+          </Pressable>
         </View>
-      </ScrollView>
+
+        {picking ? (
+          <ScrollView horizontal style={styles.body} contentContainerStyle={styles.choices} keyboardShouldPersistTaps="always" showsHorizontalScrollIndicator={false}>
+            {TRANSLATE_LANGUAGES.map(l => {
+              const selected = pair[picking] === l.id;
+              return (
+                <Pressable
+                  key={l.id}
+                  testID={`translate-lang-${l.id}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  style={[styles.choice, selected && styles.choiceSelected]}
+                  onPress={() => choose(picking, l.id)}>
+                  <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{l.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <View style={styles.body}>
+            <View style={styles.field} testID="kbfield-text" accessible accessibilityLabel={t(FIELD.label)}>
+              <Text style={[styles.fieldText, !text && styles.muted]} numberOfLines={1}>
+                {text ? tail(text, FIELD_TAIL) : t(FIELD.placeholder)}
+              </Text>
+              <View style={styles.caret} />
+            </View>
+            <Text
+              testID="translate-result"
+              style={[styles.preview, status === 'error' && styles.previewError]}
+              numberOfLines={1}
+              accessibilityLiveRegion="polite">
+              {statusText ?? (translated ? `→ ${tail(translated, PREVIEW_TAIL)}` : ' ')}
+            </Text>
+          </View>
+        )}
+      </View>
 
       <KeyboardFormKeys sink={form.sink} activeKey={`text-${round}`} spec={FIELD} />
     </View>
   );
 }
 
+/** Mostra o fim do texto (onde a pessoa está escrevendo) quando ele não cabe na linha. */
+function tail(text: string, max: number): string {
+  return text.length > max ? `…${text.slice(-max)}` : text;
+}
+
+function LangChip({ testID, label, name, open, onPress }: { testID: string; label: string; name: string; open: boolean; onPress: () => void }) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${name}`}
+      accessibilityState={{ expanded: open }}
+      hitSlop={4}
+      style={[styles.chip, open && styles.chipOpen]}
+      onPress={onPress}>
+      <Text style={styles.chipText} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={styles.chipArrow}>{open ? '▴' : '▾'}</Text>
+    </Pressable>
+  );
+}
+
 const useStyles = makeStyles(colors => ({
   root: { flex: 1 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  langBtn: {
-    flex: 1,
-    minHeight: 40,
+  flex: { flex: 1 },
+  strip: { height: STRIP_HEIGHT, paddingHorizontal: spacing.sm, paddingTop: 4, gap: 4 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 28,
+    maxWidth: 140,
     paddingHorizontal: spacing.sm,
-    justifyContent: 'center',
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     backgroundColor: colors.surface,
     ...glassBorder(colors),
   },
-  langLabel: { fontSize: 10, fontWeight: '600', color: colors.textMuted },
-  langName: { fontSize: 14, fontWeight: '600', color: colors.text },
-  swap: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  close: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  chipOpen: { backgroundColor: colors.primarySoft },
+  chipText: { fontSize: 13, fontWeight: '600', color: colors.text, flexShrink: 1 },
+  chipArrow: { fontSize: 10, color: colors.textMuted },
+  iconBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1 },
-  bodyContent: { paddingHorizontal: spacing.sm, gap: spacing.sm, paddingBottom: spacing.sm },
-  result: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primarySoft, gap: 4 },
-  resultLabel: { fontSize: 12, fontWeight: '600', color: colors.primaryText },
-  resultText: { fontSize: 15, lineHeight: 21, color: colors.text },
-  resultEmpty: { color: colors.textMuted },
-  status: { fontSize: 12, color: colors.textMuted },
-  statusError: { color: colors.danger },
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+  },
+  fieldText: { fontSize: 15, color: colors.text, flexShrink: 1 },
+  muted: { color: colors.textMuted },
+  caret: { width: 2, height: 18, backgroundColor: colors.primary, marginLeft: 1 },
+  preview: { marginTop: 3, paddingHorizontal: spacing.md, fontSize: 13, lineHeight: 18, color: colors.primaryText },
+  previewError: { color: colors.danger },
+  choices: { alignItems: 'center', gap: 6, paddingVertical: 4 },
+  choice: { height: 32, paddingHorizontal: spacing.md, justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.surface },
+  choiceSelected: { backgroundColor: colors.primarySoft },
+  choiceText: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
+  choiceTextSelected: { color: colors.primaryText, fontWeight: '600' },
 }));

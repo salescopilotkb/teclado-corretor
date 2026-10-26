@@ -23,9 +23,10 @@ final class KeyboardViewController: UIInputViewController {
     private let normalHeight: CGFloat = 320
 
     /// Tamanho do teclado, pedido pelo JS (KeyboardBridge.setHeightMode), como no Android:
-    /// normal, intermediário (Atalhos) ou tela grande (Agenda, CRM, formulários).
+    /// normal, intermediário (Atalhos), tela grande (Agenda, CRM, formulários) ou
+    /// tradução (o normal + a faixa da tradução, sem cobrir a conversa).
     enum HeightMode: String {
-        case normal, tall, expanded
+        case normal, tall, expanded, translate
     }
     private var heightMode: HeightMode = .normal
     /// Fração da tela no modo expandido: deixa uma faixa do app visível em cima.
@@ -37,6 +38,7 @@ final class KeyboardViewController: UIInputViewController {
         case .normal: return normalHeight
         case .tall: return max(screen * 0.5, normalHeight + 90)
         case .expanded: return max(normalHeight, screen * expandedScreenFraction)
+        case .translate: return min(normalHeight + 104, screen * expandedScreenFraction)
         }
     }
 

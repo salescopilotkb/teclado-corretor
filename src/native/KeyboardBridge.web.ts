@@ -19,7 +19,7 @@ export type CommitImageResult = 'sent' | 'unsupported' | 'failed' | 'copied';
 
 export type ShareResult = 'direct' | 'chooser' | 'copied';
 
-export type HeightMode = 'normal' | 'tall' | 'expanded';
+export type HeightMode = 'normal' | 'tall' | 'expanded' | 'translate';
 
 export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
 
