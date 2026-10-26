@@ -26,7 +26,7 @@
 	<true/>
 	<!-- App Group compartilhado com o teclado (lido pelo react-native-mmkv) -->
 	<key>AppGroup</key>
-	<string>group.com.corretorkeyboard</string>
+	<string>group.com.keycon.app</string>
 	<!-- Botão Conversar: abrir o WhatsApp -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>

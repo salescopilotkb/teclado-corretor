@@ -32,7 +32,7 @@
 	</array>
 	<!-- App Group compartilhado com o app principal (lido pelo react-native-mmkv) -->
 	<key>AppGroup</key>
-	<string>group.com.corretorkeyboard</string>
+	<string>group.com.keycon.app</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>

@@ -24,7 +24,7 @@ import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touc
 import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
 import { ItemCard } from './ItemCard';
-import { ActionButton, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
+import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
 import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
 import { ChoiceRow, KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
@@ -543,6 +543,9 @@ function ProductForm({
             </View>
           )}
           <View style={styles.imageActions}>
+            {!KeyboardBridge.canPickMedia ? (
+              <AppOnlyNote testID="product-image-app-only" text={t('No iPhone, escolha a foto do produto pelo app KEYCON.')} />
+            ) : (
             <View style={styles.row}>
               <ActionButton
                 testID="product-image-gallery"
@@ -559,6 +562,7 @@ function ProductForm({
                 onPress={() => pickImage('camera-photo')}
               />
             </View>
+            )}
             {image.url ? (
               <ActionButton
                 testID="product-image-remove"

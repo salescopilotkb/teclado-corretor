@@ -38,6 +38,9 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** iPhone: o teclado copia o arquivo e a pessoa cola no campo da conversa. */
+const PASTE_HINT_MS = 5000;
+
 /** Garante ponto final para juntar duas frases no aviso. */
 function sentence(text: string): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
@@ -237,9 +240,13 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
           showToast(t('Foto enviada para a conversa'));
           return;
         }
+        if (result === 'copied') {
+          showToast(t('Foto copiada: toque e segure no campo da conversa e escolha Colar'), PASTE_HINT_MS);
+          return;
+        }
         reason = result === 'unsupported' ? t('Este app não recebe fotos pelo teclado') : t('O app recusou a foto');
       } catch (e) {
-        reason = describeError(e);
+        reason = t(describeError(e));
       } finally {
         sending.current = false;
       }
@@ -262,10 +269,17 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       sending.current = true;
       showToast(urls.length > 1 ? t('Baixando {length} arquivos...', { length: urls.length }) : t('Baixando arquivo...'), 60000);
       try {
-        await KeyboardBridge.shareMedia(urls);
-        showToast(t('Escolha a conversa para enviar'), 2500);
+        const result = await KeyboardBridge.shareMedia(urls);
+        if (result === 'copied') {
+          showToast(
+            urls.length > 1
+              ? t('Arquivos copiados: toque e segure no campo da conversa e escolha Colar')
+              : t('Arquivo copiado: toque e segure no campo da conversa e escolha Colar'),
+            PASTE_HINT_MS,
+          );
+        } else showToast(t('Escolha a conversa para enviar'), 2500);
       } catch (e) {
-        const reason = describeError(e);
+        const reason = t(describeError(e));
         const ok = await KeyboardBridge.insertText(fallbackText).catch(() => false);
         showToast(ok ? t('{v} Link inserido.', { v: sentence(reason) }) : reason, 4000);
       } finally {
@@ -299,10 +313,13 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       sending.current = true;
       showToast(t('Baixando foto...'), 60000);
       try {
-        await KeyboardBridge.shareWithCaption(urls, caption);
-        showToast(t('Escolha a conversa: a foto vai com o texto, numa mensagem só'), 3500);
+        const result = await KeyboardBridge.shareWithCaption(urls, caption);
+        if (result === 'copied') {
+          // iPhone: o texto já entrou no campo; a foto vai copiada
+          showToast(t('Texto inserido e foto copiada: toque e segure no campo e escolha Colar'), PASTE_HINT_MS);
+        } else showToast(t('Escolha a conversa: a foto vai com o texto, numa mensagem só'), 3500);
       } catch (e) {
-        const reason = describeError(e);
+        const reason = t(describeError(e));
         const ok = await KeyboardBridge.insertText(caption).catch(() => false);
         showToast(ok ? t('{v} Texto inserido sem a foto.', { v: sentence(reason) }) : reason, 4000);
       } finally {

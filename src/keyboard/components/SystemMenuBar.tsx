@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import { t } from '../../i18n';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
+import { canTranslate } from '../../native/Translator';
 import type { MainSystemTab, MenuTab } from '../../types';
 import { makeStyles, radius, touchTarget, useColors } from '../theme';
 import type { IconName } from './Icon';
@@ -179,16 +180,18 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
           <KeyconLogo size={16} />
         )}
         {/* Tradução simultânea: escreve no seu idioma, vai traduzido para a conversa */}
-        <Pressable
-          testID="system-btn-translate"
-          accessibilityRole="button"
-          accessibilityLabel={t('Traduzir')}
-          accessibilityState={{ selected: translating }}
-          hitSlop={6}
-          onPress={onTranslate}
-          style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
-          <Icon name="traduzir" size={22} color={translating ? colors.primary : colors.textMuted} />
-        </Pressable>
+        {canTranslate && (
+          <Pressable
+            testID="system-btn-translate"
+            accessibilityRole="button"
+            accessibilityLabel={t('Traduzir')}
+            accessibilityState={{ selected: translating }}
+            hitSlop={6}
+            onPress={onTranslate}
+            style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
+            <Icon name="traduzir" size={22} color={translating ? colors.primary : colors.textMuted} />
+          </Pressable>
+        )}
         <Pressable
           testID="system-btn-keyboard"
           accessibilityRole="tab"

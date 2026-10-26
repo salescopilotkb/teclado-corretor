@@ -33,7 +33,7 @@ import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
-import { ActionButton, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
+import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
 import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
 import { KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
@@ -441,6 +441,13 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
     <View style={styles.flex}>
       <Header title={inFolder ? t('Adicionar em {folder}', { folder: inFolder }) : t('Adicionar arquivo')} onBack={onCancel} />
       <View style={styles.sheet}>
+        {!KeyboardBridge.canPickMedia ? (
+          <AppOnlyNote
+            testID="files-app-only"
+            text={t('No iPhone, a Apple não deixa o teclado abrir a galeria nem a câmera. Adicione fotos e vídeos pelo app KEYCON: eles aparecem aqui na hora.')}
+          />
+        ) : (
+        <>
         <View style={styles.sources}>
           {options.map(o => (
             <Pressable
@@ -455,6 +462,8 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
           ))}
         </View>
         <Text style={styles.hint}>{t('A galeria abre por cima da conversa. O arquivo vai para a nuvem e aparece também no app.')}</Text>
+        </>
+        )}
       </View>
     </View>
   );

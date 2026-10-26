@@ -13,9 +13,11 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
+    // namespace = pacote do código Kotlin (nome antigo, só interno);
+    // applicationId = identidade do app na Google Play (não muda depois de publicar)
     namespace "com.corretorkeyboard"
     defaultConfig {
-        applicationId "com.corretorkeyboard"
+        applicationId "com.keycon.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Versão calculada a cada commit por scripts/write_build_info.js (a CI exporta;

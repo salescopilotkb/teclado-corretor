@@ -28,7 +28,7 @@ import { makeStyles, radius, spacing, useColors } from '../theme';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
-import { ActionButton, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
+import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
 import { KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
@@ -506,7 +506,7 @@ function AudioForm({ item, onCancel, onSaved, onDelete }: FormProps<AudioShortcu
             </View>
           ) : null}
           <View style={styles.rowGap}>
-            {canRecord && (
+            {canRecord && KeyboardBridge.canUseMic && (
               <ActionButton
                 testID="audio-record"
                 icon="audio"
@@ -515,8 +515,16 @@ function AudioForm({ item, onCancel, onSaved, onDelete }: FormProps<AudioShortcu
                 onPress={record}
               />
             )}
-            <ActionButton testID="audio-file" icon="arquivos" label={t('Do celular')} disabled={!!uploader.uploading} onPress={pickFile} />
+            {KeyboardBridge.canPickMedia && (
+              <ActionButton testID="audio-file" icon="arquivos" label={t('Do celular')} disabled={!!uploader.uploading} onPress={pickFile} />
+            )}
           </View>
+          {!KeyboardBridge.canPickMedia && !(canRecord && KeyboardBridge.canUseMic) && (
+            <AppOnlyNote
+              testID="audio-app-only"
+              text={t('No iPhone, a Apple não deixa o teclado usar o microfone nem abrir os arquivos. Grave ou escolha o áudio pelo app KEYCON: ele aparece aqui na hora.')}
+            />
+          )}
         </>
       )}
       <UploadStatus uploading={uploader.uploading} error={uploader.error} />

@@ -5,6 +5,15 @@ import Foundation
  * KeyboardBridge (iOS) — mesma API JS do módulo Android:
  *   insertText, deleteBackward, sendEnter, switchKeyboard, getTargetApp,
  *   isKeyboardContext + eventos onKeyboardShow / onKeyboardHide.
+ *
+ * Diferenças do iPhone (regras da Apple para teclados):
+ *   • Fotos, vídeos e áudios não entram direto na conversa: commitImage,
+ *     shareMedia e shareWithCaption COPIAM o arquivo e respondem "copied";
+ *     o JS pede para a pessoa tocar e segurar no campo e escolher Colar.
+ *   • Não há galeria, câmera, microfone nem abrir outro app (pickMedia,
+ *     requestMicPermission, openUrl e openApp não existem aqui).
+ *   • hasFullAccess: sem o Acesso Total não há internet, dados do app
+ *     (App Group), área de transferência nem vibração.
  */
 @objc(KeyboardBridge)
 final class KeyboardBridge: RCTEventEmitter {
@@ -71,6 +80,71 @@ final class KeyboardBridge: RCTEventEmitter {
                            resolver resolve: @escaping RCTPromiseResolveBlock,
                            rejecter reject: @escaping RCTPromiseRejectBlock) {
         onMain(resolve, reject) { $0.setExpanded(expanded); return true }
+    }
+
+    @objc func setHeightMode(_ mode: String,
+                             resolver resolve: @escaping RCTPromiseResolveBlock,
+                             rejecter reject: @escaping RCTPromiseRejectBlock) {
+        onMain(resolve, reject) { $0.setHeightMode(KeyboardViewController.HeightMode(rawValue: mode) ?? .normal); return true }
+    }
+
+    @objc func hapticLongPress(_ resolve: @escaping RCTPromiseResolveBlock,
+                               rejecter reject: @escaping RCTPromiseRejectBlock) {
+        onMain(resolve, reject) { $0.hapticLongPress(); return true }
+    }
+
+    @objc func hasFullAccess(_ resolve: @escaping RCTPromiseResolveBlock,
+                             rejecter reject: @escaping RCTPromiseRejectBlock) {
+        onMain(resolve, reject) { $0.hasFullAccess }
+    }
+
+    // MARK: - Fotos, vídeos e áudios: copiar para colar
+
+    /// Copia os arquivos e responde "copied" (ou rejeita com o motivo em português).
+    private func copyMedia(_ urls: [String],
+                           caption: String?,
+                           _ resolve: @escaping RCTPromiseResolveBlock,
+                           _ reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async {
+            guard let vc = KeyboardViewController.shared else {
+                reject("E_IME_INACTIVE", "O teclado KEYCON não está ativo.", nil)
+                return
+            }
+            guard vc.hasFullAccess else {
+                reject("E_FULL_ACCESS", MediaPasteboard.Failure.noFullAccess.errorDescription, nil)
+                return
+            }
+            MediaPasteboard.copy(urls) { result in
+                switch result {
+                case .success:
+                    // Ficha do produto: o texto entra no campo; a foto vai copiada para colar junto
+                    if let caption = caption, !caption.isEmpty { vc.insert(caption) }
+                    resolve("copied")
+                case .failure(let error):
+                    reject("E_COPY", error.localizedDescription, error)
+                }
+            }
+        }
+    }
+
+    @objc func commitImage(_ url: String,
+                           description: String,
+                           resolver resolve: @escaping RCTPromiseResolveBlock,
+                           rejecter reject: @escaping RCTPromiseRejectBlock) {
+        copyMedia([url], caption: nil, resolve, reject)
+    }
+
+    @objc func shareMedia(_ urls: [String],
+                          resolver resolve: @escaping RCTPromiseResolveBlock,
+                          rejecter reject: @escaping RCTPromiseRejectBlock) {
+        copyMedia(urls, caption: nil, resolve, reject)
+    }
+
+    @objc func shareWithCaption(_ urls: [String],
+                                caption: String,
+                                resolver resolve: @escaping RCTPromiseResolveBlock,
+                                rejecter reject: @escaping RCTPromiseRejectBlock) {
+        copyMedia(urls, caption: caption, resolve, reject)
     }
 
     @objc func switchKeyboard(_ resolve: @escaping RCTPromiseResolveBlock,

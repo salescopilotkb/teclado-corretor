@@ -1,8 +1,10 @@
 /**
  * Tradutor do teclado (botão "Traduzir"): Google ML Kit Translation no
- * próprio aparelho, pelo módulo nativo KeyconTranslator (Android). Sem chave
- * de API e sem enviar o texto para fora do celular; cada idioma é baixado uma
- * vez (~30 MB) e depois funciona sem internet.
+ * próprio aparelho, pelo módulo nativo KeyconTranslator (Android:
+ * TranslatorModule.kt; iPhone: ios/CorretorKeyboardExtension/TranslatorModule.swift).
+ * Sem chave de API e sem enviar o texto para fora do celular; cada idioma é
+ * baixado uma vez (~30 MB) e depois funciona sem internet. No iPhone o
+ * download precisa do Acesso Total do teclado.
  */
 import { NativeModules } from 'react-native';
 
@@ -34,7 +36,7 @@ export function isTranslatorReady(source: TranslateLang, target: TranslateLang):
 }
 
 export function translate(text: string, source: TranslateLang, target: TranslateLang): Promise<string> {
-  if (!Native) return Promise.reject(new Error('Tradução disponível no aplicativo Android.'));
+  if (!Native) return Promise.reject(new Error('Tradução indisponível neste aparelho.'));
   return Native.translate(text, source, target);
 }
 

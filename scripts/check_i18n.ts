@@ -43,11 +43,18 @@ const EXTRA_KEYS = [
   'Nome do arquivo',
   'Nome da pasta',
   'Toque e digite',
+  // iPhone: erros que chegam do teclado e do gravador nativos (ios/)
+  'No iPhone, adicione fotos, vídeos e áudios pelo app KEYCON.',
+  'Ligue o Acesso Total do KEYCON (Ajustes › Geral › Teclado › Teclados › KEYCON) para enviar arquivos pelo teclado.',
+  'Não foi possível baixar o arquivo. Confira a internet.',
+  'Arquivo grande demais para enviar pelo teclado. Envie pelo app KEYCON.',
+  'Link do arquivo inválido.',
+  'O microfone está bloqueado para o KEYCON. Libere em Ajustes › KEYCON › Microfone.',
   // Tradução do teclado: campo do painel e erros que chegam do Android
   'Sua mensagem',
   'Escreva no seu idioma',
   'Não foi possível traduzir. Na primeira vez, o tradutor do idioma precisa ser baixado (internet).',
-  'Tradução disponível no aplicativo Android.',
+  'Tradução indisponível neste aparelho.',
   // Aba "Recentes" do painel de emojis
   'Recentes',
   // Campos do produto no teclado (ProductsTab)

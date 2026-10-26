@@ -21,15 +21,27 @@ final class KeyboardViewController: UIInputViewController {
     private var bridge: RCTBridge?
     private var heightConstraint: NSLayoutConstraint?
     private let normalHeight: CGFloat = 320
-    /// Teclado expandido (CRM em tela grande), pedido pelo JS via KeyboardBridge.setExpanded.
-    private var expanded = false
+
+    /// Tamanho do teclado, pedido pelo JS (KeyboardBridge.setHeightMode), como no Android:
+    /// normal, intermediário (Atalhos) ou tela grande (Agenda, CRM, formulários).
+    enum HeightMode: String {
+        case normal, tall, expanded
+    }
+    private var heightMode: HeightMode = .normal
     /// Fração da tela no modo expandido: deixa uma faixa do app visível em cima.
     private let expandedScreenFraction: CGFloat = 0.8
 
     private var keyboardHeight: CGFloat {
-        guard expanded else { return normalHeight }
-        return max(normalHeight, UIScreen.main.bounds.height * expandedScreenFraction)
+        let screen = UIScreen.main.bounds.height
+        switch heightMode {
+        case .normal: return normalHeight
+        case .tall: return max(screen * 0.5, normalHeight + 90)
+        case .expanded: return max(normalHeight, screen * expandedScreenFraction)
+        }
     }
+
+    /// Vibração de "pegou o item" (segurar para arrastar no menu). Sem Acesso Total o iOS ignora.
+    private lazy var haptic = UIImpactFeedbackGenerator(style: .medium)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -87,7 +99,7 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         // Ao reabrir, o teclado volta no tamanho normal
-        if expanded { setExpanded(false) }
+        if heightMode != .normal { setHeightMode(.normal) }
         KeyboardBridge.emit("onKeyboardHide", body: [:])
     }
 
@@ -101,10 +113,18 @@ final class KeyboardViewController: UIInputViewController {
 
     /// Expande o teclado para quase a tela toda (ou volta ao normal).
     func setExpanded(_ value: Bool) {
-        expanded = value
+        setHeightMode(value ? .expanded : .normal)
+    }
+
+    func setHeightMode(_ mode: HeightMode) {
+        heightMode = mode
         heightConstraint?.constant = keyboardHeight
         view.setNeedsLayout()
         view.layoutIfNeeded()
+    }
+
+    func hapticLongPress() {
+        haptic.impactOccurred()
     }
 
     /// Texto antes do cursor + tipo do campo (mesmos códigos do Android: email,

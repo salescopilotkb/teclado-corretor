@@ -6,13 +6,13 @@
 #   CorretorKeyboard          → app (login, catálogo, configurações)
 #   CorretorKeyboardExtension → teclado (Custom Keyboard Extension)
 # Os dois usam o mesmo bundle JS (index.js) e o mesmo App Group
-# (group.com.corretorkeyboard), onde fica o MMKV compartilhado.
+# (group.com.keycon.app), onde fica o MMKV compartilhado.
 name: CorretorKeyboard
 
 options:
-  bundleIdPrefix: com.corretorkeyboard
+  bundleIdPrefix: com.keycon
   deploymentTarget:
-    iOS: "14.0"
+    iOS: "15.5"
   createIntermediateGroups: true
 
 settings:
@@ -22,6 +22,8 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     VERSIONING_SYSTEM: apple-generic
     TARGETED_DEVICE_FAMILY: "1"
+    # O ML Kit (tradução) não tem versão para o simulador arm64: no Mac M1+ o simulador roda em x86_64
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": arm64
     ENABLE_BITCODE: NO
     CLANG_CXX_LANGUAGE_STANDARD: c++20
     CLANG_CXX_LIBRARY: libc++
@@ -60,7 +62,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: CorretorKeyboard
-        PRODUCT_BUNDLE_IDENTIFIER: com.corretorkeyboard
+        PRODUCT_BUNDLE_IDENTIFIER: com.keycon.app
         INFOPLIST_FILE: CorretorKeyboard/Info.plist
         CODE_SIGN_ENTITLEMENTS: CorretorKeyboard/CorretorKeyboard.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -89,7 +91,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: CorretorKeyboardExtension
-        PRODUCT_BUNDLE_IDENTIFIER: com.corretorkeyboard.keyboard
+        PRODUCT_BUNDLE_IDENTIFIER: com.keycon.app.keyboard
         INFOPLIST_FILE: CorretorKeyboardExtension/Info.plist
         CODE_SIGN_ENTITLEMENTS: CorretorKeyboardExtension/CorretorKeyboardExtension.entitlements
         SWIFT_VERSION: "5.0"

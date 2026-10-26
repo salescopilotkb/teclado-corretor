@@ -1,7 +1,7 @@
 name: Build KEYCON iOS
 
 # Compila o app do iPhone (com o teclado) a cada commit, junto com o APK.
-# Sem conta Apple Developer ainda: compila para o simulador, sem assinatura.
+# Sem conta Apple Developer ainda: compila para iPhone (arm64), sem assinatura.
 # Serve para saber se o código iOS compila; para instalar num iPhone é
 # preciso assinar com a conta da Apple (DEVELOPMENT_TEAM em ios/project.yml).
 
@@ -15,6 +15,8 @@ on:
 jobs:
   build-ios:
     runs-on: macos-14
+    # Fila longa quando faltam máquinas Mac no GitHub: desiste depois de 1 h
+    timeout-minutes: 60
 
     steps:
       - name: Checkout Código
@@ -35,8 +37,16 @@ jobs:
       - name: Versão do app (a cada commit)
         run: node scripts/write_build_info.js --github-env
 
-      - name: Selecionar Xcode 15.4
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      # React Native 0.74 compila no Xcode 15.4 e no 16 até o 16.2 (o 16.3 quebra o fmt)
+      - name: Selecionar Xcode
+        run: |
+          for v in 15.4 16.2 16.1 16.0; do
+            if [ -d "/Applications/Xcode_$v.app" ]; then
+              sudo xcode-select -s "/Applications/Xcode_$v.app"
+              break
+            fi
+          done
+          xcodebuild -version
 
       - name: Gerar projeto Xcode (XcodeGen)
         working-directory: ios
@@ -50,15 +60,15 @@ jobs:
           pod --version
           pod install
 
-      - name: Compilar app e teclado (simulador)
+      - name: Compilar app e teclado (iPhone, sem assinatura)
         run: |
           set -o pipefail
           xcodebuild \
             -workspace ios/CorretorKeyboard.xcworkspace \
             -scheme CorretorKeyboard \
             -configuration Release \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath ios/build \
             -quiet \
             CODE_SIGNING_ALLOWED=NO \
@@ -88,19 +98,20 @@ jobs:
       - name: Conferir o teclado dentro do app
         if: success()
         run: |
-          APP=ios/build/Build/Products/Release-iphonesimulator/CorretorKeyboard.app
+          APP=ios/build/Build/Products/Release-iphoneos/CorretorKeyboard.app
           ls "$APP/PlugIns/CorretorKeyboardExtension.appex"
           ls -la "$APP/main.jsbundle" "$APP/PlugIns/CorretorKeyboardExtension.appex/main.jsbundle"
 
-      - name: Compactar app do simulador
+      # Ainda sem assinatura: o .app não instala num iPhone até ser assinado com a conta da Apple
+      - name: Compactar app (sem assinatura)
         if: success()
         run: |
-          cd ios/build/Build/Products/Release-iphonesimulator
-          zip -qry "$GITHUB_WORKSPACE/KEYCON-iOS-simulador-v${{ env.KEYCON_VERSION_NAME }}.zip" CorretorKeyboard.app
+          cd ios/build/Build/Products/Release-iphoneos
+          zip -qry "$GITHUB_WORKSPACE/KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.zip" CorretorKeyboard.app
 
-      - name: Salvar app do simulador como Artefato
+      - name: Salvar app como Artefato
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: KEYCON-iOS-simulador-v${{ env.KEYCON_VERSION_NAME }}
-          path: KEYCON-iOS-simulador-v${{ env.KEYCON_VERSION_NAME }}.zip
+          name: KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}
+          path: KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.zip

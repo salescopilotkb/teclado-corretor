@@ -2,7 +2,8 @@
  * Gravador de áudio dos atalhos, no app e no teclado. No Android usa o módulo
  * nativo KeyconAudioRecorder (M4A/AAC); a permissão do microfone é pedida na
  * hora. No teclado não há Activity para o PermissionsAndroid: o pedido sai
- * pela tela invisível do KeyboardBridge (MediaPickActivity).
+ * pela tela invisível do KeyboardBridge (MediaPickActivity). No iPhone, o
+ * KeyconAudioRecorder existe só no app (ios/CorretorKeyboard/KeyconAudioRecorder.m).
  */
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 import { KeyboardBridge } from './KeyboardBridge';
@@ -19,12 +20,16 @@ const Native: RecorderNative | undefined = NativeModules.KeyconAudioRecorder;
 
 export class RecorderError extends Error {}
 
-/** Gravar está disponível neste aparelho. */
-export const canRecord = Platform.OS === 'android' && !!Native;
+/**
+ * Gravar está disponível aqui. No iPhone o gravador só existe no app (a Apple
+ * proíbe microfone em teclados), então no teclado do iPhone isto é falso.
+ */
+export const canRecord = !!Native;
 
 const BLOCKED_MESSAGE = 'O microfone está bloqueado para o KEYCON. Libere em Configurações › Apps › KEYCON › Permissões.';
 
 async function ensureMicPermission(fromKeyboard: boolean): Promise<void> {
+  // iPhone: o próprio gravador pede o microfone na primeira vez
   if (Platform.OS !== 'android') return;
   if (fromKeyboard) {
     const state = await KeyboardBridge.requestMicPermission();
@@ -46,7 +51,7 @@ async function ensureMicPermission(fromKeyboard: boolean): Promise<void> {
 
 /** `fromKeyboard`: gravando de dentro do teclado (a permissão é pedida pelo KeyboardBridge). */
 export async function startRecording({ fromKeyboard = false }: { fromKeyboard?: boolean } = {}): Promise<void> {
-  if (!Native) throw new RecorderError(t('Gravação disponível só no aplicativo Android por enquanto.'));
+  if (!Native) throw new RecorderError(t('No iPhone, grave o áudio pelo app KEYCON.'));
   await ensureMicPermission(fromKeyboard);
   try {
     await Native.start();

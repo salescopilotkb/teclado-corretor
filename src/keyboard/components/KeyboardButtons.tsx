@@ -113,6 +113,21 @@ export function UseButton({
 }
 
 /** "Excluir …?" com Cancelar / Excluir, no lugar dos botões. */
+/**
+ * No iPhone a Apple não deixa o teclado abrir a galeria, a câmera nem o
+ * microfone: no lugar dos botões, diz para fazer pelo app (aparece aqui na hora).
+ */
+export function AppOnlyNote({ text, testID }: { text: string; testID?: string }) {
+  const colors = useColors();
+  const styles = useStyles();
+  return (
+    <View style={styles.appOnly} testID={testID ?? 'app-only-note'}>
+      <Icon name="info" size={16} color={colors.textMuted} />
+      <Text style={styles.appOnlyText}>{text}</Text>
+    </View>
+  );
+}
+
 export function ConfirmDelete({ message, onCancel, onConfirm, testID }: { message: string; onCancel: () => void; onConfirm: () => void; testID?: string }) {
   const styles = useStyles();
   return (
@@ -169,4 +184,14 @@ const useStyles = makeStyles(colors => ({
   useText: { fontSize: 13, fontWeight: '700', color: colors.onPrimary },
   confirm: { gap: spacing.sm, padding: spacing.sm, borderRadius: radius.md, backgroundColor: colors.surface, ...glassBorder(colors) },
   confirmText: { fontSize: 13, lineHeight: 18, color: colors.text },
+  appOnly: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    ...glassBorder(colors),
+  },
+  appOnlyText: { flex: 1, fontSize: 13, lineHeight: 18, color: colors.textMuted },
 }));

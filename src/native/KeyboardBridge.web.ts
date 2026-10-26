@@ -7,6 +7,7 @@
  */
 import type { LocalMedia } from '../services/mediaUpload';
 import { captureWithCamera, pickAudioFile, pickFromGallery, pickPhotoOrVideo } from './MediaPicker';
+import { IOS_SIMULATION } from './platformSim';
 
 export interface KeyboardShowEvent {
   targetPackage: string | null;
@@ -14,7 +15,9 @@ export interface KeyboardShowEvent {
   inputType?: number;
 }
 
-export type CommitImageResult = 'sent' | 'unsupported' | 'failed';
+export type CommitImageResult = 'sent' | 'unsupported' | 'failed' | 'copied';
+
+export type ShareResult = 'direct' | 'chooser' | 'copied';
 
 export type HeightMode = 'normal' | 'tall' | 'expanded';
 
@@ -130,14 +133,23 @@ export const KeyboardBridge = {
   reportError: (message: string) => console.error('[KEYCON]', message),
   // Na web o campo de teste só aceita texto: fotos caem no envio do link
   getContentMimeTypes: async (): Promise<string[]> => [],
-  commitImage: async (_url: string, _description: string): Promise<CommitImageResult> => 'unsupported',
-  shareMedia: (_urls: string[]): Promise<'direct' | 'chooser'> => unavailable('O compartilhamento de arquivos'),
-  shareWithCaption: (_urls: string[], _caption: string): Promise<'direct' | 'chooser'> => unavailable('O envio de foto com texto'),
+  // Como no iPhone (?ios): o teclado copia o arquivo e a pessoa cola no campo
+  commitImage: async (_url: string, _description: string): Promise<CommitImageResult> =>
+    IOS_SIMULATION ? 'copied' : 'unsupported',
+  shareMedia: (_urls: string[]): Promise<ShareResult> =>
+    IOS_SIMULATION ? Promise.resolve('copied') : unavailable('O compartilhamento de arquivos'),
+  shareWithCaption: (_urls: string[], caption: string): Promise<ShareResult> => {
+    if (!IOS_SIMULATION) return unavailable('O envio de foto com texto');
+    target?.insert(caption);
+    return Promise.resolve('copied');
+  },
   // Na web os arquivos não são guardados no aparelho
   prefetchMedia: async (_urls: string[]) => 0,
-  // Na web o seletor de arquivos do navegador faz o papel da galeria
-  canPickMedia: true,
+  // Na web o seletor de arquivos do navegador faz o papel da galeria (no iPhone o teclado não abre a galeria)
+  canPickMedia: !IOS_SIMULATION,
+  canUseMic: !IOS_SIMULATION,
   pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> => {
+    if (IOS_SIMULATION) return Promise.reject(new Error('No iPhone, adicione fotos, vídeos e áudios pelo app KEYCON.'));
     picking = true;
     const pick =
       source === 'gallery'
@@ -163,6 +175,8 @@ export const KeyboardBridge = {
     openAppHandler?.();
     return !!openAppHandler;
   },
+  canOpenApp: !IOS_SIMULATION,
+  hasFullAccess: async () => true,
 
   onKeyboardShow(cb: (e: KeyboardShowEvent) => void) {
     showListeners.add(cb);

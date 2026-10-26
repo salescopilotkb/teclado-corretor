@@ -29,8 +29,10 @@ interface KeyboardBridgeNative {
   reportError?(message: string): void;
   getContentMimeTypes?(): Promise<string[]>;
   commitImage?(url: string, description: string): Promise<CommitImageResult>;
-  shareMedia?(urls: string[]): Promise<'direct' | 'chooser'>;
-  shareWithCaption?(urls: string[], caption: string): Promise<'direct' | 'chooser'>;
+  shareMedia?(urls: string[]): Promise<ShareResult>;
+  shareWithCaption?(urls: string[], caption: string): Promise<ShareResult>;
+  // Só no iPhone: o teclado precisa do "Acesso Total" para internet, dados do app e copiar fotos
+  hasFullAccess?(): Promise<boolean>;
   prefetchMedia?(urls: string[]): Promise<number>;
   openApp?(): Promise<boolean>;
   openUrl?(url: string): Promise<boolean>;
@@ -47,8 +49,14 @@ export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 
 /** Resposta do pedido do microfone (blocked = negou com "não perguntar de novo"). */
 export type MicPermission = 'granted' | 'denied' | 'blocked';
 
-/** sent = foto entregue na conversa; unsupported = o app só aceita texto (ou outro formato). */
-export type CommitImageResult = 'sent' | 'unsupported' | 'failed';
+/**
+ * sent = foto entregue na conversa; unsupported = o app só aceita texto (ou outro formato);
+ * copied = iPhone: a foto foi copiada e a pessoa cola no campo (o iOS não deixa o teclado colocar imagem).
+ */
+export type CommitImageResult = 'sent' | 'unsupported' | 'failed' | 'copied';
+
+/** direct/chooser = Android abriu o compartilhamento; copied = iPhone copiou o arquivo para colar. */
+export type ShareResult = 'direct' | 'chooser' | 'copied';
 
 /** Texto antes do cursor e tipo do campo (códigos do EditorInfo.inputType do Android). */
 export interface InputContext {
@@ -133,19 +141,21 @@ export const KeyboardBridge = {
   commitImage: (url: string, description: string): Promise<CommitImageResult> =>
     Native?.commitImage ? Native.commitImage(url, description) : Promise.resolve('unsupported'),
   /** Baixa os arquivos e abre o compartilhamento (prioriza o app em foco). */
-  shareMedia: (urls: string[]): Promise<'direct' | 'chooser'> =>
+  shareMedia: (urls: string[]): Promise<ShareResult> =>
     Native?.shareMedia
       ? Native.shareMedia(urls)
       : Promise.reject(new Error('Compartilhamento indisponível neste aparelho.')),
 
-  /** O teclado consegue abrir a galeria e a câmera (Android)? */
+  /** O teclado consegue abrir a galeria e a câmera (Android)? No iPhone, só pelo app. */
   canPickMedia: !!Native?.pickMedia,
+  /** O teclado pode usar o microfone (Android)? A Apple proíbe microfone em teclados. */
+  canUseMic: !!Native?.requestMicPermission,
   /**
    * Abre a galeria ou a câmera por cima da conversa e devolve o arquivo no
    * aparelho (null = cancelou). O teclado some enquanto a galeria está aberta.
    */
   pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> => {
-    if (!Native?.pickMedia) return Promise.reject(new Error('Adicione fotos e vídeos pelo app KEYCON neste aparelho.'));
+    if (!Native?.pickMedia) return Promise.reject(new Error('No iPhone, adicione fotos, vídeos e áudios pelo app KEYCON.'));
     picking = true;
     return Native.pickMedia(source).finally(() => {
       picking = false;
@@ -169,7 +179,7 @@ export const KeyboardBridge = {
    * Foto com legenda (ficha do produto): baixa e abre o compartilhamento com o
    * texto junto. No WhatsApp, a foto e o texto vão numa mensagem só.
    */
-  shareWithCaption: (urls: string[], caption: string): Promise<'direct' | 'chooser'> =>
+  shareWithCaption: (urls: string[], caption: string): Promise<ShareResult> =>
     Native?.shareWithCaption
       ? Native.shareWithCaption(urls, caption)
       : Promise.reject(new Error('Compartilhamento indisponível neste aparelho.')),
@@ -180,6 +190,11 @@ export const KeyboardBridge = {
 
   /** Abre o app KEYCON (ex.: para fazer login). */
   openApp: (): Promise<boolean> => (Native?.openApp ? Native.openApp() : noop()),
+  /** O teclado consegue abrir o app (Android)? No iPhone a Apple não deixa. */
+  canOpenApp: !!Native?.openApp,
+  /** iPhone: o "Acesso Total" está ligado? (no Android é sempre sim) */
+  hasFullAccess: (): Promise<boolean> =>
+    Native?.hasFullAccess ? Native.hasFullAccess().catch(() => true) : Promise.resolve(true),
 
   onKeyboardShow(cb: (e: KeyboardShowEvent) => void) {
     const sub = emitter?.addListener('onKeyboardShow', cb);

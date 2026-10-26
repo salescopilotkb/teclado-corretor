@@ -170,13 +170,14 @@ Copie `src/`, `index.js`, `backend/` e os arquivos de `android/` e `ios/` deste 
 
 ### 3. iOS
 O projeto Xcode é gerado pelo [XcodeGen](https://github.com/yonaskolb/XcodeGen) a partir de
-`ios/project.yml` (o `.xcodeproj` não vai para o git). Precisa de um Mac com Xcode 15.
+`ios/project.yml` (o `.xcodeproj` não vai para o git). Precisa de um Mac com Xcode 15.4 (ou 16 até o 16.2).
+O app pede iOS 15.5 ou mais novo (mínimo do Google ML Kit, usado na tradução do teclado).
 1. `brew install xcodegen` (uma vez).
 2. `cd ios && xcodegen generate && pod install`.
 3. Abra `ios/CorretorKeyboard.xcworkspace`. Em **Signing & Capabilities**, escolha o seu Team nos
    dois alvos (`CorretorKeyboard` e `CorretorKeyboardExtension`) ou preencha `DEVELOPMENT_TEAM`
-   em `ios/project.yml`. Registre na conta da Apple os IDs `com.corretorkeyboard`,
-   `com.corretorkeyboard.keyboard` e o App Group `group.com.corretorkeyboard`.
+   em `ios/project.yml`. Registre na conta da Apple os IDs `com.keycon.app`,
+   `com.keycon.app.keyboard` e o App Group `group.com.keycon.app`.
 4. Rode no iPhone. Depois: Ajustes › Geral › Teclado › Teclados › Adicionar › “KEYCON” →
    **Permitir Acesso Total**.
 
@@ -187,8 +188,12 @@ O que já vem pronto no projeto:
   app e teclado usam os mesmos dados.
 - Fonte Inter nos dois alvos (copiada de `android/app/src/main/assets/fonts/`) e ícone em
   `ios/CorretorKeyboard/Images.xcassets/AppIcon.appiconset/`.
-- CI: `.github/workflows/build-ios.yml` compila app + teclado para o simulador, sem assinatura,
-  a cada commit (artefato `KEYCON-iOS-simulador-v…`).
+- Tradução do teclado com o Google ML Kit, como no Android (`TranslatorModule.swift`, pod
+  `GoogleMLKit/Translate` só no teclado). O ML Kit não roda no simulador arm64: no Mac M1+ o
+  simulador usa x86_64 (`EXCLUDED_ARCHS`).
+- Gravador dos atalhos de áudio só no app (`KeyconAudioRecorder.m`): a Apple proíbe microfone em teclados.
+- CI: `.github/workflows/build-ios.yml` compila app + teclado para iPhone, sem assinatura,
+  a cada commit (artefato `KEYCON-iOS-sem-assinatura-v…`).
 
 ### 4. Backend de IA
 ```bash
