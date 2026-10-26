@@ -50,8 +50,14 @@ jobs:
 
       - name: Gerar projeto Xcode (XcodeGen)
         working-directory: ios
+        # Versão fixa: as mais novas geram o projeto num formato que o Xcode 15 não abre
         run: |
-          brew install xcodegen
+          curl -sSL -o /tmp/xcodegen.zip https://github.com/yonaskolb/XcodeGen/releases/download/2.41.0/xcodegen.zip
+          unzip -q -o /tmp/xcodegen.zip -d /tmp/xcodegen
+          BIN=$(dirname "$(find /tmp/xcodegen -type f -name xcodegen -perm -u+x | head -n 1)")
+          export PATH="$BIN:$PATH"
+          echo "$BIN" >> "$GITHUB_PATH"
+          xcodegen --version
           xcodegen generate
 
       - name: Instalar Pods
@@ -65,6 +71,9 @@ jobs:
       - name: Conferir o scheme CorretorKeyboard
         working-directory: ios
         run: |
+          # Diagnóstico também no resumo público da compilação
+          echo "::notice::$(xcodebuild -version | tr '\n' ' ') | XcodeGen $(xcodegen --version) | $(grep -m1 objectVersion CorretorKeyboard.xcodeproj/project.pbxproj | tr -d '\t;')"
+          echo "::notice::schemes: $(ls CorretorKeyboard.xcodeproj/xcshareddata/xcschemes 2>/dev/null | tr '\n' ' ')"
           ls -la CorretorKeyboard.xcodeproj/xcshareddata/xcschemes 2>/dev/null || echo "sem xcshareddata/xcschemes"
           ruby -e '
             require "xcodeproj"
@@ -84,7 +93,8 @@ jobs:
               puts "scheme criado: #{path}"
             end
           '
-          xcodebuild -list -workspace CorretorKeyboard.xcworkspace
+          xcodebuild -list -workspace CorretorKeyboard.xcworkspace 2>&1 | tee list.txt
+          echo "::notice::xcodebuild -list: $(tr '\n' ' ' < list.txt | tr -s ' ' | cut -c1-900)"
 
       - name: Compilar app e teclado (iPhone, sem assinatura)
         run: |
