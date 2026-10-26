@@ -100,7 +100,7 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
         segment={segment}
         lead={editing}
         onCancel={() => setView(editing ? { name: 'detail', id: editing.id } : { name: 'list' })}
-        tags={allTags(safeLeads)}
+        tags={allTags(safeLeads, Repo.getCrmTags())}
         onSaved={lead => {
           Repo.saveLead(lead);
           onChanged();
@@ -133,7 +133,7 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
           onInsert={onInsert}
           onSchedule={() => onSchedule(lead)}
           onTalk={() => talk(lead)}
-          tags={allTags(safeLeads)}
+          tags={allTags(safeLeads, Repo.getCrmTags())}
         />
       );
     }
@@ -178,7 +178,7 @@ function LeadList({
   const [tag, setTag] = useState<string | null>(null);
   const stages = stagesFor(segment, safeLeads);
   const counts = countByStage(safeLeads);
-  const tags = allTags(safeLeads);
+  const tags = allTags(safeLeads, Repo.getCrmTags());
   const shown = useMemo(
     () => sortLeads(safeLeads.filter(l => (!stage || l.stage === stage) && (!tag || hasTag(l, tag)))),
     [safeLeads, stage, tag],

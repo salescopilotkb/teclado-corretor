@@ -8,3 +8,5 @@ android/.gradle/
 .env
 # Build da versão web de testes (npm run web:build)
 dist/
+# Versão do app, gerada a cada build (scripts/write_build_info.js)
+src/config/buildInfo.ts

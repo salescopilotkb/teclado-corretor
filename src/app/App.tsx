@@ -221,9 +221,10 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
               key={item.key}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              style={[styles.navBtn, active && styles.navBtnActive]}
+              style={styles.navBtn}
               onPress={() => openTab(item.key)}>
-              <Icon name={item.icon} size={22} color={active ? colors.primaryText : colors.textSecondary} />
+              {/* Selecionado: só o ícone muda de cor (o salmão do teclado), sem fundo */}
+              <Icon name={item.icon} size={22} color={active ? colors.primary : colors.textSecondary} />
               <Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>
                 {item.key === 'products' ? segment.terms.catalog : t(item.label)}
               </Text>
@@ -298,9 +299,6 @@ const useStyles = makeStyles(colors => ({
     justifyContent: 'center',
     gap: 3,
     borderRadius: radius.pill,
-  },
-  navBtnActive: {
-    backgroundColor: colors.primarySoft,
   },
   navLabel: {
     // 6 itens: 11 px para "Arquivos" e "Clientes" caberem num celular de 360 dp

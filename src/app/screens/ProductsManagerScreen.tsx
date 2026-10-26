@@ -276,7 +276,7 @@ export function ProductsManagerScreen() {
               setProductForm(null);
             }}>
             <Icon name="voltar" size={18} color={colors.textMuted} />
-            <Text style={styles.backBtnText}>{t('Cancelar')}</Text>
+            <Text style={styles.backBtnText}>{t('Voltar')}</Text>
           </Pressable>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {productForm.id ? t('Editar {item}', { item }) : t('Novo {item}', { item })}

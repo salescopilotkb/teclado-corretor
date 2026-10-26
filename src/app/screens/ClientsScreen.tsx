@@ -17,6 +17,7 @@ import {
   newLeadId,
   sortLeads,
   stagesFor,
+  tagCount,
   toggleTag,
   whatsappLink,
 } from '../../crm/crm';
@@ -26,7 +27,7 @@ import type { CRMLead } from '../../types';
 import { Icon } from '../../keyboard/components/Icon';
 import { ChoiceRow } from '../../keyboard/components/KeyboardForm';
 import { UseButton } from '../../keyboard/components/KeyboardButtons';
-import { TagFilter, TagList, TagPicker } from '../../keyboard/components/TagChips';
+import { TagChip, TagFilter, TagList, TagPicker } from '../../keyboard/components/TagChips';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { CoralSheen, Button, Card, CardText, CardTitle, EmptyState, Page, ScreenTitle, SubHeader } from '../components/ui';
 import { useStoredList } from '../hooks/useStoredList';
@@ -36,7 +37,7 @@ interface Props {
   onSchedule: (lead: CRMLead) => void;
 }
 
-type Section = { name: 'list' } | { name: 'detail'; id: string } | { name: 'form'; id: string | null };
+type Section = { name: 'list' } | { name: 'tags' } | { name: 'detail'; id: string } | { name: 'form'; id: string | null };
 
 export function ClientsScreen({ onSchedule }: Props) {
   const [leads, reload] = useStoredList(Repo.getCRM);
@@ -55,7 +56,17 @@ export function ClientsScreen({ onSchedule }: Props) {
     Linking.openURL(link).catch(() => Alert.alert(t('Atenção'), t('Não foi possível abrir o WhatsApp.')));
     save({ ...lead, lastContactAt: new Date().toISOString() });
   };
-  const tags = allTags(leads);
+  const tags = allTags(leads, Repo.getCrmTags());
+
+  if (section.name === 'tags') {
+    return (
+      <TagsSection
+        leads={leads}
+        onBack={() => setSection({ name: 'list' })}
+        onChanged={reload}
+      />
+    );
+  }
 
   if (section.name === 'form') {
     const lead = section.id ? leads.find(l => l.id === section.id) ?? null : null;
@@ -111,6 +122,7 @@ export function ClientsScreen({ onSchedule }: Props) {
       stages={stagesFor(segment, leads)}
       onOpen={id => setSection({ name: 'detail', id })}
       onNew={() => setSection({ name: 'form', id: null })}
+      onTags={() => setSection({ name: 'tags' })}
       onTalk={talk}
     />
   );
@@ -121,12 +133,15 @@ function LeadList({
   stages,
   onOpen,
   onNew,
+  onTags,
   onTalk,
 }: {
   leads: CRMLead[];
   stages: string[];
   onOpen: (id: string) => void;
   onNew: () => void;
+  /** Criar e organizar etiquetas. */
+  onTags: () => void;
   onTalk: (lead: CRMLead) => void;
 }) {
   const colors = useColors();
@@ -135,7 +150,7 @@ function LeadList({
   const [tag, setTag] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const counts = countByStage(leads);
-  const tags = allTags(leads);
+  const tags = allTags(leads, Repo.getCrmTags());
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -162,6 +177,7 @@ function LeadList({
           actionLabel={t('Novo cliente')}
           onAction={onNew}
         />
+        <Button testID="clients-tags" label={t('Criar etiqueta')} icon="etiquetas" variant="secondary" onPress={onTags} />
       </Page>
     );
   }
@@ -170,11 +186,23 @@ function LeadList({
     <Page>
       <View style={styles.titleRow}>
         <ScreenTitle title={t('Clientes')} subtitle={t('{length} no funil', { length: leads.length })} />
-        <Pressable accessibilityRole="button" style={styles.addBtn} onPress={onNew}>
-          <CoralSheen />
-          <Icon name="adicionar" size={18} color={colors.onPrimary} />
-          <Text style={styles.addBtnText}>{t('Novo')}</Text>
-        </Pressable>
+        <View style={styles.titleActions}>
+          {/* Nova etiqueta, ao lado do "+ Novo" */}
+          <Pressable
+            testID="clients-tags"
+            accessibilityRole="button"
+            accessibilityLabel={t('Criar etiqueta')}
+            style={({ pressed }) => [styles.tagBtn, pressed && styles.pressed]}
+            onPress={onTags}>
+            <Icon name="etiquetas" size={18} color={colors.text} />
+            <Text style={styles.tagBtnText}>{t('Etiqueta')}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" style={styles.addBtn} onPress={onNew}>
+            <CoralSheen />
+            <Icon name="adicionar" size={18} color={colors.onPrimary} />
+            <Text style={styles.addBtnText}>{t('Novo')}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <TextInput
@@ -230,6 +258,93 @@ function LeadList({
           </Pressable>
         ))}
       </View>
+    </Page>
+  );
+}
+
+/** Etiquetas: criar uma nova (antes de usar em algum cliente) e excluir as que não servem mais. */
+function TagsSection({ leads, onBack, onChanged }: { leads: CRMLead[]; onBack: () => void; onChanged: () => void }) {
+  const colors = useColors();
+  const styles = useStyles();
+  const [name, setName] = useState('');
+  // Relê a lista a cada mudança (criar ou excluir)
+  const [, setVersion] = useState(0);
+  const tags = allTags(leads, Repo.getCrmTags());
+
+  const create = () => {
+    const tag = cleanTag(name);
+    if (!tag) {
+      Alert.alert(t('Atenção'), t('Informe o nome da etiqueta.'));
+      return;
+    }
+    if (tags.some(x => x.toLowerCase() === tag.toLowerCase())) {
+      Alert.alert(t('Atenção'), t('Essa etiqueta já existe.'));
+      return;
+    }
+    Repo.addCrmTag(tag);
+    setName('');
+    setVersion(v => v + 1);
+    onChanged();
+  };
+
+  const remove = (tag: string) => {
+    const n = tagCount(leads, tag);
+    Alert.alert(
+      t('Excluir etiqueta'),
+      n
+        ? t('Excluir "{tag}"? Ela sai dos {n} clientes que a usam.', { tag, n })
+        : t('Excluir "{tag}"?', { tag }),
+      [
+        { text: t('Cancelar'), style: 'cancel' },
+        {
+          text: t('Excluir'),
+          style: 'destructive',
+          onPress: () => {
+            Repo.deleteCrmTag(tag);
+            setVersion(v => v + 1);
+            onChanged();
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <Page>
+      <SubHeader title={t('Etiquetas')} onBack={onBack} />
+      <Card>
+        <CardTitle>{t('Nova etiqueta')}</CardTitle>
+        <CardText>{t('Use etiquetas para separar os clientes ("Quente", "Indicação", "VIP") e filtrar a lista. Elas aparecem também no CRM do teclado.')}</CardText>
+        <TextInput
+          testID="tag-name-input"
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+          placeholder={t('Ex: Quente, Indicação, VIP')}
+          placeholderTextColor={colors.textMuted}
+          onSubmitEditing={create}
+          returnKeyType="done"
+        />
+        <Button testID="tag-create" label={t('Criar etiqueta')} icon="adicionar" onPress={create} />
+      </Card>
+
+      {tags.length > 0 ? (
+        <Card>
+          <CardTitle>{t('Suas etiquetas')}</CardTitle>
+          {tags.map(tag => {
+            const n = tagCount(leads, tag);
+            return (
+              <View key={tag} style={styles.tagRow}>
+                <TagChip tag={tag} />
+                <Text style={styles.tagCount}>{n === 1 ? t('1 cliente') : t('{n} clientes', { n })}</Text>
+                <Pressable testID={`tag-delete-${tag}`} accessibilityRole="button" accessibilityLabel={t('Excluir etiqueta')} hitSlop={8} onPress={() => remove(tag)}>
+                  <Icon name="lixeira" size={18} color={colors.danger} />
+                </Pressable>
+              </View>
+            );
+          })}
+        </Card>
+      ) : null}
     </Page>
   );
 }
@@ -446,6 +561,20 @@ const useStyles = makeStyles(colors => ({
   flex: { flex: 1 },
   pressed: { opacity: 0.7 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  titleActions: { flexDirection: 'row', gap: spacing.sm },
+  tagBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    minHeight: touchTarget,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    ...glassBorder(colors),
+  },
+  tagBtnText: { color: colors.text, ...typography.button },
+  tagRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 40 },
+  tagCount: { flex: 1, fontSize: 13, color: colors.textMuted },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',

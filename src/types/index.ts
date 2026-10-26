@@ -183,7 +183,7 @@ export type MenuTab = 'files' | 'products' | 'shortcuts' | 'agenda' | 'crm' | 'm
 /** Botões do menu + o teclado de letras (ícone fixo no topo). */
 export type MainSystemTab = MenuTab | 'keyboard';
 
-export type MoreSubMenu = 'copilot' | 'settings' | 'diagnostics' | null;
+export type MoreSubMenu = 'copilot' | 'settings' | null;
 
 export interface KeyboardData {
   seller: SellerProfile;

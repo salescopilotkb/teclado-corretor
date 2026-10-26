@@ -1,4 +1,4 @@
-import { LANGUAGES, t } from '../../i18n';
+import { getLanguage, LANGUAGES, t } from '../../i18n';
 import type { Lang } from '../../i18n';
 import type { MarketId } from '../../i18n/markets';
 import { applyProfileLanguages } from '../../i18n/profile';
@@ -16,9 +16,24 @@ import { Icon } from '../../keyboard/components/Icon';
 import { AI_CONFIG } from '../../services/aiService';
 import { AuthError, currentEmail, pushProfile } from '../../services/auth';
 import { SegmentPicker } from '../components/SegmentPicker';
+import { BUILD_INFO } from '../../config/buildInfo';
+import { fillLegal, LEGAL_UPDATED, PRIVACY, TERMS } from '../../legal/legal';
+import type { LegalDocument } from '../../legal/legal';
+import { KeyconLogo } from '../../keyboard/components/KeyconLogo';
 import { Button, Card, CardText, CardTitle, MenuGroup, MenuRow, Page, ScreenTitle, StatusChip, SubHeader } from '../components/ui';
 
-export type AccountSection = 'root' | 'data' | 'segment' | 'market' | 'language' | 'theme' | 'status' | 'about';
+export type AccountSection =
+  | 'root'
+  | 'data'
+  | 'segment'
+  | 'market'
+  | 'language'
+  | 'theme'
+  | 'status'
+  | 'about'
+  | 'terms'
+  | 'privacy'
+  | 'licenses';
 
 interface Props {
   onLogout: () => void;
@@ -130,7 +145,10 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
   }
 
   if (section === 'status') return <StatusSection email={email} onBack={back} />;
-  if (section === 'about') return <AboutSection onBack={back} />;
+  if (section === 'about') return <AboutSection onBack={back} onOpen={setSection} />;
+  if (section === 'terms') return <LegalScreen doc={TERMS} onBack={() => setSection('about')} />;
+  if (section === 'privacy') return <LegalScreen doc={PRIVACY} onBack={() => setSection('about')} />;
+  if (section === 'licenses') return <LicensesSection onBack={() => setSection('about')} />;
 
   return (
     <Page>
@@ -162,14 +180,14 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
         <MenuRow
           icon="configuracoes"
           title={t('Aparência')}
-          value={THEME_OPTIONS.find(o => o.key === theme)?.label}
+          value={t(THEME_OPTIONS.find(o => o.key === theme)?.label ?? '')}
           onPress={() => setSection('theme')}
         />
       </MenuGroup>
 
       <MenuGroup>
         <MenuRow icon="dados" title={t('Status da conta')} subtitle={t('Conexão e sincronização')} onPress={() => setSection('status')} />
-        <MenuRow icon="info" title={t('Sobre e licenças')} onPress={() => setSection('about')} />
+        <MenuRow icon="info" title={t('Sobre o KEYCON')} subtitle={t('Versão, termos e privacidade')} value={BUILD_INFO.version} onPress={() => setSection('about')} />
       </MenuGroup>
 
       <Button label={t('Sair da conta')} variant="danger" icon="sair" onPress={onLogout} />
@@ -238,9 +256,9 @@ function DataSection({ seller, onBack, onSave }: { seller: SellerProfile; onBack
       <SubHeader title={t('Seus dados')} onBack={onBack} />
       <Card>
         <CardText>{t('Usados nas mensagens prontas: {{nome}}, {{empresa}} e {{telefone}}.')}</CardText>
-        {field('Nome completo', name, setName, 'Seu nome')}
-        {field('Nome do negócio', business, setBusiness, 'Nome da sua empresa ou loja')}
-        {field('WhatsApp', phone, setPhone, 'Seu número com DDD', true)}
+        {field(t('Nome completo'), name, setName, t('Seu nome'))}
+        {field(t('Nome do negócio'), business, setBusiness, t('Nome da sua empresa ou loja'))}
+        {field(t('WhatsApp'), phone, setPhone, t('Seu número com DDD'), true)}
       </Card>
       <Button testID="data-save" label={t('Salvar')} onPress={save} />
     </Page>
@@ -279,8 +297,8 @@ function ThemeSection({ theme, onBack, onSelect }: { theme: ThemePreference; onB
               style={[styles.option, selected && styles.optionActive]}
               onPress={() => onSelect(opt.key)}>
               <View style={styles.flex}>
-                <Text style={[styles.optionLabel, selected && styles.optionLabelActive]}>{opt.label}</Text>
-                <Text style={styles.optionDesc}>{opt.desc}</Text>
+                <Text style={[styles.optionLabel, selected && styles.optionLabelActive]}>{t(opt.label)}</Text>
+                <Text style={styles.optionDesc}>{t(opt.desc)}</Text>
               </View>
               {selected && <Icon name="check" size={20} color={colors.primaryText} />}
             </Pressable>
@@ -317,33 +335,86 @@ function StatusSection({ email, onBack }: { email: string | null; onBack: () => 
   );
 }
 
-function AboutSection({ onBack }: { onBack: () => void }) {
+/** "26/10/2026" (ou "10/26/2026" em inglês) a partir de uma data ISO. */
+function formatDate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return getLanguage() === 'en' ? `${m}/${d}/${y}` : `${d}/${m}/${y}`;
+}
+
+/** Sobre: o app, a versão (muda a cada commit, ver scripts/write_build_info.js) e os documentos. */
+function AboutSection({ onBack, onOpen }: { onBack: () => void; onOpen: (s: AccountSection) => void }) {
+  const styles = useStyles();
   return (
     <Page>
-      <SubHeader title={t('Sobre e licenças')} onBack={onBack} />
-      <Card>
-        <CardTitle>{t('KEYCON')}</CardTitle>
+      <SubHeader title={t('Sobre o KEYCON')} onBack={onBack} />
+      <Card style={styles.aboutCard}>
+        <KeyconLogo size={30} />
         <CardText>{t('Teclado inteligente. Vendas organizadas.')}</CardText>
+        <CardText>
+          {t('App e teclado para vender pelo WhatsApp e outros apps de mensagem: catálogo, arquivos, atalhos, clientes e agenda sempre à mão, com corretor em português, inglês e espanhol.')}
+        </CardText>
       </Card>
+      <Card>
+        <CardTitle>{t('Versão')}</CardTitle>
+        <Text testID="about-version" style={styles.version}>
+          {BUILD_INFO.version}
+        </Text>
+        <CardText>{t('Compilação {commit} · {date}', { commit: BUILD_INFO.commit, date: formatDate(BUILD_INFO.date) })}</CardText>
+      </Card>
+      <MenuGroup>
+        <MenuRow testID="about-terms" icon="notas" title={t('Termos de Uso')} onPress={() => onOpen('terms')} />
+        <MenuRow testID="about-privacy" icon="escudo" title={t('Política de Privacidade')} onPress={() => onOpen('privacy')} />
+        <MenuRow testID="about-licenses" icon="info" title={t('Licenças de terceiros')} subtitle={t('Créditos do dicionário e da fonte')} onPress={() => onOpen('licenses')} />
+      </MenuGroup>
+      <CardText>{t('© {year} {company}. Todos os direitos reservados.', { year: BUILD_INFO.date.slice(0, 4), company: fillLegal('{company}') })}</CardText>
+    </Page>
+  );
+}
+
+/** Termos de Uso / Política de Privacidade, no idioma do app. */
+function LegalScreen({ doc, onBack }: { doc: Record<Lang, LegalDocument>; onBack: () => void }) {
+  const styles = useStyles();
+  const current = doc[getLanguage()] ?? doc.pt;
+  return (
+    <Page>
+      <SubHeader title={current.title} onBack={onBack} />
+      <CardText>{t('Última atualização: {date}', { date: formatDate(LEGAL_UPDATED) })}</CardText>
+      {current.sections.map(section => (
+        <Card key={section.title}>
+          <CardTitle>{section.title}</CardTitle>
+          {section.paragraphs.map((para, i) => (
+            <Text key={i} style={styles.legalText}>
+              {fillLegal(para)}
+            </Text>
+          ))}
+        </Card>
+      ))}
+    </Page>
+  );
+}
+
+/**
+ * Créditos que as licenças dos dados do corretor e da fonte exigem
+ * (CC BY-SA 4.0 e CC BY 2.0 FR pedem atribuição; a OFL acompanha a fonte).
+ */
+function LicensesSection({ onBack }: { onBack: () => void }) {
+  const open = (url: string) => () => Linking.openURL(url).catch(() => {});
+  return (
+    <Page>
+      <SubHeader title={t('Licenças de terceiros')} onBack={onBack} />
       <Card>
         <CardTitle>{t('Dicionário do teclado')}</CardTitle>
         <CardText>
-          {t('Listas de palavras do português, inglês e espanhol baseadas em FrequencyWords, de Hermit Dave (legendas do OpenSubtitles), licença Creative Commons BY-SA 4.0.')}</CardText>
-        <Button
-          label={t('Ver licença')}
-          variant="secondary"
-          onPress={() => Linking.openURL('https://creativecommons.org/licenses/by-sa/4.0/').catch(() => {})}
-        />
+          {t('Listas de palavras do português, inglês e espanhol baseadas em FrequencyWords, de Hermit Dave (legendas do OpenSubtitles), licença Creative Commons BY-SA 4.0.')}
+        </CardText>
+        <Button label={t('Ver licença')} variant="secondary" onPress={open('https://creativecommons.org/licenses/by-sa/4.0/')} />
       </Card>
       <Card>
         <CardTitle>{t('Frases do corretor')}</CardTitle>
         <CardText>
-          {t('Palavras que costumam vir em sequência, tiradas das frases em português, inglês e espanhol do Tatoeba (tatoeba.org), licença Creative Commons BY 2.0 FR.')}</CardText>
-        <Button
-          label={t('Ver licença')}
-          variant="secondary"
-          onPress={() => Linking.openURL('https://creativecommons.org/licenses/by/2.0/fr/').catch(() => {})}
-        />
+          {t('Palavras que costumam vir em sequência, tiradas das frases em português, inglês e espanhol do Tatoeba (tatoeba.org), licença Creative Commons BY 2.0 FR.')}
+        </CardText>
+        <Button label={t('Ver licença')} variant="secondary" onPress={open('https://creativecommons.org/licenses/by/2.0/fr/')} />
       </Card>
       <Card>
         <CardTitle>{t('Fonte')}</CardTitle>
@@ -384,6 +455,9 @@ function MarketSection({ current, onBack, onSave }: { current: MarketId; onBack:
 }
 
 const useStyles = makeStyles(colors => ({
+  aboutCard: { gap: spacing.sm },
+  version: { fontSize: 22, fontWeight: '700', color: colors.text },
+  legalText: { fontSize: 14, lineHeight: 21, color: colors.textSecondary },
   flex: { flex: 1 },
   profileCard: { flexDirection: 'row', alignItems: 'center' },
   avatar: {

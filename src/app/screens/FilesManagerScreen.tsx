@@ -464,6 +464,7 @@ function FileDetail({
               onPress={() => {
                 Repo.saveFile({ ...file, title: title.trim() });
                 onChanged();
+                onBack();
               }}
             />
           ) : null}

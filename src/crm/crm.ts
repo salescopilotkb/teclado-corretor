@@ -61,8 +61,11 @@ export function cleanTag(tag: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : '';
 }
 
-/** Etiquetas usadas nos clientes, das mais usadas para as menos (sem repetir maiúscula/minúscula). */
-export function allTags(leads: CRMLead[] = []): string[] {
+/**
+ * Etiquetas dos clientes, das mais usadas para as menos (sem repetir
+ * maiúscula/minúscula), mais as criadas que ainda não estão em ninguém (`created`).
+ */
+export function allTags(leads: CRMLead[] = [], created: string[] = []): string[] {
   const count = new Map<string, { tag: string; n: number }>();
   for (const l of leads || []) {
     for (const tag of l?.tags ?? []) {
@@ -72,7 +75,13 @@ export function allTags(leads: CRMLead[] = []): string[] {
       else count.set(key, { tag, n: 1 });
     }
   }
+  for (const tag of created) if (!count.has(tag.toLowerCase())) count.set(tag.toLowerCase(), { tag, n: 0 });
   return [...count.values()].sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag)).map(e => e.tag);
+}
+
+/** Quantos clientes têm a etiqueta. */
+export function tagCount(leads: CRMLead[], tag: string): number {
+  return leads.filter(l => hasTag(l, tag)).length;
 }
 
 export function hasTag(lead: CRMLead, tag: string): boolean {

@@ -18,9 +18,10 @@ android {
         applicationId "com.corretorkeyboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Cada build do GitHub Actions recebe um número de versão maior (GITHUB_RUN_NUMBER)
-        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
-        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+        // Versão calculada a cada commit por scripts/write_build_info.js (a CI exporta;
+        // fora dela, o número do build do GitHub Actions ou 1.0.0)
+        versionCode((System.getenv("KEYCON_VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
+        versionName(System.getenv("KEYCON_VERSION_NAME") ?: ("1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")))
     }
     signingConfigs {
         debug {

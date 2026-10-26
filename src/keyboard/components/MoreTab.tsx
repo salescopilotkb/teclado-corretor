@@ -4,7 +4,6 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { MoreSubMenu, ThemePreference } from '../../types';
 import { glassBorder, makeStyles, radius, spacing, touchTarget, useColors } from '../theme';
 import { AICopilotTab } from './AICopilotTab';
-import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { Icon, IconTile } from './Icon';
 
 const THEME_LABEL: Record<ThemePreference, string> = {
@@ -20,7 +19,7 @@ interface Props {
 }
 
 /**
- * Aba "Mais" — IA (respostas sugeridas), Configurações e Diagnóstico.
+ * Aba "Mais" — IA (respostas sugeridas) e Configurações.
  * Agenda e CRM têm botões próprios no menu do teclado.
  */
 export function MoreTab({ theme, onThemeChange, onInsert }: Props) {
@@ -63,17 +62,6 @@ export function MoreTab({ theme, onThemeChange, onInsert }: Props) {
           <Text style={styles.menuMeta}>{t(THEME_LABEL[theme]).toUpperCase()}</Text>
         </Pressable>
 
-        <Pressable
-          testID="more-btn-diagnostics"
-          style={styles.menuOption}
-          onPress={() => setSelectedSubMenu('diagnostics')}>
-          <IconTile name="dados" size={36} />
-          <View style={styles.menuInfo}>
-            <Text style={styles.menuTitle}>{t('Diagnóstico')}</Text>
-            <Text style={styles.menuSubtitle}>{t('O que o campo em foco aceita: texto, fotos, GIFs')}</Text>
-          </View>
-        </Pressable>
-
         <Text style={styles.tip}>{t('Dica: segure um botão do menu por 1 segundo e arraste para o lado para mudar a ordem.')}</Text>
       </ScrollView>
     );
@@ -89,17 +77,7 @@ export function MoreTab({ theme, onThemeChange, onInsert }: Props) {
     );
   }
 
-  // 2. SUBMENU: DIAGNÓSTICO (formatos aceitos pelo campo em foco)
-  if (selectedSubMenu === 'diagnostics') {
-    return (
-      <View style={styles.flex}>
-        {backBar(t('Diagnóstico'))}
-        <DiagnosticsPanel onInsert={onInsert} />
-      </View>
-    );
-  }
-
-  // 3. SUBMENU: CONFIGURAÇÕES (APARÊNCIA DO TECLADO)
+  // 2. SUBMENU: CONFIGURAÇÕES (APARÊNCIA DO TECLADO)
   return (
     <View style={styles.flex}>
       {backBar(t('Aparência do Teclado'))}

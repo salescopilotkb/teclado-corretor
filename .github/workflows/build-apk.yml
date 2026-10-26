@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Checkout Código
         uses: actions/checkout@v4
+        with:
+          # Histórico completo: a versão do app é o número de commits
+          fetch-depth: 0
 
       - name: Configurar Node.js 18
         uses: actions/setup-node@v4
@@ -34,6 +37,9 @@ jobs:
       - name: Permissão de execução para o Gradlew
         working-directory: android
         run: chmod +x gradlew
+
+      - name: Versão do app (a cada commit)
+        run: node scripts/write_build_info.js --github-env
 
       - name: Gerar Bundle JS do React Native
         run: |
@@ -63,11 +69,11 @@ jobs:
 
       - name: Renomear APK para KEYCON
         if: success()
-        run: mv android/app/build/outputs/apk/debug/app-debug.apk "android/app/build/outputs/apk/debug/KEYCON-v1.0.${{ github.run_number }}.apk"
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk "android/app/build/outputs/apk/debug/KEYCON-v${{ env.KEYCON_VERSION_NAME }}.apk"
 
       - name: Salvar APK como Artefato de Download
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: KEYCON-v1.0.${{ github.run_number }}
-          path: android/app/build/outputs/apk/debug/KEYCON-v1.0.${{ github.run_number }}.apk
+          name: KEYCON-v${{ env.KEYCON_VERSION_NAME }}
+          path: android/app/build/outputs/apk/debug/KEYCON-v${{ env.KEYCON_VERSION_NAME }}.apk

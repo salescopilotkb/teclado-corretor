@@ -20,8 +20,8 @@ const src = path.join(root, 'src');
 const load = (p: string) => import(pathToFileURL(p).href);
 
 /** Constantes cujos textos a tela passa por t() (t(item.label), t(spec.label)...). */
-const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL']);
-const TRANSLATED_PROPS = new Set(['label', 'placeholder']);
+const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL', 'THEME_OPTIONS']);
+const TRANSLATED_PROPS = new Set(['label', 'placeholder', 'desc']);
 
 /**
  * Textos que chegam por fora do t() e são traduzidos na tela: erros do

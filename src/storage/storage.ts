@@ -38,6 +38,8 @@ const KEYS = {
   shortcuts: 'user.shortcuts',
   agenda: 'user.agenda',
   crm: 'user.crm',
+  /** Etiquetas criadas sem estar em nenhum cliente ainda (botão "Etiqueta" em Clientes). */
+  crmTags: 'user.crmTags',
   files: 'user.files',
   theme: 'user.theme',
   authToken: 'auth.token',
@@ -61,6 +63,7 @@ const USER_DATA_KEYS = [
   KEYS.shortcuts,
   KEYS.agenda,
   KEYS.crm,
+  KEYS.crmTags,
   KEYS.files,
   KEYS.tutorialSeen,
   KEYS.stepsDone,
@@ -147,6 +150,27 @@ export const Repo = {
     return Array.isArray(list) ? list : [];
   },
   setCRM: (c: CRMLead[]) => setJSON(KEYS.crm, c),
+
+  getCrmTags: (): string[] => {
+    const list = getJSON<string[]>(KEYS.crmTags, []);
+    return Array.isArray(list) ? list.filter(x => typeof x === 'string' && x.trim()) : [];
+  },
+  setCrmTags: (tags: string[]) => setJSON(KEYS.crmTags, tags),
+
+  /** Cria a etiqueta (sem repetir maiúscula/minúscula). */
+  addCrmTag(tag: string): void {
+    const list = this.getCrmTags();
+    if (!list.some(x => x.toLowerCase() === tag.toLowerCase())) this.setCrmTags([...list, tag]);
+  },
+
+  /** Exclui a etiqueta da lista e de todos os clientes. */
+  deleteCrmTag(tag: string): void {
+    const key = tag.toLowerCase();
+    this.setCrmTags(this.getCrmTags().filter(x => x.toLowerCase() !== key));
+    this.setCRM(
+      this.getCRM().map(l => (l.tags?.some(x => x.toLowerCase() === key) ? { ...l, tags: l.tags.filter(x => x.toLowerCase() !== key) } : l)),
+    );
+  },
 
   getFiles: (): FilesData => {
     const data = getJSON<FilesData>(KEYS.files, EMPTY_FILES);

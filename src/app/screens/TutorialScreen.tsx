@@ -52,15 +52,13 @@ function slidesFor(segment: SegmentProfile): Slide[] {
       title: t('Clientes e agenda'),
       text: t('Acompanhe o funil e marque reuniões no app ou no teclado, que abre em tela grande.'),
     },
-    {
-      icon: 'ia',
-      title: t('Respostas com IA'),
-      text: t('Copie a mensagem do cliente e toque em Mais › IA no teclado: o KEYCON sugere a resposta.'),
-    },
+    // "Respostas com IA" volta quando a IA sair do modo de demonstração
     {
       icon: 'respostas',
       title: t('Para o dia a dia'),
-      text: t('Corretor, sugestões de palavras e maiúscula automática, sem trocar de teclado.'),
+      text: t(
+        'Deixe o KEYCON como teclado padrão do celular: ele corrige palavras, sugere as próximas e coloca maiúscula sozinho em qualquer app. O ícone de teclado no topo alterna entre as letras e as suas ferramentas de venda.',
+      ),
     },
   ];
 }

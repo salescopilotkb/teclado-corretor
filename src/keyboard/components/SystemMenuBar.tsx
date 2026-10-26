@@ -181,7 +181,7 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
           accessibilityState={{ selected: keyboardActive }}
           hitSlop={6}
           onPress={() => onChange('keyboard')}
-          style={({ pressed }) => [styles.keyboardBtn, keyboardActive && styles.tabActive, pressed && styles.pressed]}>
+          style={({ pressed }) => [styles.keyboardBtn, pressed && styles.pressed]}>
           <Icon name="teclado" size={22} color={keyboardActive ? colors.primary : colors.textMuted} />
         </Pressable>
       </View>
@@ -206,7 +206,6 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
               onAccessibilityAction={() => onChange(key)}
               style={[
                 styles.tab,
-                selected && styles.tabActive,
                 lifted && styles.tabLifted,
                 lifted && { transform: [{ translateX: dragX }, { translateY: -4 }, { scale: 1.12 }] },
                 pressedKey === key && !dragging && styles.pressed,
@@ -262,9 +261,6 @@ const useStyles = makeStyles(colors => ({
     gap: 2,
     paddingVertical: 4,
     borderRadius: radius.sm,
-  },
-  tabActive: {
-    backgroundColor: colors.primarySoft,
   },
   /** Botão "descolado": mais alto, com sombra, por cima dos outros e seguindo o dedo. */
   tabLifted: {
