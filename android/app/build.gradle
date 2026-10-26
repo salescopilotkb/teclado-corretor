@@ -48,6 +48,8 @@ dependencies {
     implementation("com.facebook.react:react-android")
     // FileProvider e envio de imagens pelo teclado (EditorInfoCompat / InputConnectionCompat)
     implementation("androidx.core:core:1.9.0")
+    // Tradução no próprio aparelho (botão "Traduzir" do teclado): Google ML Kit, sem chave de API
+    implementation("com.google.mlkit:translate:17.0.3")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

@@ -23,6 +23,44 @@ const FLAG_NO_SUGGESTIONS = 0x80000;
 /** Campo de nome: cada palavra começa com maiúscula ("Joana Lima"). */
 const FLAG_CAP_WORDS = 0x2000;
 
+/** Variação de emoji (❤️), tom de pele (👍🏽) e tecla (1️⃣): grudam no anterior. */
+const isEmojiModifier = (c: string) => {
+  const cp = c.codePointAt(0) ?? 0;
+  return cp === 0xfe0f || cp === 0x20e3 || (cp >= 0x1f3fb && cp <= 0x1f3ff);
+};
+const ZWJ = '‍';
+const isRegionalIndicator = (c: string) => {
+  const cp = c.codePointAt(0) ?? 0;
+  return cp >= 0x1f1e6 && cp <= 0x1f1ff;
+};
+
+/**
+ * Último caractere visível do texto: uma letra, ou um emoji inteiro
+ * (com variação, tom de pele, junções 👨‍💼 e bandeiras 🇧🇷).
+ */
+export function lastGrapheme(text: string): string {
+  const chars = Array.from(text);
+  if (!chars.length) return '';
+  const end = chars.length - 1;
+  let start = end;
+  const takeBase = () => {
+    while (start > 0 && isEmojiModifier(chars[start])) start--;
+  };
+  takeBase();
+  // Junções: 👨 + ZWJ + 💼
+  while (start > 1 && chars[start - 1] === ZWJ) {
+    start -= 2;
+    takeBase();
+  }
+  // Bandeira = dois indicadores regionais
+  if (start === end && isRegionalIndicator(chars[end])) {
+    let run = 0;
+    for (let i = end; i >= 0 && isRegionalIndicator(chars[i]); i--) run++;
+    if (run % 2 === 0) start = end - 1;
+  }
+  return chars.slice(start).join('');
+}
+
 export class TypingContext {
   private before = '';
   private inputType = CLASS_TEXT;
@@ -105,10 +143,10 @@ export class TypingContext {
   }
 
   /** Apaga 1 caractere (um emoji inteiro conta como 1). */
+  /** ⌫: apaga o último caractere visível (um emoji composto sai inteiro, como no Android). */
   deleteOne() {
-    const chars = Array.from(this.before);
-    const removed = chars.pop() ?? '';
-    this.apply(chars.join(''), -removed.length);
+    const removed = lastGrapheme(this.before);
+    this.apply(this.before.slice(0, this.before.length - removed.length), -removed.length);
   }
 
   /** Troca os `count` caracteres antes do cursor por `text` (sugestão escolhida). */

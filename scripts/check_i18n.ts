@@ -20,7 +20,7 @@ const src = path.join(root, 'src');
 const load = (p: string) => import(pathToFileURL(p).href);
 
 /** Constantes cujos textos a tela passa por t() (t(item.label), t(spec.label)...). */
-const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL', 'THEME_OPTIONS']);
+const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL', 'THEME_OPTIONS', 'EMOJI_CATEGORIES']);
 const TRANSLATED_PROPS = new Set(['label', 'placeholder', 'desc']);
 
 /**
@@ -43,6 +43,13 @@ const EXTRA_KEYS = [
   'Nome do arquivo',
   'Nome da pasta',
   'Toque e digite',
+  // Tradução do teclado: campo do painel e erros que chegam do Android
+  'Sua mensagem',
+  'Escreva no seu idioma',
+  'Não foi possível traduzir. Na primeira vez, o tradutor do idioma precisa ser baixado (internet).',
+  'Tradução disponível no aplicativo Android.',
+  // Aba "Recentes" do painel de emojis
+  'Recentes',
   // Campos do produto no teclado (ProductsTab)
   'Nome do produto',
   'Preço',

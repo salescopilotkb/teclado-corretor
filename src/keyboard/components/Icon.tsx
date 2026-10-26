@@ -65,6 +65,12 @@ const ICONS = {
     { d: 'M2 6a2 2 0 0 1 2-2h5l2 2.5h9a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z' },
     { d: 'M12 10.5v6M9 13.5h6' },
   ],
+  // Tradução: "A" e "文" (os dois idiomas)
+  traduzir: [
+    { d: 'M3 5h8M7 3v2M4.5 9c1.6 2.8 3.6 4.4 6 5' },
+    { d: 'M9.5 5c-.6 3.8-2.6 7-6 9' },
+    { d: 'M13 21l4-9 4 9M14.5 18h5' },
+  ],
   // Seção Arquivos: fotos empilhadas, editar, excluir e mover para outra pasta
   galeria: [{ rect: [7, 3, 14, 14, 2.5] }, { circle: [11.5, 7.5, 1.5] }, { d: 'M21 13l-4-4-7 7' }, { d: 'M3 7v12a2 2 0 0 0 2 2h12' }],
   editar: [{ d: 'M4 20h4L19 9l-4-4L4 16z' }, { d: 'M13.5 6.5l4 4' }],

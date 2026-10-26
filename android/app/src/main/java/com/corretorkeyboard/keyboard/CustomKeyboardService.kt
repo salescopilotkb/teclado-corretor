@@ -1,6 +1,7 @@
 package com.corretorkeyboard.keyboard
 
 import android.content.ClipDescription
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
@@ -85,6 +86,14 @@ class CustomKeyboardService : InputMethodService() {
          * deixa só uma faixa do app em cima, para a pessoa saber onde está.
          */
         private const val EXPANDED_SCREEN_FRACTION = 0.88f
+        /** Tamanho intermediário (Atalhos): metade da tela, nunca menor que o normal + 90 dp. */
+        private const val TALL_SCREEN_FRACTION = 0.5f
+        private const val TALL_EXTRA_DP = 90
+
+        /** Tamanhos do teclado pedidos pelo JS (KeyboardBridge.setHeightMode). */
+        const val HEIGHT_NORMAL = 0
+        const val HEIGHT_TALL = 1
+        const val HEIGHT_EXPANDED = 2
 
         /** Sem a tela do JS após esse tempo, o placeholder mostra o diagnóstico e os botões. */
         private const val LOAD_TIMEOUT_MS = 10_000L
@@ -119,8 +128,11 @@ class CustomKeyboardService : InputMethodService() {
     private var loadingProgress: ProgressBar? = null
     private var loadingActions: LinearLayout? = null
 
-    /** Teclado expandido pelo JS (KeyboardBridge.setExpanded). Volta ao normal a cada campo novo. */
-    private var expanded = false
+    /**
+     * Tamanho pedido pelo JS (normal, intermediário ou tela grande). Volta ao
+     * normal quando o teclado fecha; o JS pede de novo ao reabrir.
+     */
+    private var heightMode = HEIGHT_NORMAL
 
     /** O JS avisa (KeyboardBridge.notifyReady) quando a tela do teclado montou. */
     private var jsReady = false
@@ -303,7 +315,7 @@ class CustomKeyboardService : InputMethodService() {
         val newPackage = info?.packageName
         // Se mudou de app (outro pacote), volta ao tamanho normal
         if (targetPackage != null && newPackage != null && targetPackage != newPackage) {
-            expanded = false
+            heightMode = HEIGHT_NORMAL
         }
         targetPackage = newPackage
 
@@ -336,8 +348,8 @@ class CustomKeyboardService : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
-        if (expanded) {
-            expanded = false
+        if (heightMode != HEIGHT_NORMAL) {
+            heightMode = HEIGHT_NORMAL
             rootContainer?.targetHeightPx = keyboardHeightPx()
         }
         try {
@@ -382,6 +394,14 @@ class CustomKeyboardService : InputMethodService() {
     }
 
     /** Backspace: apaga a seleção, ou 1 caractere antes do cursor. */
+    /** Tamanho (em chars) do último caractere visível do texto. */
+    private fun lastGraphemeLength(text: String): Int {
+        val it = android.icu.text.BreakIterator.getCharacterInstance()
+        it.setText(text)
+        val start = it.preceding(text.length)
+        return if (start == android.icu.text.BreakIterator.DONE) 1 else (text.length - start).coerceAtLeast(1)
+    }
+
     fun deleteBackward(): Boolean {
         val ic = currentInputConnection ?: return false
         val selected = ic.getSelectedText(0)
@@ -389,13 +409,12 @@ class CustomKeyboardService : InputMethodService() {
 
         // Retorna false quando não há nada antes do cursor: o JS usa isso para
         // parar a repetição do ⌫ (antes ela seguia "apagando" para sempre).
-        val before = ic.getTextBeforeCursor(2, 0)
+        val before = ic.getTextBeforeCursor(32, 0)
         if (before != null && before.isEmpty()) return false
 
-        // Emoji = par surrogate (2 chars): apaga os dois para não deixar lixo
-        val count = if (before != null && before.length == 2 &&
-            Character.isHighSurrogate(before[0]) && Character.isLowSurrogate(before[1])
-        ) 2 else 1
+        // Apaga o último "caractere visível" inteiro: emojis compostos (❤️, 👍🏽,
+        // bandeiras, 👨‍💼) têm vários códigos e não podem ficar pela metade
+        val count = if (before.isNullOrEmpty()) 1 else lastGraphemeLength(before.toString())
         return ic.deleteSurroundingText(count, 0)
     }
 
@@ -600,17 +619,51 @@ class CustomKeyboardService : InputMethodService() {
     }
 
     fun setExpanded(value: Boolean): Boolean {
-        expanded = value
+        return setHeightMode(if (value) HEIGHT_EXPANDED else HEIGHT_NORMAL)
+    }
+
+    /** Normal, intermediário (Atalhos) ou tela grande (formulários, CRM, Agenda). */
+    fun setHeightMode(mode: Int): Boolean {
+        heightMode = mode.coerceIn(HEIGHT_NORMAL, HEIGHT_EXPANDED)
         rootContainer?.targetHeightPx = keyboardHeightPx()
         return true
+    }
+
+    /**
+     * Mostra o teclado de novo depois que a galeria, a câmera ou o pedido de
+     * permissão (abertos pelo próprio teclado) fecham: o campo da conversa
+     * continua em foco, mas o Android não reabre o teclado sozinho. Tenta logo
+     * e mais uma vez, para dar tempo de a conversa voltar para a frente.
+     */
+    fun showAgainSoon() {
+        val attempt = Runnable {
+            if (isInputViewShown) return@Runnable
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    requestShowSelf(0)
+                } else {
+                    val token = window?.window?.attributes?.token ?: return@Runnable
+                    @Suppress("DEPRECATION")
+                    (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInputFromInputMethod(token, 0)
+                }
+            } catch (_: Throwable) {
+                // Sem campo em foco (a pessoa saiu da conversa): fica fechado
+            }
+        }
+        mainHandler.postDelayed(attempt, 350)
+        mainHandler.postDelayed(attempt, 900)
     }
 
     /** Altura do teclado em pixels para a orientação atual da tela. */
     private fun keyboardHeightPx(): Int {
         val metrics = resources.displayMetrics
         val portraitPx = (KEYBOARD_HEIGHT_DP * metrics.density).toInt()
-        if (expanded) {
+        if (heightMode == HEIGHT_EXPANDED) {
             return (metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt().coerceAtLeast(portraitPx)
+        }
+        if (heightMode == HEIGHT_TALL) {
+            val minTall = portraitPx + (TALL_EXTRA_DP * metrics.density).toInt()
+            return (metrics.heightPixels * TALL_SCREEN_FRACTION).toInt().coerceAtLeast(minTall)
         }
         if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
             return portraitPx

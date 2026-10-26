@@ -4,7 +4,7 @@ import type { GestureResponderEvent, LayoutChangeEvent, NativeTouchEvent } from 
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { InputContext } from '../../native/KeyboardBridge';
 import { makeStyles, onCoralText, radius, useColors } from '../theme';
-import { buildLexicon, predictNext, suggest } from '../typing/lexicon';
+import { buildLexicon, needsFullSuggest, predictNext, suggest } from '../typing/lexicon';
 import { resolveLetter } from '../typing/keyResolver';
 import type { KeyRect } from '../typing/keyResolver';
 import { TypingContext } from '../typing/typingContext';
@@ -14,6 +14,7 @@ import { Icon } from './Icon';
 import { LANGUAGES, getTypingLanguage, t, nextTypingLanguage, onTypingLanguageChange, setTypingLanguage } from '../../i18n';
 import type { Lang } from '../../i18n';
 import { useLanguage } from '../../i18n/useLanguage';
+import { EmojiPanel } from './EmojiPanel';
 import { SuggestionBar } from './SuggestionBar';
 import type { SuggestionBarHandle, SuggestionItem } from './SuggestionBar';
 
@@ -32,9 +33,10 @@ import type { SuggestionBarHandle, SuggestionItem } from './SuggestionBar';
  *    destaque da tecla apertada).
  *
  * Modos: letras, números (?123) e símbolos (=\<). Shift: um toque = próxima
- * letra maiúscula; dois toques rápidos ou segurar 1 s = caps lock. Maiúscula automática no
- * começo da mensagem e depois de . ! ?. Depois de um símbolo (ou do espaço)
- * o teclado volta sozinho para as letras. Dois espaços seguidos viram ". ".
+ * letra maiúscula; dois toques rápidos = caps lock. Maiúscula automática no
+ * começo da mensagem e depois de . ! ?. Nos números e símbolos o teclado
+ * continua neles; o apóstrofo e o espaço voltam para as letras. Dois espaços
+ * seguidos viram ". ". 😊 abre os emojis (ao lado da vírgula).
  * Segurar uma vogal (ou c/n) abre os acentos acima da tecla: arraste o dedo
  * até o escolhido e solte (soltar fecha a opção); o "ç" fica no "c".
  *
@@ -83,6 +85,7 @@ type KeyAction =
   | { t: 'mode'; to: Mode }
   | { t: 'globe' }
   | { t: 'space' }
+  | { t: 'emoji' }
   | { t: 'enter' };
 
 type KeyKind = 'char' | 'func' | 'space' | 'enter';
@@ -114,9 +117,8 @@ function rowInset(row: KeyDef[]): number {
 const ROW_GAP = 6;
 const KEY_GAP = 5;
 const LONG_PRESS_MS = 350;
-/** Segurar o shift por este tempo trava as maiúsculas. */
-const CAPS_HOLD_MS = 1000;
-const DOUBLE_TAP_MS = 300;
+/** Dois toques no shift dentro deste tempo travam as maiúsculas. */
+const DOUBLE_TAP_MS = 350;
 const DOUBLE_SPACE_MS = 450;
 const REPEAT_DELAY_MS = 400;
 const REPEAT_INTERVAL_MS = 60;
@@ -169,8 +171,10 @@ function buildRows(mode: Mode, shift: ShiftState, typingLang: Lang): KeyDef[][] 
       },
       { id: 'globe', label: '🌐', icon: 'globo', kind: 'func', flex: 1, action: { t: 'globe' } },
       { id: 'comma', label: ',', kind: 'char', flex: 1, action: { t: 'char', v: ',' } },
+      // Emojis (painel com os emojis do próprio celular)
+      { id: 'emoji', label: '😊', kind: 'func', flex: 1, action: { t: 'emoji' } },
       // O nome do idioma de digitação no espaço (segurar troca)
-      { id: 'space', label: LANGUAGES.find(l => l.id === typingLang)?.label ?? '', kind: 'space', flex: 4, action: { t: 'space' } },
+      { id: 'space', label: LANGUAGES.find(l => l.id === typingLang)?.label ?? '', kind: 'space', flex: 3, action: { t: 'space' } },
       { id: 'dot', label: '.', kind: 'char', flex: 1, action: { t: 'char', v: '.' } },
       { id: 'enter', label: '↵', icon: 'enter', kind: 'enter', flex: 1.5, action: { t: 'enter' } },
     ],
@@ -273,6 +277,11 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
 
   /** Depois de cada edição: maiúscula automática + sugestões da palavra atual. */
   const refresh = useRef(() => {});
+  /** Sugestões completas (com a busca ampla) pedidas para depois da tecla. */
+  const fullTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (fullTimer.current) clearTimeout(fullTimer.current);
+  }, []);
   const [context] = useState(
     () => new TypingContext(() => refresh.current(), () => out.current.getInputContext()),
   );
@@ -294,10 +303,21 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
       suggestionBar.current?.show(next.map(text => ({ text: cased(text), literal: false })));
       return;
     }
-    const { unknown, words } = suggest(word, 3, prev);
-    const items: SuggestionItem[] = words.map(text => ({ text, literal: false }));
-    if (unknown) items.unshift({ text: word, literal: true });
-    suggestionBar.current?.show(items.slice(0, 3));
+    const show = (r: { unknown: boolean; words: string[] }) => {
+      const items: SuggestionItem[] = r.words.map(text => ({ text, literal: false }));
+      if (r.unknown) items.unshift({ text: word, literal: true });
+      suggestionBar.current?.show(items.slice(0, 3));
+    };
+    // Barra na hora (erros simples); a busca ampla (erros de várias letras)
+    // completa logo depois, sem segurar a próxima tecla
+    show(suggest(word, 3, prev, true));
+    if (fullTimer.current) clearTimeout(fullTimer.current);
+    if (needsFullSuggest(word, prev)) {
+      fullTimer.current = setTimeout(() => {
+        fullTimer.current = null;
+        if (context.currentWord() === word) show(suggest(word, 3, prev));
+      }, 0);
+    }
   };
 
   /**
@@ -369,8 +389,9 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
         context.insert(v);
       }
       if (shiftRef.current === 'once') setShift('off');
-      // Depois de um símbolo, volta para as letras (números continuam)
-      if (modeRef.current !== 'alpha' && !/^[0-9]$/.test(v)) setMode('alpha');
+      // Nos números e símbolos o teclado continua neles; só o apóstrofo (e o
+      // espaço, em typeSpace) voltam para as letras
+      if (modeRef.current !== 'alpha' && v === "'") setMode('alpha');
       refresh.current();
     },
     // applyAutocorrect só lê refs e o contexto
@@ -406,28 +427,43 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
   const onShift = useCallback(() => {
     const now = Date.now();
     const s = shiftRef.current;
-    if (s === 'off') setShift('once');
-    else if (s === 'once' && now - lastShiftTap.current < DOUBLE_TAP_MS) setShift('lock');
-    else setShift('off');
-    lastShiftTap.current = now;
+    if (s === 'lock') {
+      setShift('off');
+      lastShiftTap.current = 0;
+    } else if (now - lastShiftTap.current < DOUBLE_TAP_MS) {
+      // Dois toques rápidos: trava (vale também no início de frase, com a maiúscula automática)
+      setShift('lock');
+      lastShiftTap.current = 0;
+    } else {
+      setShift(s === 'off' ? 'once' : 'off');
+      lastShiftTap.current = now;
+    }
   }, [setShift]);
+
+  /** Um ⌫ (desfaz a correção automática logo depois dela). */
+  const deleteOnceRef = useRef(() => Promise.resolve(false));
+  deleteOnceRef.current = () => {
+    autoSpace.current = false;
+    if (undoAutocorrect()) {
+      refresh.current();
+      return Promise.resolve(true);
+    }
+    context.deleteOne();
+    refresh.current();
+    return out.current.deleteBackward();
+  };
+  const deleteOnce = useCallback(() => {
+    deleteOnceRef.current();
+  }, []);
 
   // Repetição do ⌫ (ver deleteRepeater: nunca deixa timer órfão e para sozinha
   // com o campo vazio). Antes, um timer perdido apagava o texto para sempre.
   const [deleteRepeater] = useState(() =>
-    createDeleteRepeater(
-      () => {
-        autoSpace.current = false;
-        if (undoAutocorrect()) {
-          refresh.current();
-          return Promise.resolve(true);
-        }
-        context.deleteOne();
-        refresh.current();
-        return out.current.deleteBackward();
-      },
-      { delayMs: REPEAT_DELAY_MS, intervalMs: REPEAT_INTERVAL_MS, maxMs: MAX_REPEAT_MS },
-    ),
+    createDeleteRepeater(() => deleteOnceRef.current(), {
+      delayMs: REPEAT_DELAY_MS,
+      intervalMs: REPEAT_INTERVAL_MS,
+      maxMs: MAX_REPEAT_MS,
+    }),
   );
   const stopDelete = deleteRepeater.stop;
 
@@ -441,7 +477,10 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
       const a = key.action;
       switch (a.t) {
         case 'char':
-          typeText(a.v);
+          // Letra: maiúscula ou não pelo shift DE AGORA. A tecla guarda a forma
+          // do último desenho, e quem digita rápido toca antes de redesenhar
+          // (saíam duas maiúsculas no começo da frase)
+          typeText(key.letter ? (shiftRef.current !== 'off' ? key.letter.toUpperCase() : key.letter) : a.v);
           break;
         case 'space':
           typeSpace();
@@ -460,11 +499,27 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
         case 'globe':
           KeyboardBridge.switchKeyboard();
           break;
+        case 'emoji':
+          setEmojiOpen(true);
+          break;
         default:
           break;
       }
     },
     [context, internal, setMode, typeSpace, typeText],
+  );
+
+  /** Painel de emojis aberto no lugar das teclas. */
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      autoSpace.current = false;
+      lastFix.current = null;
+      out.current.insertText(emoji);
+      context.insert(emoji);
+      refresh.current();
+    },
+    [context],
   );
 
   const pickSuggestion = useCallback(
@@ -587,11 +642,6 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
       if (key.action.t === 'shift') {
         active.done = true;
         onShift();
-        // Segurou o shift: trava as maiúsculas
-        active.timer = setTimeout(() => {
-          active.timer = null;
-          setShift('lock');
-        }, CAPS_HOLD_MS);
       } else if (key.action.t === 'delete') {
         active.done = true;
         deleteRepeater.start();
@@ -687,6 +737,20 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     const { x, y, width, height } = e.nativeEvent.layout;
     rowBoxes.current[i] = { x, y, w: width, h: height };
   };
+
+  if (emojiOpen) {
+    return (
+      <View style={styles.container} testID="typing-keyboard">
+        <EmojiPanel
+          onPick={insertEmoji}
+          onDelete={deleteOnce}
+          onDeleteHoldStart={deleteRepeater.start}
+          onDeleteHoldEnd={stopDelete}
+          onClose={() => setEmojiOpen(false)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container} testID="typing-keyboard">

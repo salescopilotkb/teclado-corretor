@@ -8,6 +8,7 @@ import { t, tSell } from '../i18n';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { KeyboardBridge } from '../native/KeyboardBridge';
+import type { HeightMode } from '../native/KeyboardBridge';
 import { LoginRequiredPanel } from './components/LoginRequiredPanel';
 import { Repo } from '../storage/storage';
 import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, ThemePreference } from '../types';
@@ -18,6 +19,7 @@ import { MoreTab } from './components/MoreTab';
 import { ProductsTab } from './components/ProductsTab';
 import { ShortcutsTab } from './components/ShortcutsTab';
 import { SystemMenuBar } from './components/SystemMenuBar';
+import { TranslatePanel } from './components/TranslatePanel';
 import { TypingKeyboard } from './components/TypingKeyboard';
 import { Aurora } from './components/Glass';
 import { useKeyboardData } from './hooks/useKeyboardData';
@@ -26,6 +28,11 @@ import { useLanguage } from '../i18n/useLanguage';
 import { applyProfileLanguages } from '../i18n/profile';
 import { getSegment } from '../segments/segments';
 import { makeStyles, radius, ThemeProvider } from './theme';
+
+/** Tamanho do teclado (usado fora do componente pela tradução). */
+function setHeightModeNow(mode: HeightMode) {
+  KeyboardBridge.setHeightMode(mode).catch(() => {});
+}
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -117,6 +124,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   const [moreVisit, setMoreVisit] = useState(0);
   /** Ordem dos botões do menu (mesmo armazenamento do app). */
   const [menuOrder, setMenuOrder] = useState<MenuTab[]>(() => Repo.getMenuOrder());
+  /** Tradução simultânea aberta (painel por cima do conteúdo). */
+  const [translating, setTranslating] = useState(false);
   /** CRM → "Agendar": a agenda abre já com o cliente. */
   const [scheduleFor, setScheduleFor] = useState<CRMLead | null>(null);
 
@@ -125,11 +134,32 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   }, []);
 
   // Agenda e CRM: teclado em tela grande, sobre a conversa
-  const big = tab === 'agenda' || tab === 'crm';
+  const translatingRef = useRef(false);
+  translatingRef.current = translating;
+  // Tradução: tela grande, com o campo da conversa (já traduzido) à vista em cima
   useEffect(() => {
-    if (big) setExpanded(true);
-    else setExpanded(false);
+    if (!translating) return;
+    setHeightModeNow('expanded');
+    const off = KeyboardBridge.onKeyboardShow(() => setHeightModeNow('expanded'));
+    return () => {
+      off();
+      // Fechou a tradução: volta ao tamanho da seção que estava aberta
+      setHeightModeNow(bigRef.current ? 'expanded' : 'normal');
+    };
+  }, [translating]);
+
+  const big = tab === 'agenda' || tab === 'crm';
+  const bigRef = useRef(big);
+  bigRef.current = big;
+  useEffect(() => {
+    if (!big) return;
+    setExpanded(true);
+    // Saiu da Agenda/CRM: volta ao normal (antes de a próxima seção pedir o tamanho dela)
+    return () => setExpanded(false);
   }, [big, setExpanded]);
+  const setHeightMode = useCallback((mode: HeightMode) => {
+    KeyboardBridge.setHeightMode(mode).catch(() => {});
+  }, []);
 
   const reorderMenu = useCallback((order: MenuTab[]) => {
     Repo.setMenuOrder(order);
@@ -143,6 +173,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
     () =>
       KeyboardBridge.onKeyboardHide(() => {
         if (KeyboardBridge.isPickingMedia()) return;
+        setTranslating(false);
         setTab('keyboard');
         setScheduleFor(null);
         setMoreVisit(v => v + 1);
@@ -285,6 +316,14 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   // A troca para outro teclado do sistema (Gboard etc.) fica na tecla 🌐.
   const handleTabChange = useCallback((newTab: MainSystemTab) => {
     setScheduleFor(null);
+    // Tocar no menu fecha a tradução (o ícone do teclado volta para as letras)
+    if (translatingRef.current) {
+      setTranslating(false);
+      if (newTab === 'keyboard') {
+        setTab('keyboard');
+        return;
+      }
+    }
     setTab(current => {
       if (newTab === 'keyboard' && current === 'keyboard') return lastSalesTab.current;
       if (newTab !== 'keyboard') lastSalesTab.current = newTab;
@@ -303,14 +342,17 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
         order={menuOrder}
         onReorder={reorderMenu}
         catalogLabel={segment.terms.catalog}
+        translating={translating}
+        onTranslate={() => setTranslating(v => !v)}
       />
 
       {/* Área de conteúdo: teclado de letras ou área de vendas */}
       <View style={styles.content}>
-        {tab === 'keyboard' && <TypingKeyboard />}
+        {translating && <TranslatePanel onClose={() => setTranslating(false)} />}
+        {!translating && tab === 'keyboard' && <TypingKeyboard />}
         {/* Sem login no app, a área de vendas fica bloqueada (o ABC continua livre) */}
-        {tab !== 'keyboard' && !loggedIn && <LoginRequiredPanel />}
-        {loggedIn && tab === 'products' && (
+        {!translating && tab !== 'keyboard' && !loggedIn && <LoginRequiredPanel />}
+        {!translating && loggedIn && tab === 'products' && (
           <ProductsTab
             folders={data.folders}
             segment={segment}
@@ -322,10 +364,10 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onChanged={onDataChanged}
           />
         )}
-        {loggedIn && tab === 'shortcuts' && (
-          <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} onExpandedChange={setExpanded} onChanged={onDataChanged} />
+        {!translating && loggedIn && tab === 'shortcuts' && (
+          <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} onHeightChange={setHeightMode} onChanged={onDataChanged} />
         )}
-        {loggedIn && tab === 'files' && (
+        {!translating && loggedIn && tab === 'files' && (
           <FilesTab
             files={data.files}
             onSendImage={sendImage}
@@ -335,7 +377,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onChanged={onDataChanged}
           />
         )}
-        {loggedIn && tab === 'agenda' && (
+        {!translating && loggedIn && tab === 'agenda' && (
           <KeyboardAgenda
             agenda={data.agenda}
             leads={data.crm}
@@ -345,7 +387,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onClose={() => handleTabChange('keyboard')}
           />
         )}
-        {loggedIn && tab === 'crm' && (
+        {!translating && loggedIn && tab === 'crm' && (
           <KeyboardCRM
             segment={segment}
             leads={data.crm}
@@ -360,7 +402,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             }}
           />
         )}
-        {loggedIn && tab === 'more' && (
+        {!translating && loggedIn && tab === 'more' && (
           <MoreTab key={moreVisit} theme={data.theme} onThemeChange={onThemeChange} onInsert={insert} />
         )}
 

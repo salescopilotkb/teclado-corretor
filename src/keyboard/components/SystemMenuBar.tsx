@@ -34,22 +34,26 @@ interface Props {
   onReorder: (order: MenuTab[]) => void;
   /** Nome do catálogo no ramo do usuário ("Imóveis", "Cardápio"...). */
   catalogLabel?: string;
+  /** Tradução simultânea aberta (botão ao lado do ícone do teclado). */
+  translating: boolean;
+  onTranslate: () => void;
 }
 
 /**
  * Menu do teclado, SEMPRE VISÍVEL no topo:
- *  - em cima, o logotipo KEYCON (à esquerda) e o ícone de teclado (à direita,
- *    fixo), que alterna entre o teclado de letras e a última seção usada;
+ *  - em cima, o logotipo KEYCON (à esquerda) e, à direita, Traduzir (tradução
+ *    simultânea) e o ícone de teclado (fixo), que alterna entre o teclado de
+ *    letras e a última seção usada;
  *  - embaixo, os botões das seções (Arquivos, Produtos, Atalhos, Agenda, CRM,
  *    Mais), com ícone e texto em cinza como no app; o ativo fica coral.
  *
  * Segurar um botão por 1 segundo: o teclado vibra, o botão descola do fundo
  * e acompanha o dedo; soltar em outra posição muda a ordem (fica salva).
  */
-export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel }: Props) => {
+export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate }: Props) => {
   const colors = useColors();
   const styles = useStyles();
-  const keyboardActive = active === 'keyboard';
+  const keyboardActive = active === 'keyboard' && !translating;
 
   // Ordem na tela: acompanha o dedo enquanto arrasta; salva ao soltar
   const [items, setItems] = useState<MenuTab[]>(order);
@@ -174,6 +178,17 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
         ) : (
           <KeyconLogo size={16} />
         )}
+        {/* Tradução simultânea: escreve no seu idioma, vai traduzido para a conversa */}
+        <Pressable
+          testID="system-btn-translate"
+          accessibilityRole="button"
+          accessibilityLabel={t('Traduzir')}
+          accessibilityState={{ selected: translating }}
+          hitSlop={6}
+          onPress={onTranslate}
+          style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
+          <Icon name="traduzir" size={22} color={translating ? colors.primary : colors.textMuted} />
+        </Pressable>
         <Pressable
           testID="system-btn-keyboard"
           accessibilityRole="tab"
@@ -240,6 +255,8 @@ const useStyles = makeStyles(colors => ({
     paddingTop: 2,
   },
   dragHint: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.primaryText },
+  /** O logotipo fica à esquerda; Traduzir e Teclado juntos à direita. */
+  headLeftBtn: { marginLeft: 'auto' },
   keyboardBtn: {
     width: 44,
     height: 30,

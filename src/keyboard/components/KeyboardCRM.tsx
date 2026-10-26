@@ -614,7 +614,7 @@ const useStyles = makeStyles(colors => ({
   headerActionTextSecondary: { color: colors.text },
   // Sem isto a faixa horizontal estica e ocupa a tela toda
   funnelScroll: { flexGrow: 0, flexShrink: 0 },
-  funnel: { paddingHorizontal: spacing.md, gap: spacing.sm, paddingBottom: spacing.sm },
+  funnel: { paddingHorizontal: spacing.md, gap: spacing.sm, paddingTop: spacing.xs, paddingBottom: spacing.sm },
   stageTab: {
     minWidth: 92,
     maxWidth: 150,
@@ -630,7 +630,7 @@ const useStyles = makeStyles(colors => ({
   stageCountActive: { color: colors.primaryText },
   stageLabel: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
   stageLabelActive: { color: colors.primaryText, fontWeight: '600' },
-  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg, gap: spacing.sm },
+  list: { paddingHorizontal: spacing.md, paddingTop: spacing.xs, paddingBottom: spacing.lg, gap: spacing.sm },
   leadCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -656,7 +656,7 @@ const useStyles = makeStyles(colors => ({
   leadBody: { gap: 3 },
   noPhone: { fontSize: 11, color: colors.textMuted },
   link: { fontSize: 12, color: colors.primaryText, marginTop: 1 },
-  tagFilter: { paddingHorizontal: spacing.sm, paddingBottom: spacing.xs },
+  tagFilter: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
   hint: { fontSize: 12, color: colors.textMuted, marginTop: -2, paddingHorizontal: spacing.xs },
   hintError: { color: colors.danger },
   newTag: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

@@ -8,9 +8,13 @@
  *  - nextLetterLogProb(): chance de cada letra ser a próxima da palavra — é o
  *    que deixa a "área invisível" da tecla provável maior (ver keyResolver).
  *
+ * Erros de várias letras ("wetrndo" → "querendo") entram por uma busca
+ * ampla que mede a distância pelas teclas (ver keyboardDistance). Medido com
+ * scripts/eval_corrector.ts.
+ *
  * Tudo roda no próprio aparelho, sem internet. O índice é montado fora do
- * caminho do primeiro toque e cada consulta leva < 1 ms. Respeita o idioma de
- * venda escolhido pelo usuário (português, inglês ou espanhol).
+ * caminho do primeiro toque. Segue o idioma de digitação (o do app; segurar
+ * o espaço troca): português, inglês ou espanhol.
  */
 import { getTypingLanguage, onTypingLanguageChange } from '../../i18n';
 import type { Lang } from '../../i18n';
@@ -49,6 +53,139 @@ const NEIGHBORS: Record<string, string> = {
   a: 'qwsz', s: 'awedxz', d: 'serfcx', f: 'drtgvc', g: 'ftyhbv', h: 'gyujnb', j: 'huikmn', k: 'jiolm', l: 'kop',
   z: 'asx', x: 'zsdc', c: 'xdfv', v: 'cfgb', b: 'vghn', n: 'bhjm', m: 'njk',
 };
+
+/** Posição de cada tecla no teclado (coluna, fileira), com o recuo real das fileiras de baixo. */
+const KEY_POS: Record<string, [number, number]> = (() => {
+  const out: Record<string, [number, number]> = {};
+  ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].forEach((row, y) => {
+    const indent = [0, 0.5, 1.5][y];
+    [...row].forEach((c, x) => (out[c] = [x + indent, y]));
+  });
+  out['ñ'] = [9.5, 1];
+  return out;
+})();
+
+/**
+ * Custo de trocar a letra `a` pela `b` (digitou `a` querendo `b`): o dedo
+ * escorregar para o lado na mesma fileira (r↔t) é o erro mais comum; para a
+ * fileira de cima/baixo custa um pouco mais; tecla longe custa muito.
+ */
+function substitutionCost(a: string, b: string): number {
+  if (a === b) return 0;
+  const pa = KEY_POS[a];
+  const pb = KEY_POS[b];
+  if (!pa || !pb) return 1.6;
+  const d = Math.hypot(pa[0] - pb[0], pa[1] - pb[1]);
+  if (pa[1] === pb[1] && d <= 1.01) return 0.5;
+  return d <= 1.2 ? 0.7 : d <= 2.3 ? 1.2 : 1.6;
+}
+
+/** Até esta posição na lista, a palavra entra na busca ampla (as mais usadas). */
+const FUZZY_RANK = 20000;
+/** Busca ampla só para palavras com pelo menos tantas letras. */
+const FUZZY_MIN_LENGTH = 4;
+/**
+ * Placar da busca ampla: o formato pesa mais que o quanto a palavra é comum
+ * (senão "sendo" ganharia de "querendo" para "wetrndo"). Ajustados com
+ * scripts/eval_corrector.ts.
+ */
+const FUZZY_FREQ_WEIGHT = 0.2;
+const FUZZY_DISTANCE_WEIGHT = 2.6;
+/** Folga extra sobre a 2ª opção para a busca ampla corrigir sozinha. */
+const FUZZY_MARGIN = 1.6;
+
+/** Linhas da conta de distância, reaproveitadas (a busca roda a cada letra). */
+let rowA = new Float32Array(32);
+let rowB = new Float32Array(32);
+let rowC = new Float32Array(32);
+
+/**
+ * Distância entre o que foi digitado e a palavra, pelo teclado (Damerau-
+ * Levenshtein com pesos): tecla vizinha 0,5–0,7 (ver substitutionCost); letra
+ * a mais 1,0 (0,8 se for vizinha da anterior — o dedo pegou duas teclas);
+ * letra faltando 0,9 (0,4 para o "u" depois do "q"); duas letras invertidas
+ * 0,7. Para cedo quando passa de `limit`.
+ */
+function keyboardDistance(typed: string, word: string, limit: number): number {
+  const n = typed.length;
+  const m = word.length;
+  if (m + 1 > rowA.length) {
+    rowA = new Float32Array(m + 8);
+    rowB = new Float32Array(m + 8);
+    rowC = new Float32Array(m + 8);
+  }
+  let prev2 = rowA;
+  let prev = rowB;
+  let cur = rowC;
+  for (let j = 0; j <= m; j++) prev[j] = j * 0.9;
+  for (let i = 1; i <= n; i++) {
+    const t = typed[i - 1];
+    // Letra a mais no que foi digitado (vizinha da anterior = dedo pegou duas
+    // teclas); pegar letra a mais é menos comum que pular uma
+    const extra = i > 1 && substitutionCost(t, typed[i - 2]) <= 0.7 ? 0.8 : 1.0;
+    cur[0] = i * 0.9;
+    let rowMin = cur[0];
+    for (let j = 1; j <= m; j++) {
+      const w = word[j - 1];
+      // Letra que faltou digitar
+      const missing = w === 'u' && j > 1 && word[j - 2] === 'q' ? 0.4 : 0.9;
+      let v = prev[j] + extra;
+      const ins = cur[j - 1] + missing;
+      if (ins < v) v = ins;
+      const sub = prev[j - 1] + substitutionCost(t, w);
+      if (sub < v) v = sub;
+      if (i > 1 && j > 1 && t === word[j - 2] && typed[i - 2] === w && prev2[j - 2] + 0.7 < v) v = prev2[j - 2] + 0.7;
+      cur[j] = v;
+      if (v < rowMin) rowMin = v;
+    }
+    if (rowMin > limit) return Infinity;
+    const spare = prev2;
+    prev2 = prev;
+    prev = cur;
+    cur = spare;
+  }
+  return prev[m];
+}
+
+/** Erro aceito na busca ampla: cresce com o tamanho da palavra ("wetrndo" → "querendo" = 2,7). */
+const fuzzyLimit = (length: number) => Math.min(3.2, 0.9 + length * 0.3);
+
+/** Palavras da busca ampla por letra inicial (montado uma vez por idioma). */
+const fuzzyIndexCache: Partial<Record<Lang, Map<string, Entry[]>>> = {};
+
+function fuzzyIndex(lex: Lexicon): Map<string, Entry[]> {
+  const cached = fuzzyIndexCache[currentLexiconLang];
+  if (cached) return cached;
+  const index = new Map<string, Entry[]>();
+  for (const e of lex.sorted) {
+    if (e.rank > FUZZY_RANK || !e.key) continue;
+    const list = index.get(e.key[0]);
+    if (list) list.push(e);
+    else index.set(e.key[0], [e]);
+  }
+  fuzzyIndexCache[currentLexiconLang] = index;
+  return index;
+}
+
+/** Última busca ampla (a mesma palavra é consultada várias vezes: barra, espaço...). */
+let fuzzyCache: { lang: Lang; key: string; hits: Array<{ e: Entry; distance: number }> } | null = null;
+
+/** Palavras parecidas pelo teclado: mesmo começo (ou tecla vizinha) e tamanho próximo. */
+function fuzzyMatches(lex: Lexicon, key: string): Array<{ e: Entry; distance: number }> {
+  if (fuzzyCache && fuzzyCache.lang === currentLexiconLang && fuzzyCache.key === key) return fuzzyCache.hits;
+  const limit = fuzzyLimit(key.length);
+  const index = fuzzyIndex(lex);
+  const hits: Array<{ e: Entry; distance: number }> = [];
+  for (const first of [key[0], ...(NEIGHBORS[key[0]] ?? '')]) {
+    for (const e of index.get(first) ?? []) {
+      if (Math.abs(e.key.length - key.length) > 2) continue;
+      const distance = keyboardDistance(key, e.key, limit);
+      if (distance <= limit) hits.push({ e, distance });
+    }
+  }
+  fuzzyCache = { lang: currentLexiconLang, key, hits };
+  return hits;
+}
 
 /** Palavras que nunca aparecem como sugestão (continuam contando para a "tecla invisível"). */
 const NEVER_SUGGEST_BY_LANG: Record<Lang, Set<string>> = {
@@ -149,7 +286,7 @@ let seenInSentences: Set<string> | null = null;
 const lexiconCache: Partial<Record<Lang, Lexicon>> = {};
 const bigramsCache: Partial<Record<Lang, { bigrams: Map<string, Map<string, number>>; seen: Set<string> }>> = {};
 
-/** Monta o índice para o idioma pedido (padrão: o de digitação, que começa no de venda). */
+/** Monta o índice para o idioma pedido (padrão: o de digitação, que é o idioma do app). */
 export function buildLexicon(targetLang?: Lang): void {
   const target = targetLang ?? getTypingLanguage();
   if (lexicon && currentLexiconLang === target) return;
@@ -286,8 +423,11 @@ export interface Suggestions {
   autocorrect: string | null;
 }
 
-/** De onde veio cada candidata: só acento e erro de digitação corrigem sozinhos. */
-type Kind = 'abbr' | 'accent' | 'complete' | 'fix';
+/**
+ * De onde veio cada candidata: só acento e erro de digitação corrigem
+ * sozinhos ("fuzzy" = erro de várias letras, da busca ampla, com mais cuidado).
+ */
+type Kind = 'abbr' | 'accent' | 'complete' | 'fix' | 'fuzzy';
 
 interface Candidate {
   word: string;
@@ -341,7 +481,7 @@ function contextStrength(prev: string | undefined, word: string): number {
 }
 
 /** Todas as candidatas para `typed`, com placar e origem. */
-function candidatesFor(lex: Lexicon, typed: string, prev?: string): Candidate[] {
+function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true): Candidate[] {
   const lowerTyped = typed.toLowerCase();
   const key = toKey(typed);
   const known = lex.words.has(lowerTyped);
@@ -396,6 +536,16 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string): Candidate[] 
       if (forms) for (const e of forms) offer(e.word, freq(e) - cost + 1, 'fix');
     }
   }
+
+  // 4) Erro de várias letras ("wetrndo" → "querendo"): busca ampla pelo
+  // teclado, só quando os passos 1 e 3 não acharam nada — erros simples
+  // continuam como antes. A frase também ajuda a escolher.
+  const hasFix = [...found.values()].some(c => c.kind === 'fix' || c.kind === 'accent');
+  if (fuzzy && !known && !hasFix && key.length >= FUZZY_MIN_LENGTH) {
+    for (const { e, distance } of fuzzyMatches(lex, key)) {
+      offer(e.word, FUZZY_FREQ_WEIGHT * freq(e) - FUZZY_DISTANCE_WEIGHT * distance + 4, 'fuzzy');
+    }
+  }
   return [...found.values()].sort((a, b) => b.score - a.score);
 }
 
@@ -403,12 +553,16 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string): Candidate[] 
  * Sugestões para a palavra que está sendo digitada.
  * `prev`: palavra anterior da frase, em minúsculas ("^" = começo de frase).
  */
-export function suggest(typed: string, limit = 3, prevWord?: string): Suggestions {
+/**
+ * `fast`: sem a busca ampla (erros de várias letras), para a barra aparecer
+ * na hora a cada tecla; quem chama completa depois com `needsFull`.
+ */
+export function suggest(typed: string, limit = 3, prevWord?: string, fast = false): Suggestions {
   const lex = ensureLexicon();
   const prev = prevWord && bigramKey(prevWord);
   if (!lex || !typed) return { unknown: false, words: [], autocorrect: null };
   const known = lex.words.has(typed.toLowerCase());
-  const all = candidatesFor(lex, typed, prev);
+  const all = candidatesFor(lex, typed, prev, !fast);
   const fix = pickAutocorrect(lex, typed, known, all);
   // A correção automática vai na frente (é a que aparece em destaque)
   const ordered = fix ? [fix, ...all.filter(c => c !== fix)] : all;
@@ -438,7 +592,7 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
   const fixes = all.filter(c => {
     const rank = lex.byKey.get(toKey(c.word))?.find(e => e.word === c.word)?.rank ?? Infinity;
     if (rank > COMMON_RANK && !seenInSentences?.has(c.word)) return false;
-    if (c.kind === 'accent' || c.kind === 'fix') return true;
+    if (c.kind === 'accent' || c.kind === 'fix' || c.kind === 'fuzzy') return true;
     // Faltou só a última letra: "obrigad" → "obrigado"
     return c.kind === 'complete' && toKey(c.word).length === typedLength + 1;
   });
@@ -449,8 +603,21 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
   // Rival que só muda a última letra não trava: vale a mais comum
   const stem = (w: string) => toKey(w).slice(0, -1);
   const rival = fixes.slice(1).find(c => stem(c.word) !== stem(best.word));
-  if (rival && best.score - rival.score < AUTOCORRECT_MARGIN && best.context <= rival.context) return null;
+  // Erro de várias letras: só corrige sozinho com folga maior sobre a 2ª
+  const margin = best.kind === 'fuzzy' ? FUZZY_MARGIN : AUTOCORRECT_MARGIN;
+  if (rival && best.score - rival.score < margin && best.context <= rival.context) return null;
   return best;
+}
+
+/**
+ * A busca ampla pode mudar as sugestões desta palavra? (palavra desconhecida,
+ * comprida o bastante e sem erro simples achado) — a barra rápida é completada depois.
+ */
+export function needsFullSuggest(typed: string, prevWord?: string): boolean {
+  const lex = ensureLexicon();
+  if (!lex || typed.length < FUZZY_MIN_LENGTH || lex.words.has(typed.toLowerCase())) return false;
+  const prev = prevWord && bigramKey(prevWord);
+  return !candidatesFor(lex, typed, prev, false).some(c => c.kind === 'fix' || c.kind === 'accent');
 }
 
 /** Próximas palavras prováveis depois de `prev` (barra logo após o espaço). */

@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { cancelRecording, canRecord, startRecording, stopRecording } from '../../native/AudioRecorder';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
+import type { HeightMode } from '../../native/KeyboardBridge';
 import { formatDuration } from '../../services/mediaUpload';
 import type { LocalMedia } from '../../services/mediaUpload';
 import { audioLink, deleteShortcut, linkMessage, saveAudioShortcut, saveLinkShortcut, saveTextShortcut } from '../../shortcuts/shortcuts';
@@ -39,8 +40,11 @@ interface Props {
   onInsert: (text: string) => void;
   /** Compartilhamento do Android; fallbackText é inserido se falhar. */
   onShare: (urls: string[], fallbackText: string) => void;
-  /** Busca e formulários abrem com o teclado em tela grande (o teclado de letras escreve neles). */
-  onExpandedChange: (expanded: boolean) => void;
+  /**
+   * Tamanho do teclado: a lista abre um pouco mais alta (para ver mais
+   * atalhos); busca e formulários em tela grande (o teclado de letras escreve neles).
+   */
+  onHeightChange: (mode: HeightMode) => void;
   /** Depois de gravar: relê os dados. */
   onChanged: () => void;
 }
@@ -53,21 +57,20 @@ const FILTERS: Array<{ kind: ShortcutKind; label: string; icon: IconName }> = [
 
 type Screen = { name: 'list' } | { name: 'search' } | { name: 'form'; kind: ShortcutKind; id: string | null };
 
-export function ShortcutsTab({ shortcuts, seller, onInsert, onShare, onExpandedChange, onChanged }: Props) {
+export function ShortcutsTab({ shortcuts, seller, onInsert, onShare, onHeightChange, onChanged }: Props) {
   const styles = useStyles();
   const [filter, setFilter] = useState<ShortcutKind>('text');
   const [screen, setScreen] = useState<Screen>({ name: 'list' });
 
-  const big = screen.name !== 'list';
+  const mode: HeightMode = screen.name === 'list' ? 'tall' : 'expanded';
   useEffect(() => {
-    onExpandedChange(big);
-    if (!big) return;
-    // O pedido do microfone e o seletor de áudio fecham o teclado; ao voltar,
-    // o Android o reabre no tamanho normal: pede a tela grande de novo
-    return KeyboardBridge.onKeyboardShow(() => onExpandedChange(true));
-  }, [big, onExpandedChange]);
-  // Sair da aba com a busca ou um formulário aberto: o teclado volta ao normal
-  useEffect(() => () => onExpandedChange(false), [onExpandedChange]);
+    onHeightChange(mode);
+    // O teclado volta ao tamanho normal sempre que fecha (ex.: o pedido do
+    // microfone e o seletor de áudio o fecham): ao reabrir, pede o tamanho de novo
+    return KeyboardBridge.onKeyboardShow(() => onHeightChange(mode));
+  }, [mode, onHeightChange]);
+  // Sair da aba: o teclado volta ao tamanho normal
+  useEffect(() => () => onHeightChange('normal'), [onHeightChange]);
 
   const list = () => setScreen({ name: 'list' });
   const saved = () => {

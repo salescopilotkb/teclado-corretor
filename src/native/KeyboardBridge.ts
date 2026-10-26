@@ -16,6 +16,7 @@ interface KeyboardBridgeNative {
   replaceTextBeforeCursor?(count: number, text: string): Promise<boolean>;
   switchKeyboard(): Promise<boolean>;
   setExpanded?(expanded: boolean): Promise<boolean>;
+  setHeightMode?(mode: HeightMode): Promise<boolean>;
   hapticLongPress?(): Promise<boolean>;
   getTargetApp(): Promise<string | null>;
   isKeyboardContext(): Promise<boolean>;
@@ -38,6 +39,9 @@ interface KeyboardBridgeNative {
 }
 
 /** De onde o teclado pega o arquivo da seção Arquivos. */
+/** Tamanho do teclado: normal, intermediário (Atalhos) ou tela grande. */
+export type HeightMode = 'normal' | 'tall' | 'expanded';
+
 export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
 
 /** Resposta do pedido do microfone (blocked = negou com "não perguntar de novo"). */
@@ -95,6 +99,9 @@ export const KeyboardBridge = {
   switchKeyboard: () => (Native ? Native.switchKeyboard() : noop()),
   /** Teclado em tela grande (CRM) ou no tamanho normal. Volta ao normal sozinho a cada campo novo. */
   setExpanded: (expanded: boolean) => (Native?.setExpanded ? Native.setExpanded(expanded) : noop()),
+  /** Normal, intermediário (um pouco mais alto, Atalhos) ou tela grande. */
+  setHeightMode: (mode: HeightMode) =>
+    Native?.setHeightMode ? Native.setHeightMode(mode) : Native?.setExpanded ? Native.setExpanded(mode === 'expanded') : noop(),
   /** Vibração curta de "pegou o item" (segurar para arrastar). Nunca falha. */
   hapticLongPress: () => {
     Native?.hapticLongPress?.().catch(() => {});

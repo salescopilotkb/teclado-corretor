@@ -6,9 +6,10 @@
  * t('Olá, {nome}', { nome }). Sem tradução, mostra o português.
  *
  * Dois idiomas por usuário:
- *  - o do usuário (`language`): telas do app e do teclado;
+ *  - o do usuário (`language`): telas do app e do teclado e o corretor
+ *    (segurar o espaço troca o idioma do corretor);
  *  - o de venda (do mercado, ver markets.ts): mensagens que vão para o
- *    cliente (ficha do produto, retorno do CRM) e o corretor do teclado.
+ *    cliente (ficha do produto, retorno do CRM, IA).
  */
 import { EN } from './en';
 import { ES } from './es';
@@ -30,11 +31,17 @@ const DICTIONARIES: Record<Exclude<Lang, 'pt'>, Record<string, string>> = { en: 
 let current: Lang = 'pt';
 const listeners = new Set<(lang: Lang) => void>();
 
-/** Idioma das telas. Quem desenha a tela relê com useLanguage(). */
+/**
+ * Idioma das telas — e do corretor do teclado: trocar o idioma do app troca
+ * também as sugestões e correções. Quem desenha a tela relê com useLanguage().
+ */
 export function setLanguage(lang: Lang): void {
   if (lang === current) return;
   current = lang;
+  // O teclado volta a digitar no idioma escolhido
+  typingOverride = null;
   listeners.forEach(cb => cb(lang));
+  typingListeners.forEach(cb => cb(lang));
 }
 
 export function getLanguage(): Lang {
@@ -58,14 +65,11 @@ function fill(text: string, vars?: Vars): string {
 let selling: Lang = 'pt';
 const sellingListeners = new Set<(lang: Lang) => void>();
 
-/** Idioma de venda: mensagens que vão para o cliente e o corretor do teclado. */
+/** Idioma de venda: mensagens que vão para o cliente (ficha, retorno do CRM, IA). */
 export function setSellingLanguage(lang: Lang): void {
   if (lang === selling) return;
   selling = lang;
-  // Mercado novo: o teclado volta a digitar no idioma de venda
-  typingOverride = null;
   sellingListeners.forEach(cb => cb(lang));
-  typingListeners.forEach(cb => cb(lang));
 }
 
 export function getSellingLanguage(): Lang {
@@ -81,18 +85,18 @@ export function onSellingLanguageChange(cb: (lang: Lang) => void): () => void {
 
 /**
  * Idioma em que o teclado está digitando (corretor, sugestões, tecla ñ).
- * Começa no de venda; segurar o espaço troca (ex.: conversar no próprio
- * idioma com alguém que não é cliente).
+ * É o idioma do app; segurar o espaço troca (ex.: escrever ao cliente no
+ * idioma de venda, quando é outro).
  */
 let typingOverride: Lang | null = null;
 const typingListeners = new Set<(lang: Lang) => void>();
 
 export function getTypingLanguage(): Lang {
-  return typingOverride ?? selling;
+  return typingOverride ?? current;
 }
 
 export function setTypingLanguage(lang: Lang): void {
-  const next = lang === selling ? null : lang;
+  const next = lang === current ? null : lang;
   if (next === typingOverride) return;
   typingOverride = next;
   typingListeners.forEach(cb => cb(lang));
@@ -105,9 +109,9 @@ export function onTypingLanguageChange(cb: (lang: Lang) => void): () => void {
   };
 }
 
-/** Próximo idioma ao segurar o espaço: o de venda, o do usuário e depois o outro. */
+/** Próximo idioma ao segurar o espaço: o do app, o de venda e depois o outro. */
 export function nextTypingLanguage(): Lang {
-  const order = [...new Set<Lang>([selling, current, 'pt', 'en', 'es'])];
+  const order = [...new Set<Lang>([current, selling, 'pt', 'en', 'es'])];
   return order[(order.indexOf(getTypingLanguage()) + 1) % order.length];
 }
 

@@ -36,8 +36,9 @@ function Chat({ visible }: { visible: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   /** CRM e Agenda: teclado em tela grande (como no celular). */
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => WebKeyboardHost.onExpandedChange(setExpanded), []);
+  /** Tamanho do teclado pedido pelo KEYCON: normal, intermediário (Atalhos) ou tela grande. */
+  const [heightMode, setHeightMode] = useState<'normal' | 'tall' | 'expanded'>('normal');
+  useEffect(() => WebKeyboardHost.onExpandedChange(setHeightMode), []);
   const draftRef = useRef('');
   const caret = useRef(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -138,7 +139,7 @@ function Chat({ visible }: { visible: boolean }) {
         </button>
       </div>
 
-      <div className={expanded ? 'keyboard expanded' : 'keyboard'}>
+      <div className={heightMode === 'normal' ? 'keyboard' : `keyboard ${heightMode}`}>
         <View style={{ flex: 1 }}>
           <CorretorKeyboard />
         </View>

@@ -83,6 +83,19 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
     fun hapticLongPress(promise: Promise) =
         withService(promise) { it.hapticLongPress() }
 
+    /** Tamanho do teclado: "normal", "tall" (intermediário, Atalhos) ou "expanded" (tela grande). */
+    @ReactMethod
+    fun setHeightMode(mode: String, promise: Promise) =
+        withService(promise) {
+            it.setHeightMode(
+                when (mode) {
+                    "expanded" -> CustomKeyboardService.HEIGHT_EXPANDED
+                    "tall" -> CustomKeyboardService.HEIGHT_TALL
+                    else -> CustomKeyboardService.HEIGHT_NORMAL
+                },
+            )
+        }
+
     /** Teclado em tela grande (CRM) ou de volta ao tamanho normal. */
     @ReactMethod
     fun setExpanded(expanded: Boolean, promise: Promise) =
@@ -362,6 +375,8 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
                 // Pelo contexto do teclado visível: o Android deixa abrir a tela mesmo com o app em segundo plano
                 val context = CustomKeyboardService.instance ?: reactApplicationContext
                 MediaPickActivity.start(context, source) { result ->
+                    // A galeria/câmera fechou: o teclado volta sozinho (sem precisar tocar no campo)
+                    CustomKeyboardService.instance?.showAgainSoon()
                     when (result) {
                         is MediaPickActivity.Result.Ok -> {
                             val p = result.picked
@@ -399,6 +414,7 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
             }
             try {
                 MediaPickActivity.start(context, MediaPickActivity.SOURCE_MIC_PERMISSION) { result ->
+                    CustomKeyboardService.instance?.showAgainSoon()
                     promise.resolve(if (result is MediaPickActivity.Result.Permission) result.state else "denied")
                 }
             } catch (t: Throwable) {

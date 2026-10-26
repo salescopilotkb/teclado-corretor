@@ -16,6 +16,8 @@ export interface KeyboardShowEvent {
 
 export type CommitImageResult = 'sent' | 'unsupported' | 'failed';
 
+export type HeightMode = 'normal' | 'tall' | 'expanded';
+
 export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
 
 export type MicPermission = 'granted' | 'denied' | 'blocked';
@@ -42,7 +44,7 @@ export interface WebKeyboardTarget {
 
 let target: WebKeyboardTarget | null = null;
 let openAppHandler: (() => void) | null = null;
-let expandHandler: ((expanded: boolean) => void) | null = null;
+let expandHandler: ((mode: HeightMode) => void) | null = null;
 const showListeners = new Set<(e: KeyboardShowEvent) => void>();
 const hideListeners = new Set<() => void>();
 const selectionListeners = new Set<(e: SelectionChangeEvent) => void>();
@@ -71,7 +73,7 @@ export const WebKeyboardHost = {
     openAppHandler = handler;
   },
   /** A página de teste aumenta a área do teclado (CRM e Agenda em tela grande). */
-  onExpandedChange(handler: (expanded: boolean) => void) {
+  onExpandedChange(handler: (mode: HeightMode) => void) {
     expandHandler = handler;
   },
 };
@@ -107,7 +109,11 @@ export const KeyboardBridge = {
   switchKeyboard: async () => false,
   /** Página de teste: o teclado cresce sobre a conversa, como no celular. */
   setExpanded: async (expanded: boolean) => {
-    expandHandler?.(expanded);
+    expandHandler?.(expanded ? 'expanded' : 'normal');
+    return !!expandHandler;
+  },
+  setHeightMode: async (mode: HeightMode) => {
+    expandHandler?.(mode);
     return !!expandHandler;
   },
   /** No navegador do celular, a vibração da página (no computador não faz nada). */

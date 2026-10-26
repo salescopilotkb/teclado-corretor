@@ -15,7 +15,7 @@ import com.facebook.react.uimanager.ViewManager
  */
 class KeyboardBridgePackage : ReactPackage {
     override fun createNativeModules(ctx: ReactApplicationContext): List<NativeModule> =
-        listOf(KeyboardBridgeModule(ctx), AudioRecorderModule(ctx))
+        listOf(KeyboardBridgeModule(ctx), AudioRecorderModule(ctx), TranslatorModule(ctx))
 
     override fun createViewManagers(ctx: ReactApplicationContext): List<ViewManager<*, *>> =
         emptyList()

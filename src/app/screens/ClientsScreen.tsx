@@ -214,7 +214,7 @@ function LeadList({
       />
 
       {/* Funil: quantidade por etapa (toque para filtrar) */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.funnel}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.section} contentContainerStyle={styles.funnel}>
         {[null, ...stages].map((s, i) => {
           const active = stage === s;
           return (
@@ -232,7 +232,11 @@ function LeadList({
           );
         })}
       </ScrollView>
-      <TagFilter tags={tags} value={tag} onChange={setTag} />
+      {tags.length > 0 && (
+        <View style={styles.section}>
+          <TagFilter tags={tags} value={tag} onChange={setTag} />
+        </View>
+      )}
 
       <View style={styles.list}>
         {shown.length === 0 && <CardText>{t('Nenhum cliente encontrado.')}</CardText>}
@@ -610,7 +614,9 @@ const useStyles = makeStyles(colors => ({
   stageCount: { fontSize: 22, fontWeight: '700', color: colors.text },
   stageLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   stageTextActive: { color: colors.primaryText },
-  list: { gap: spacing.sm },
+  // Mais respiro entre busca, funil, etiquetas e clientes (além do espaço da página)
+  section: { marginTop: spacing.xs, marginBottom: spacing.xs },
+  list: { gap: spacing.md, marginTop: spacing.xs },
   leadCard: {
     flexDirection: 'row',
     alignItems: 'center',
