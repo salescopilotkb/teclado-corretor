@@ -167,6 +167,17 @@ Copie `src/`, `index.js`, `backend/` e os arquivos de `android/` e `ios/` deste 
    ```
 4. `npm run android` → no app, toque em **Abrir configurações de teclado** → ative
    “KEYCON” → no WhatsApp, troque de teclado (ícone ⌨️ na barra de navegação).
+5. CI: `.github/workflows/build-android.yml` gera a cada commit o **AAB de release**
+   (`KEYCON-v<versão>.aab`), o formato que a Google Play pede. Para a Play aceitar o envio,
+   o AAB precisa da chave de envio, guardada em quatro segredos do repositório
+   (Settings › Secrets and variables › Actions):
+   - `KEYCON_UPLOAD_KEYSTORE_BASE64`: o arquivo `.jks` em base64;
+   - `KEYCON_UPLOAD_STORE_PASSWORD` e `KEYCON_UPLOAD_KEY_PASSWORD`: as senhas;
+   - `KEYCON_UPLOAD_KEY_ALIAS`: o apelido da chave.
+
+   Sem esses segredos, o AAB sai com a chave de debug (a CI avisa) e serve só para conferir
+   a compilação. O AAB não instala direto no celular: por isso a mesma compilação gera também
+   o **APK de release** (`KEYCON-v<versão>.apk`, artefato `-apk`), para instalar e testar.
 
 ### 3. iOS
 O projeto Xcode é gerado pelo [XcodeGen](https://github.com/yonaskolb/XcodeGen) a partir de

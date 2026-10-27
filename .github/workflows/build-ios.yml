@@ -1,6 +1,6 @@
 name: Build KEYCON iOS
 
-# Compila o app do iPhone (com o teclado) a cada commit, junto com o APK.
+# Compila o app do iPhone (com o teclado) a cada commit, junto com o AAB do Android.
 # Sem conta Apple Developer ainda: compila para iPhone (arm64), sem assinatura.
 # Serve para saber se o código iOS compila; para instalar num iPhone é
 # preciso assinar com a conta da Apple (DEVELOPMENT_TEAM em ios/project.yml).

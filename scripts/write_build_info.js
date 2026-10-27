@@ -4,9 +4,9 @@
  * mais o código curto do commit e a data dele. A tela Conta › Sobre mostra.
  *
  * Roda sozinho no `npm install`/`npm ci` (postinstall), antes do build web e
- * na CI antes de gerar o APK (a CI precisa do histórico completo: fetch-depth 0).
+ * na CI antes de gerar o AAB (a CI precisa do histórico completo: fetch-depth 0).
  * Com --github-env, também exporta KEYCON_VERSION_NAME e KEYCON_VERSION_CODE
- * para o Gradle (versionName / versionCode do APK).
+ * para o Gradle (versionName / versionCode do AAB).
  *
  * O arquivo gerado não vai para o git (.gitignore).
  */

@@ -25,12 +25,25 @@ android {
         versionCode((System.getenv("KEYCON_VERSION_CODE") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
         versionName(System.getenv("KEYCON_VERSION_NAME") ?: ("1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")))
     }
+    // Chave de envio da Google Play: a CI recebe dos segredos do GitHub
+    // (KEYCON_UPLOAD_*). Sem ela, o AAB sai com a chave de debug e a Play recusa.
+    def uploadStoreFile = System.getenv("KEYCON_UPLOAD_STORE_FILE")
+    def hasUploadKey = uploadStoreFile && file(uploadStoreFile).exists()
+
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
             keyAlias 'androiddebugkey'
             keyPassword 'android'
+        }
+        if (hasUploadKey) {
+            upload {
+                storeFile file(uploadStoreFile)
+                storePassword System.getenv("KEYCON_UPLOAD_STORE_PASSWORD")
+                keyAlias System.getenv("KEYCON_UPLOAD_KEY_ALIAS")
+                keyPassword System.getenv("KEYCON_UPLOAD_KEY_PASSWORD")
+            }
         }
     }
 
@@ -39,7 +52,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.debug
+            signingConfig hasUploadKey ? signingConfigs.upload : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

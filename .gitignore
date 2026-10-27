@@ -18,3 +18,6 @@ ios/.xcode.env.local
 # Cópia da fonte Inter do Android, feita pelo XcodeGen (preGenCommand)
 ios/Fonts/
 xcuserdata/
+# Chave de envio da Google Play: guarde fora do repositório (só nos segredos do GitHub)
+*.jks
+keycon-upload*

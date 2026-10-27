@@ -1,0 +1,112 @@
+name: Build KEYCON Android (AAB + APK)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+        with:
+          # Histórico completo: a versão do app é o número de commits
+          fetch-depth: 0
+
+      - name: Configurar Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Instalar Dependências NPM
+        run: npm ci
+
+      - name: Configurar Java 17 (Exigido pelo React Native 0.74 e AGP 8)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Permissão de execução para o Gradlew
+        working-directory: android
+        run: chmod +x gradlew
+
+      - name: Versão do app (a cada commit)
+        run: node scripts/write_build_info.js --github-env
+
+      # Chave de envio da Google Play, guardada nos segredos do repositório
+      # (Settings › Secrets and variables › Actions). Sem ela, o AAB sai com a
+      # chave de debug: compila, mas a Play Console recusa o envio.
+      - name: Chave de envio da Google Play
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.KEYCON_UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_STORE_PASSWORD: ${{ secrets.KEYCON_UPLOAD_STORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.KEYCON_UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.KEYCON_UPLOAD_KEY_PASSWORD }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
+            echo "::warning::Sem a chave de envio (segredo KEYCON_UPLOAD_KEYSTORE_BASE64): o AAB foi assinado com a chave de debug e a Google Play não vai aceitar."
+            echo "KEYCON_SIGNING=debug" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/keycon-upload.jks"
+          {
+            echo "KEYCON_UPLOAD_STORE_FILE=$RUNNER_TEMP/keycon-upload.jks"
+            echo "KEYCON_UPLOAD_STORE_PASSWORD=$UPLOAD_STORE_PASSWORD"
+            echo "KEYCON_UPLOAD_KEY_ALIAS=$UPLOAD_KEY_ALIAS"
+            echo "KEYCON_UPLOAD_KEY_PASSWORD=$UPLOAD_KEY_PASSWORD"
+            echo "KEYCON_SIGNING=upload"
+          } >> "$GITHUB_ENV"
+
+      # AAB para a Google Play e APK para instalar direto no celular (testes),
+      # os dois da mesma compilação e com a mesma assinatura. O bundle JS
+      # (Hermes) é gerado pelo próprio Gradle no build de release.
+      - name: Compilar AAB e APK de Release
+        working-directory: android
+        run: |
+          set -o pipefail
+          ./gradlew bundleRelease assembleRelease --no-daemon --stacktrace --console=plain 2>&1 | tee ../build.log
+
+      - name: Exibir detalhes do erro se falhar
+        if: failure()
+        run: |
+          echo "=========================================="
+          echo "ULTIMAS 150 LINHAS DO LOG DE COMPILACAO:"
+          echo "=========================================="
+          tail -n 150 build.log
+          grep -E "^e: |error:|FAILURE|What went wrong" build.log | head -20 | while IFS= read -r line; do echo "::error::$line"; done
+
+      - name: Salvar Log de Erro como Artefato
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: build.log
+
+      - name: Renomear AAB e APK para KEYCON
+        if: success()
+        run: |
+          mv android/app/build/outputs/bundle/release/app-release.aab "android/app/build/outputs/bundle/release/KEYCON-v${{ env.KEYCON_VERSION_NAME }}.aab"
+          mv android/app/build/outputs/apk/release/app-release.apk "android/app/build/outputs/apk/release/KEYCON-v${{ env.KEYCON_VERSION_NAME }}.apk"
+          echo "::notice::KEYCON-v${{ env.KEYCON_VERSION_NAME }} (versionCode ${{ env.KEYCON_VERSION_CODE }}): .aab e .apk assinados com a chave: ${{ env.KEYCON_SIGNING }}"
+
+      - name: Salvar AAB como Artefato de Download
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KEYCON-v${{ env.KEYCON_VERSION_NAME }}-aab
+          path: android/app/build/outputs/bundle/release/KEYCON-v${{ env.KEYCON_VERSION_NAME }}.aab
+
+      - name: Salvar APK como Artefato de Download
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: KEYCON-v${{ env.KEYCON_VERSION_NAME }}-apk
+          path: android/app/build/outputs/apk/release/KEYCON-v${{ env.KEYCON_VERSION_NAME }}.apk
