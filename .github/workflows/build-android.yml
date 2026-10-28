@@ -56,7 +56,24 @@ jobs:
             echo "KEYCON_SIGNING=debug" >> "$GITHUB_ENV"
             exit 0
           fi
-          echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/keycon-upload.jks"
+          # Segredos colados com espaço ou quebra de linha no fim: limpa antes de usar
+          UPLOAD_STORE_PASSWORD="$(printf '%s' "$UPLOAD_STORE_PASSWORD" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          UPLOAD_KEY_PASSWORD="$(printf '%s' "$UPLOAD_KEY_PASSWORD" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          UPLOAD_KEY_ALIAS="$(printf '%s' "$UPLOAD_KEY_ALIAS" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          if ! printf '%s' "$UPLOAD_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 --decode > "$RUNNER_TEMP/keycon-upload.jks"; then
+            echo "::error::KEYCON_UPLOAD_KEYSTORE_BASE64 não é um base64 válido. Cole de novo o conteúdo inteiro de segredo-1-KEYCON_UPLOAD_KEYSTORE_BASE64.txt."
+            exit 1
+          fi
+          # Confere arquivo, senha e apelido antes de compilar (sem mostrar nenhum segredo)
+          if ! keytool -list -keystore "$RUNNER_TEMP/keycon-upload.jks" -storepass "$UPLOAD_STORE_PASSWORD" > /dev/null 2>&1; then
+            echo "::error::A chave não abriu com KEYCON_UPLOAD_STORE_PASSWORD: a senha está diferente da do arquivo (ou o arquivo em base64 está incompleto)."
+            exit 1
+          fi
+          if ! keytool -list -keystore "$RUNNER_TEMP/keycon-upload.jks" -storepass "$UPLOAD_STORE_PASSWORD" -alias "$UPLOAD_KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::O apelido KEYCON_UPLOAD_KEY_ALIAS não existe nesta chave (o certo é: keycon)."
+            exit 1
+          fi
+          echo "::notice::Chave de envio conferida: arquivo, senha e apelido corretos."
           {
             echo "KEYCON_UPLOAD_STORE_FILE=$RUNNER_TEMP/keycon-upload.jks"
             echo "KEYCON_UPLOAD_STORE_PASSWORD=$UPLOAD_STORE_PASSWORD"
@@ -81,7 +98,10 @@ jobs:
           echo "ULTIMAS 150 LINHAS DO LOG DE COMPILACAO:"
           echo "=========================================="
           tail -n 150 build.log
-          grep -E "^e: |error:|FAILURE|What went wrong" build.log | head -20 | while IFS= read -r line; do echo "::error::$line"; done
+          # Resumo público do erro (o log completo só abre com login no GitHub):
+          # o bloco "What went wrong" inteiro e os erros do compilador
+          awk '/What went wrong/{f=1;n=0} f{print; if(++n>8) f=0}' build.log | grep -v '^\s*$' | head -12 | while IFS= read -r line; do echo "::error::$line"; done
+          grep -E "^e: |error:" build.log | head -10 | while IFS= read -r line; do echo "::error::$line"; done
 
       - name: Salvar Log de Erro como Artefato
         if: failure()
