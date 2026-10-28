@@ -73,7 +73,18 @@ jobs:
             echo "::error::O apelido KEYCON_UPLOAD_KEY_ALIAS não existe nesta chave (o certo é: keycon)."
             exit 1
           fi
-          echo "::notice::Chave de envio conferida: arquivo, senha e apelido corretos."
+          # Senha da chave (pode ser diferente da do arquivo): o certreq só funciona com ela
+          keyok() { keytool -certreq -keystore "$RUNNER_TEMP/keycon-upload.jks" -storepass "$UPLOAD_STORE_PASSWORD" -alias "$UPLOAD_KEY_ALIAS" -keypass "$1" -file /dev/null > /dev/null 2>&1; }
+          if ! keyok "$UPLOAD_KEY_PASSWORD"; then
+            if keyok "$UPLOAD_STORE_PASSWORD"; then
+              echo "::warning::KEYCON_UPLOAD_KEY_PASSWORD está errada; usei a senha do arquivo (KEYCON_UPLOAD_STORE_PASSWORD), que abre a chave. Corrija o segredo colando o conteúdo de segredo-3-KEYCON_UPLOAD_KEY_PASSWORD.txt."
+              UPLOAD_KEY_PASSWORD="$UPLOAD_STORE_PASSWORD"
+            else
+              echo "::error::A chave não abre com KEYCON_UPLOAD_KEY_PASSWORD. Cole de novo o conteúdo de segredo-3-KEYCON_UPLOAD_KEY_PASSWORD.txt."
+              exit 1
+            fi
+          fi
+          echo "::notice::Chave de envio conferida: arquivo, senhas e apelido corretos."
           {
             echo "KEYCON_UPLOAD_STORE_FILE=$RUNNER_TEMP/keycon-upload.jks"
             echo "KEYCON_UPLOAD_STORE_PASSWORD=$UPLOAD_STORE_PASSWORD"
