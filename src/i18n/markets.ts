@@ -7,7 +7,7 @@
  */
 import type { Lang } from './index';
 
-export type MarketId = 'BR' | 'US_EN' | 'US_ES' | 'PT' | 'ES' | 'MX' | 'AR' | 'CO' | 'CL' | 'UK' | 'CA';
+export type MarketId = 'BR' | 'US_EN' | 'US_ES' | 'US_PT' | 'PT' | 'ES' | 'MX' | 'AR' | 'CO' | 'CL' | 'UK' | 'CA';
 
 export interface Market {
   id: MarketId;
@@ -31,6 +31,8 @@ export const MARKETS: Market[] = [
   { id: 'BR', country: 'Brasil', language: 'pt', currency: 'BRL', symbol: 'R$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 2, phoneExample: '(11) 98888-7777' },
   { id: 'US_EN', country: 'United States', language: 'en', currency: 'USD', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(305) 555-0123' },
   { id: 'US_ES', country: 'Estados Unidos', language: 'es', currency: 'USD', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(305) 555-0123' },
+  // Brasileiros que vendem nos EUA: mensagens em português, preços em dólar
+  { id: 'US_PT', country: 'Estados Unidos', language: 'pt', currency: 'USD', symbol: 'US$', symbolPosition: 'before', symbolSpace: true, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(305) 555-0123' },
   { id: 'PT', country: 'Portugal', language: 'pt', currency: 'EUR', symbol: '€', symbolPosition: 'after', symbolSpace: true, thousands: ' ', decimal: ',', decimals: 2, phoneExample: '912 345 678' },
   { id: 'ES', country: 'España', language: 'es', currency: 'EUR', symbol: '€', symbolPosition: 'after', symbolSpace: true, thousands: '.', decimal: ',', decimals: 2, phoneExample: '612 34 56 78' },
   { id: 'MX', country: 'México', language: 'es', currency: 'MXN', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2, phoneExample: '55 1234 5678' },
@@ -50,6 +52,7 @@ export const DIALING: Record<MarketId, { code: string; national: number }> = {
   BR: { code: '55', national: 11 },
   US_EN: { code: '1', national: 10 },
   US_ES: { code: '1', national: 10 },
+  US_PT: { code: '1', national: 10 },
   PT: { code: '351', national: 9 },
   ES: { code: '34', national: 9 },
   MX: { code: '52', national: 10 },

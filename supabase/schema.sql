@@ -223,3 +223,31 @@ alter table public.products add constraint products_price_check check (price >= 
 -- Idiomas e moeda
 alter table public.profiles add column if not exists language text not null default 'pt';
 alter table public.profiles add column if not exists market text not null default 'BR';
+
+-- -----------------------------------------------------------------------------
+-- Lista de espera da landing page (landing/): "Avise-me no lançamento".
+-- Qualquer visitante pode SE INSCREVER (insert com a chave anon), mas ninguém
+-- lê a lista pelo site: só você, no painel do Supabase (Table Editor → waitlist).
+-- -----------------------------------------------------------------------------
+create table if not exists public.waitlist (
+  id          bigint generated always as identity primary key,
+  email       text not null check (char_length(email) <= 254 and email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  -- Celular de quem se inscreveu: em qual loja avisar
+  platform    text not null check (platform in ('android', 'iphone')),
+  -- Idioma da página na inscrição (en, pt, es): em que idioma escrever o aviso
+  language    text not null default 'en' check (language in ('en', 'pt', 'es')),
+  created_at  timestamptz not null default now()
+);
+
+-- Um e-mail entra uma vez só (maiúsculas e minúsculas contam como o mesmo)
+create unique index if not exists waitlist_email_unique on public.waitlist (lower(email));
+
+alter table public.waitlist enable row level security;
+
+revoke all on public.waitlist from anon, authenticated;
+grant insert (email, platform, language) on public.waitlist to anon, authenticated;
+
+drop policy if exists "inscricao na lista de espera" on public.waitlist;
+create policy "inscricao na lista de espera" on public.waitlist
+  for insert to anon, authenticated
+  with check (true);

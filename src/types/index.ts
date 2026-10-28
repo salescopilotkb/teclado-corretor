@@ -100,7 +100,7 @@ export interface SellerProfile {
   /** Idioma do app e do teclado (ver src/i18n). */
   language: 'pt' | 'en' | 'es';
   /** Onde vende: moeda, formato dos números e idioma das mensagens ao cliente (src/i18n/markets). */
-  market: 'BR' | 'US_EN' | 'US_ES' | 'PT' | 'ES' | 'MX' | 'AR' | 'CO' | 'CL' | 'UK' | 'CA';
+  market: 'BR' | 'US_EN' | 'US_ES' | 'US_PT' | 'PT' | 'ES' | 'MX' | 'AR' | 'CO' | 'CL' | 'UK' | 'CA';
 }
 
 export type SuggestionTone = 'cordial' | 'objetiva' | 'persuasiva';

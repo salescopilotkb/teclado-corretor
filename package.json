@@ -14,6 +14,7 @@
     "web:dev": "vite --config web/vite.config.mts",
     "web:build": "node scripts/write_build_info.js && vite build --config web/vite.config.mts",
     "web:preview": "vite preview --config web/vite.config.mts",
+    "landing:legal": "tsx scripts/build_landing_legal.ts",
     "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res"
   },
   "dependencies": {

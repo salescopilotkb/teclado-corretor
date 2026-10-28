@@ -171,7 +171,7 @@ function buildRows(mode: Mode, shift: ShiftState, typingLang: Lang): KeyDef[][] 
       },
       { id: 'comma', label: ',', kind: 'char', flex: 1, action: { t: 'char', v: ',' } },
       // Emojis (painel com os emojis do próprio celular)
-      { id: 'emoji', label: '😊', kind: 'func', flex: 1, action: { t: 'emoji' } },
+      { id: 'emoji', label: '😊', icon: 'emoji', kind: 'func', flex: 1, action: { t: 'emoji' } },
       // O nome do idioma de digitação no espaço (segurar troca)
       { id: 'space', label: LANGUAGES.find(l => l.id === typingLang)?.label ?? '', kind: 'space', flex: 4, action: { t: 'space' } },
       { id: 'dot', label: '.', kind: 'char', flex: 1, action: { t: 'char', v: '.' } },

@@ -3,7 +3,8 @@
  *
  * Os textos descrevem o que o app faz hoje: conta e perfil na nuvem
  * (Supabase), arquivos enviados em links públicos, catálogo/atalhos/clientes/
- * agenda/arquivos (a lista) só no aparelho, teclado que processa o que é
+ * agenda/arquivos (a lista) só no aparelho, lista de espera do site (e-mail,
+ * celular e idioma), teclado que processa o que é
  * digitado só no aparelho, IA que envia a mensagem copiada ao servidor.
  * Mudou algo disso no app? Atualize aqui e a data em LEGAL_UPDATED.
  *
@@ -21,7 +22,7 @@ export const LEGAL_INFO = {
 };
 
 /** Data da última atualização dos textos (AAAA-MM-DD). */
-export const LEGAL_UPDATED = '2026-10-26';
+export const LEGAL_UPDATED = '2026-10-27';
 
 export interface LegalSection {
   title: string;
@@ -337,6 +338,7 @@ export const PRIVACY: Docs = {
           'Perfil: seu nome, nome do negócio, WhatsApp, ramo do negócio, idioma e país onde você vende. Eles aparecem nas suas mensagens prontas e ajustam o app ao seu negócio.',
           'Arquivos que você envia: fotos, vídeos e áudios que você escolhe adicionar ao catálogo, aos atalhos ou à seção Arquivos. Eles ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.',
           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
+          'Lista de espera do site: se você se inscrever para ser avisado do lançamento, guardamos seu e-mail, o tipo de celular que você escolheu (iPhone ou Android) e o idioma da página. Usamos esses dados só para avisar quando o KEYCON estiver disponível no seu celular.',
         ],
       },
       {
@@ -383,6 +385,7 @@ export const PRIVACY: Docs = {
         title: '9. Por quanto tempo guardamos',
         paragraphs: [
           'Guardamos os dados da conta, do perfil e os arquivos enviados enquanto sua conta existir. Se você pedir a exclusão, apagamos esses dados em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
+          'Os dados da lista de espera ficam guardados até o aviso de lançamento ser enviado. Você pode pedir a remoção antes disso pelo e-mail {email}.',
         ],
       },
       {
@@ -433,6 +436,7 @@ export const PRIVACY: Docs = {
           'Profile: your name, business name, WhatsApp, line of business, language and the country where you sell. They appear in your ready-made messages and tailor the app to your business.',
           'Files you upload: photos, videos and audios you choose to add to your catalog, shortcuts or the Files section. They are available through a public link so the keyboard can send them in your chats.',
           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
+          'Website waitlist: if you sign up to be notified about the launch, we keep your email, the type of phone you chose (iPhone or Android) and the language of the page. We use this data only to tell you when KEYCON is available for your phone.',
         ],
       },
       {
@@ -479,6 +483,7 @@ export const PRIVACY: Docs = {
         title: '9. How long we keep data',
         paragraphs: [
           'We keep account and profile data and uploaded files while your account exists. If you ask us to delete them, we delete this data within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.',
+          'Waitlist data is kept until the launch notice is sent. You can ask us to remove it before then by writing to {email}.',
         ],
       },
       {
@@ -529,6 +534,7 @@ export const PRIVACY: Docs = {
           'Perfil: tu nombre, nombre del negocio, WhatsApp, rubro, idioma y país donde vendes. Aparecen en tus mensajes listos y adaptan la app a tu negocio.',
           'Archivos que subes: fotos, videos y audios que eliges agregar al catálogo, a los accesos rápidos o a la sección Archivos. Quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.',
           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',
+          'Lista de espera del sitio: si te inscribes para recibir el aviso del lanzamiento, guardamos tu correo, el tipo de celular que elegiste (iPhone o Android) y el idioma de la página. Usamos estos datos solo para avisarte cuando KEYCON esté disponible para tu celular.',
         ],
       },
       {
@@ -575,6 +581,7 @@ export const PRIVACY: Docs = {
         title: '9. Cuánto tiempo guardamos los datos',
         paragraphs: [
           'Guardamos los datos de la cuenta, del perfil y los archivos subidos mientras exista tu cuenta. Si pides la eliminación, borramos estos datos en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
+          'Los datos de la lista de espera se guardan hasta enviar el aviso de lanzamiento. Puedes pedir que los borremos antes escribiendo a {email}.',
         ],
       },
       {

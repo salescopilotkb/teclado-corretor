@@ -112,6 +112,8 @@ const ICONS = {
   ],
   globo: [{ circle: [12, 12, 10] }, { d: 'M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20' }],
   enter: [{ d: 'M9 10l-5 5 5 5' }, { d: 'M20 4v7a4 4 0 0 1-4 4H4' }],
+  // Tecla de emojis: rosto só no traço, como os outros ícones (não o emoji colorido)
+  emoji: [{ circle: [12, 12, 9.5] }, { d: 'M8.5 14.5a4.5 4.5 0 0 0 7 0' }, { d: 'M9 9.5h.01M15 9.5h.01' }],
 
   // ── Ramos de negócio (cadastro) ─────────────────────────────────────
   casa: [{ d: 'M3 10.5 12 3l9 7.5' }, { d: 'M5 9v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9' }, { d: 'M10 21v-6h4v6' }],

@@ -243,3 +243,22 @@ npm run web:preview  # confere a dist/ em http://localhost:4173
 - **Dados:** ficam no navegador de quem testa (localStorage), separados do celular.
 - **Limitações na web:** fotos e áudios vão como link; envio de arquivos e a tecla 🌐 só no Android.
 - Arquivos `.web.ts` (ex.: `src/native/KeyboardBridge.web.ts`) substituem os nativos só na web.
+
+## 🚀 Landing page (site de apresentação)
+A pasta `landing/` é o site do KEYCON, pronto para hospedar: HTML, CSS e JS puros, sem
+compilação. Envie **o conteúdo da pasta** para a raiz do provedor de hospedagem.
+
+| Arquivo | O que é |
+| --- | --- |
+| `landing/index.html` | Página inicial. O HTML está em inglês (lançamento nos EUA); português e espanhol ficam em `script.js`, e a página abre no idioma do navegador |
+| `landing/privacidade.html`, `landing/termos.html` | Política de Privacidade e Termos (en, es, pt), o link que as lojas pedem |
+| `landing/script.js` → `CONFIG` | Links da Google Play e da App Store, e-mail de contato e a lista de espera. Loja sem link: "Coming soon"; sem e-mail: sem botão de contato |
+| `landing/img/` | Logo e ícones; as telas do teclado ficam em `img/en`, `img/es` e `img/pt`, trocadas junto com o idioma |
+
+**Lista de espera ("Notify me"):** enquanto o app não está nas duas lojas, o topo e a chamada final
+pedem o e-mail e o celular (iPhone ou Android). Os dados vão para a tabela `waitlist` do Supabase do
+app: rode o bloco "Lista de espera" de `supabase/schema.sql` no SQL Editor (uma vez). O site só
+consegue inscrever; para ver a lista, abra Table Editor → `waitlist` no painel do Supabase.
+
+As páginas legais são geradas de `src/legal/legal.ts`: depois de mudar os textos ou preencher
+`LEGAL_INFO`, rode `npm run landing:legal`.
