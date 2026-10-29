@@ -136,8 +136,8 @@ export function KeyboardFormField({ spec, value, active, onPress }: FieldProps) 
   );
 }
 
-/** Teclado de letras ligado ao campo ativo do formulário. */
-export function KeyboardFormKeys({ sink, activeKey, spec }: { sink: TextSink; activeKey: string; spec?: FormFieldSpec }) {
+/** Teclado de letras ligado ao campo ativo do formulário (sem sink = digita direto no app em foco). */
+export function KeyboardFormKeys({ sink, activeKey, spec }: { sink?: TextSink; activeKey: string; spec?: FormFieldSpec }) {
   const styles = useStyles();
   return (
     <View style={styles.keys}>

@@ -2,7 +2,7 @@ import { t } from '../../i18n';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
-import { Repo } from '../../storage/storage';
+import { Repo, storage } from '../../storage/storage';
 import { glassBorder, makeStyles, radius, spacing, typography, useColors } from '../../keyboard/theme';
 import { Button, Card, CardText, CardTitle, Page, StatusChip, SubHeader } from '../components/ui';
 import { MANUAL_STEPS } from '../onboarding/steps';
@@ -13,9 +13,27 @@ export interface KeyboardStatus {
   selected: boolean | null;
 }
 
+const STATUS_KEY_ENABLED = 'keyboard.status.enabled';
+const STATUS_KEY_SELECTED = 'keyboard.status.selected';
+
+function getInitialKeyboardStatus(): KeyboardStatus {
+  if (Platform.OS !== 'android') return { enabled: null, selected: null };
+  const hasEnabled = storage.contains(STATUS_KEY_ENABLED);
+  const hasSelected = storage.contains(STATUS_KEY_SELECTED);
+  if (hasEnabled || hasSelected) {
+    return {
+      enabled: hasEnabled ? (storage.getBoolean(STATUS_KEY_ENABLED) ?? null) : null,
+      selected: hasSelected ? (storage.getBoolean(STATUS_KEY_SELECTED) ?? null) : null,
+    };
+  }
+  return { enabled: null, selected: null };
+}
+
+let cachedStatus: KeyboardStatus = getInitialKeyboardStatus();
+
 /** Situação do teclado no Android, relida sempre que o app volta à tela. */
 export function useKeyboardStatus(): KeyboardStatus {
-  const [status, setStatus] = useState<KeyboardStatus>({ enabled: null, selected: null });
+  const [status, setStatus] = useState<KeyboardStatus>(cachedStatus);
 
   const check = useCallback(async () => {
     if (Platform.OS !== 'android') return;
@@ -24,7 +42,14 @@ export function useKeyboardStatus(): KeyboardStatus {
         KeyboardBridge.isKeyboardEnabled(),
         KeyboardBridge.isKeyboardSelected(),
       ]);
-      setStatus({ enabled, selected });
+      const next: KeyboardStatus = { enabled, selected };
+      cachedStatus = next;
+      storage.set(STATUS_KEY_ENABLED, enabled);
+      storage.set(STATUS_KEY_SELECTED, selected);
+      if (enabled) {
+        Repo.markStepDone(MANUAL_STEPS.keyboard);
+      }
+      setStatus(prev => (prev.enabled === next.enabled && prev.selected === next.selected ? prev : next));
     } catch {
       // Sem resposta do sistema: mantém o que sabia
     }

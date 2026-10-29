@@ -3,8 +3,12 @@
  * Tela principal: calendário + compromissos do dia; cadastro em submenu.
  */
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { TIME_SLOTS, addDays, busyDays, formatDayLong, itemsOn, newAgendaId, todayISO } from '../../agenda/agenda';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { TIME_SLOTS, addDays, busyDays, confirmationMessage, formatDayLong, itemsOn, newAgendaId, todayISO } from '../../agenda/agenda';
+import { GOOGLE_MEET_NEW_URL, normalizeMeetUrl } from '../../agenda/googleMeet';
+import { createMeetWithGoogle } from '../../agenda/googleAccess';
+import { whatsappLink } from '../../crm/crm';
+import { signInWithGoogle } from '../../services/auth';
 import { Repo } from '../../storage/storage';
 import type { AgendaKind, CRMLead, ScheduleItem } from '../../types';
 import { Icon } from '../../keyboard/components/Icon';
@@ -66,6 +70,7 @@ export function AgendaScreen({ presetClientId }: Props) {
           <AgendaRow
             key={item.id}
             item={item}
+            leads={Repo.getCRM()}
             onToggle={() => {
               Repo.saveAgendaItem({ ...item, done: !item.done });
               reload();
@@ -79,9 +84,36 @@ export function AgendaScreen({ presetClientId }: Props) {
   );
 }
 
-function AgendaRow({ item, onToggle, onPress }: { item: ScheduleItem; onToggle: () => void; onPress: () => void }) {
+function AgendaRow({
+  item,
+  leads = [],
+  onToggle,
+  onPress,
+}: {
+  item: ScheduleItem;
+  leads?: CRMLead[];
+  onToggle: () => void;
+  onPress: () => void;
+}) {
   const colors = useColors();
   const styles = useStyles();
+
+  const handleConfirm = () => {
+    const message = confirmationMessage(item);
+    const phone = item.clientPhone || (item.clientId ? leads.find(l => l.id === item.clientId)?.phone : undefined);
+    const link = whatsappLink(phone, message);
+    if (link) {
+      Linking.openURL(link).catch(() => {
+        Alert.alert(t('Erro'), t('Não foi possível abrir o WhatsApp.'));
+      });
+    } else {
+      Alert.alert(
+        t('WhatsApp não informado'),
+        t('Adicione o número de WhatsApp do cliente no compromisso para enviar a confirmação direta.')
+      );
+    }
+  };
+
   return (
     <View style={[styles.row, item.done && styles.rowDone]}>
       <Pressable
@@ -100,8 +132,25 @@ function AgendaRow({ item, onToggle, onPress }: { item: ScheduleItem; onToggle: 
           {item.kind === 'meeting' ? t('Reunião') : t('Tarefa')}
           {item.time ? ` · ${item.time}` : t(' · dia todo')}
           {item.clientName ? ` · ${item.clientName}` : ''}
+          {item.clientPhone ? ` · ${item.clientPhone}` : ''}
+          {item.meetUrl ? ' · Meet' : ''}
         </Text>
       </Pressable>
+      {item.meetUrl && (
+        <Pressable
+          accessibilityLabel={t('Entrar no Google Meet')}
+          style={styles.meetBadge}
+          onPress={() => Linking.openURL(item.meetUrl!)}>
+          <Icon name="respostas" size={12} color={colors.primaryText} />
+          <Text style={styles.meetBadgeText}>Meet</Text>
+        </Pressable>
+      )}
+      {item.kind === 'meeting' && !item.done && (
+        <Pressable accessibilityLabel={t('Enviar confirmação')} style={styles.send} onPress={handleConfirm}>
+          <Icon name="respostas" size={16} color={colors.primaryText} />
+          <Text style={styles.sendText}>{t('Confirmar')}</Text>
+        </Pressable>
+      )}
       <Icon name="avancar" size={18} color={colors.textMuted} />
     </View>
   );
@@ -129,10 +178,50 @@ function AgendaForm({
   const preset = leads.find(l => l.id === presetClientId);
   const [kind, setKind] = useState<AgendaKind>(item?.kind ?? 'meeting');
   const [title, setTitle] = useState(item?.title ?? (preset ? `Reunião com ${preset.clientName}` : ''));
+  const [clientPhone, setClientPhone] = useState(item?.clientPhone ?? preset?.phone ?? '');
+  const [meetUrl, setMeetUrl] = useState(item?.meetUrl ?? '');
+  const [creatingMeet, setCreatingMeet] = useState(false);
+  const [connectingGoogle, setConnectingGoogle] = useState(false);
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState(item?.time ?? '');
   const [clientId, setClientId] = useState(item?.clientId ?? preset?.id ?? '');
+  const hasGoogleAccess = Repo.hasGoogleMeetAccess();
+
+  const handleConnectGoogle = async () => {
+    setConnectingGoogle(true);
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      Alert.alert(t('Não foi possível conectar o Google'), String(e));
+    } finally {
+      setConnectingGoogle(false);
+    }
+  };
+
+  const handleCreateMeet = async () => {
+    if (!Repo.hasGoogleMeetAccess()) {
+      Linking.openURL(GOOGLE_MEET_NEW_URL);
+      return;
+    }
+    setCreatingMeet(true);
+    try {
+      const res = await createMeetWithGoogle(
+        {
+          title: title.trim() || t('Reunião com cliente'),
+          date,
+          time: time || undefined,
+          description: notes.trim() || undefined,
+        },
+      );
+      setMeetUrl(res.meetUrl);
+      Alert.alert(t('Google Meet'), t('Sala do Google Meet criada automaticamente!'));
+    } catch (_e) {
+      Linking.openURL(GOOGLE_MEET_NEW_URL);
+    } finally {
+      setCreatingMeet(false);
+    }
+  };
 
   const save = () => {
     if (!title.trim()) {
@@ -148,6 +237,8 @@ function AgendaForm({
       time: time || undefined,
       clientId: client?.id,
       clientName: client?.clientName,
+      clientPhone: clientPhone.trim() || client?.phone || undefined,
+      meetUrl: hasGoogleAccess ? (normalizeMeetUrl(meetUrl) || undefined) : undefined,
       notes: notes.trim() || undefined,
       done: item?.done ?? false,
     });
@@ -168,10 +259,70 @@ function AgendaForm({
         />
         <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder={t('Título')} placeholderTextColor={colors.textMuted} />
         <TextInput
+          style={styles.input}
+          value={clientPhone}
+          onChangeText={setClientPhone}
+          placeholder={t('WhatsApp do cliente (opcional)')}
+          placeholderTextColor={colors.textMuted}
+          keyboardType="phone-pad"
+        />
+        {kind === 'meeting' && (
+          hasGoogleAccess ? (
+            <View style={styles.meetInputRow}>
+              <TextInput
+                style={[styles.input, styles.flex]}
+                value={meetUrl}
+                onChangeText={setMeetUrl}
+                placeholder={t('Link do Google Meet (opcional)')}
+                placeholderTextColor={colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Pressable
+                accessibilityLabel={t('Abrir Google Meet para criar sala')}
+                style={styles.meetBtn}
+                disabled={creatingMeet}
+                onPress={handleCreateMeet}>
+                {creatingMeet ? (
+                  <ActivityIndicator size="small" color={colors.primaryText} />
+                ) : (
+                  <>
+                    <Icon name="respostas" size={14} color={colors.primaryText} />
+                    <Text style={styles.meetBtnText}>{t('Criar sala')}</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.meetLockedCard}>
+              <View style={styles.meetLockedHead}>
+                <Icon name="calendario" size={16} color={colors.primaryText} />
+                <Text style={styles.meetLockedTitle}>{t('Links de Reunião no Google Meet')}</Text>
+                <View style={styles.lockedBadge}>
+                  <Text style={styles.lockedBadgeText}>{t('Login Google')}</Text>
+                </View>
+              </View>
+              <Text style={styles.meetLockedDesc}>
+                {t('O envio automático de links de reunião do Google Meet é liberado com a autenticação do Google.')}
+              </Text>
+              <Pressable
+                style={styles.connectGoogleBtn}
+                disabled={connectingGoogle}
+                onPress={handleConnectGoogle}>
+                {connectingGoogle ? (
+                  <ActivityIndicator size="small" color={colors.primaryText} />
+                ) : (
+                  <Text style={styles.connectGoogleBtnText}>{t('Liberar com conta Google')}</Text>
+                )}
+              </Pressable>
+            </View>
+          )
+        )}
+        <TextInput
           style={[styles.input, styles.textArea]}
           value={notes}
           onChangeText={setNotes}
-          placeholder={t('Observação (opcional)')}
+          placeholder={t('Assunto (opcional)')}
           placeholderTextColor={colors.textMuted}
           multiline
         />
@@ -196,7 +347,18 @@ function AgendaForm({
       {leads.length > 0 && (
         <Card>
           <CardTitle>{t('Cliente')}</CardTitle>
-          <ChoiceRow onCard options={[{ value: '', label: t('Nenhum') }, ...leads.map(l => ({ value: l.id, label: l.clientName }))]} value={clientId} onChange={setClientId} />
+          <ChoiceRow
+            onCard
+            options={[{ value: '', label: t('Nenhum') }, ...leads.map(l => ({ value: l.id, label: l.clientName }))]}
+            value={clientId}
+            onChange={newId => {
+              setClientId(newId);
+              if (!clientPhone) {
+                const lead = leads.find(l => l.id === newId);
+                if (lead?.phone) setClientPhone(lead.phone);
+              }
+            }}
+          />
         </Card>
       )}
 
@@ -261,4 +423,88 @@ const useStyles = makeStyles(colors => ({
   },
   dateNav: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   dateText: { ...typography.button, color: colors.text },
+  send: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    minHeight: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primarySoft,
+  },
+  sendText: { fontSize: 12, fontWeight: '600', color: colors.primaryText },
+  meetInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  meetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    minHeight: touchTarget + 4,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+  },
+  meetBtnText: { fontSize: 13, fontWeight: '600', color: colors.primaryText },
+  meetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    minHeight: 28,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+  },
+  meetBadgeText: { fontSize: 11, fontWeight: '600', color: colors.primaryText },
+  meetLockedCard: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.xs + 2,
+    marginTop: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  meetLockedHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+  },
+  meetLockedTitle: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  lockedBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+  },
+  lockedBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primaryText,
+  },
+  meetLockedDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+  },
+  connectGoogleBtn: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  connectGoogleBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primaryText,
+  },
 }));

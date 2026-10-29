@@ -23,7 +23,7 @@ export const LEGAL_INFO = {
 };
 
 /** Data da última atualização dos textos (AAAA-MM-DD). */
-export const LEGAL_UPDATED = '2026-10-29';
+export const LEGAL_UPDATED = '2026-10-30';
 
 export interface LegalSection {
   title: string;
@@ -336,6 +336,8 @@ export const PRIVACY: Docs = {
         title: '2. Dados que guardamos na nuvem',
         paragraphs: [
           'Conta: e-mail e senha. A senha é guardada de forma protegida pelo nosso provedor de autenticação; nós não temos acesso a ela.',
+          'Login com Google ou com a Apple: se você entrar por um deles, recebemos seu nome, e-mail e foto do perfil (no caso da Apple, você pode esconder seu e-mail e usar um endereço de encaminhamento da Apple). Usamos esses dados só para criar e identificar sua conta.',
+          'Google Agenda e Google Meet: se você entrar com o Google, pedimos permissão para criar eventos na sua agenda (escopo calendar.events), apenas para criar com link do Google Meet os compromissos que você agenda no KEYCON. Não lemos, não alteramos e não apagamos os outros eventos da sua agenda. O token de acesso fica no seu aparelho; para renová-lo, o token de renovação passa por uma função segura no nosso servidor, que não guarda nada. O uso e a transferência das informações recebidas das APIs do Google seguem a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado: esses dados não são vendidos, não são usados para anúncios nem para treinar modelos de inteligência artificial, e não são compartilhados com terceiros, exceto quando necessário para prestar esse recurso ou quando a lei exigir. Você pode remover o acesso do KEYCON a qualquer momento em myaccount.google.com/permissions.',
           'Perfil: seu nome, nome do negócio, WhatsApp, ramo do negócio, idioma e país onde você vende. Eles aparecem nas suas mensagens prontas e ajustam o app ao seu negócio.',
           'Arquivos que você envia: fotos, vídeos e áudios que você escolhe adicionar ao catálogo, aos atalhos ou à seção Arquivos. Eles ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.',
           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
@@ -434,6 +436,8 @@ export const PRIVACY: Docs = {
         title: '2. Data we store in the cloud',
         paragraphs: [
           'Account: email and password. The password is stored securely by our authentication provider; we do not have access to it.',
+          'Sign in with Google or Apple: if you sign in with one of them, we receive your name, email and profile photo (with Apple, you can hide your email and use an Apple relay address). We use this data only to create and identify your account.',
+          'Google Calendar and Google Meet: if you sign in with Google, we ask for permission to create events in your calendar (calendar.events scope), only to create the appointments you schedule in KEYCON with a Google Meet link. We do not read, change or delete the other events in your calendar. The access token stays on your device; to renew it, the refresh token goes through a secure function on our server, which stores nothing. KEYCON’s use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements: this data is not sold, not used for advertising or to train artificial intelligence models, and not shared with third parties except as needed to provide this feature or when required by law. You can remove KEYCON’s access at any time at myaccount.google.com/permissions.',
           'Profile: your name, business name, WhatsApp, line of business, language and the country where you sell. They appear in your ready-made messages and tailor the app to your business.',
           'Files you upload: photos, videos and audios you choose to add to your catalog, shortcuts or the Files section. They are available through a public link so the keyboard can send them in your chats.',
           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
@@ -532,6 +536,8 @@ export const PRIVACY: Docs = {
         title: '2. Datos que guardamos en la nube',
         paragraphs: [
           'Cuenta: correo y contraseña. La contraseña la guarda de forma protegida nuestro proveedor de autenticación; no tenemos acceso a ella.',
+          'Inicio de sesión con Google o con Apple: si entras con uno de ellos, recibimos tu nombre, correo y foto de perfil (con Apple, puedes ocultar tu correo y usar una dirección de reenvío de Apple). Usamos estos datos solo para crear e identificar tu cuenta.',
+          'Google Calendar y Google Meet: si entras con Google, pedimos permiso para crear eventos en tu calendario (alcance calendar.events), solo para crear con enlace de Google Meet las citas que agendas en KEYCON. No leemos, no cambiamos ni borramos los demás eventos de tu calendario. El token de acceso queda en tu dispositivo; para renovarlo, el token de renovación pasa por una función segura en nuestro servidor, que no guarda nada. El uso y la transferencia de la información recibida de las API de Google cumplen la Política de Datos del Usuario de los Servicios de API de Google, incluidos los requisitos de Uso Limitado: estos datos no se venden, no se usan para publicidad ni para entrenar modelos de inteligencia artificial, y no se comparten con terceros, salvo cuando es necesario para ofrecer esta función o cuando la ley lo exige. Puedes quitar el acceso de KEYCON en cualquier momento en myaccount.google.com/permissions.',
           'Perfil: tu nombre, nombre del negocio, WhatsApp, rubro, idioma y país donde vendes. Aparecen en tus mensajes listos y adaptan la app a tu negocio.',
           'Archivos que subes: fotos, videos y audios que eliges agregar al catálogo, a los accesos rápidos o a la sección Archivos. Quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.',
           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',

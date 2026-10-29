@@ -45,13 +45,9 @@ type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
 
 const NAV_ITEMS: Array<{ key: AppTab; label: string; icon: IconName }> = [
   { key: 'home', label: 'Início', icon: 'casa' },
-  // O nome muda com o ramo ("Imóveis", "Cardápio"...)
-  { key: 'products', label: 'Produtos', icon: 'arquivos' },
   // Mesmos dados do CRM e da Agenda do teclado
   { key: 'clients', label: 'Clientes', icon: 'clientes' },
   { key: 'agenda', label: 'Agenda', icon: 'calendario' },
-  // Pastas com fotos e vídeos (as mesmas da aba Arquivos do teclado)
-  { key: 'files', label: 'Arquivos', icon: 'galeria' },
   // Configurações = engrenagem (manual de marca)
   { key: 'profile', label: 'Conta', icon: 'configuracoes' },
 ];
@@ -203,7 +199,12 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
           <HomeScreen key={tabVisit} onNavigate={navigateFromHome} onOpenTutorial={() => setShowTutorial(true)} />
         )}
         {/* key: trocar de ramo recarrega a tela com os novos campos */}
-        {currentTab === 'products' && <ProductsManagerScreen key={`${seller.segment}-${tabVisit}`} />}
+        {currentTab === 'products' && (
+          <ProductsManagerScreen
+            key={`${seller.segment}-${tabVisit}`}
+            onBack={() => openTab('home')}
+          />
+        )}
         {currentTab === 'clients' && (
           <ClientsScreen
             key={`${seller.segment}-${tabVisit}`}
@@ -213,7 +214,12 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             }}
           />
         )}
-        {currentTab === 'files' && <FilesManagerScreen key={tabVisit} />}
+        {currentTab === 'files' && (
+          <FilesManagerScreen
+            key={tabVisit}
+            onBack={() => openTab('home')}
+          />
+        )}
         {currentTab === 'agenda' && <AgendaScreen key={`${tabVisit}-${scheduleClientId ?? ''}`} presetClientId={scheduleClientId} />}
         {currentTab === 'profile' && (
           <ProfileSettingsScreen
@@ -246,7 +252,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
               {/* Selecionado: só o ícone muda de cor (o salmão do teclado), sem fundo */}
               <Icon name={item.icon} size={22} color={active ? colors.primary : colors.textSecondary} />
               <Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>
-                {item.key === 'products' ? segment.terms.catalog : t(item.label)}
+                {t(item.label)}
               </Text>
             </Pressable>
           );

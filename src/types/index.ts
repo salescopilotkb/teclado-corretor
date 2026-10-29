@@ -90,6 +90,23 @@ export type SegmentId =
   | 'beauty'
   | 'automotive';
 
+export type CountryId =
+  | 'US'
+  | 'BR'
+  | 'PT'
+  | 'ES'
+  | 'MX'
+  | 'AR'
+  | 'CO'
+  | 'CL'
+  | 'UK'
+  | 'CA'
+  | 'OTHER';
+
+export type CurrencyId = 'USD' | 'BRL' | 'EUR' | 'GBP' | 'CAD' | 'MXN' | 'ARS' | 'COP' | 'CLP';
+
+export type TargetAudienceId = 'brasileiros' | 'americanos' | 'mexicanos' | 'europeus';
+
 /** Perfil de quem vende (usado nas mensagens prontas e na IA). */
 export interface SellerProfile {
   name: string;
@@ -101,6 +118,12 @@ export interface SellerProfile {
   language: 'pt' | 'en' | 'es';
   /** Onde vende: moeda, formato dos números e idioma das mensagens ao cliente (src/i18n/markets). */
   market: 'BR' | 'US_EN' | 'US_ES' | 'US_PT' | 'PT' | 'ES' | 'MX' | 'AR' | 'CO' | 'CL' | 'UK' | 'CA';
+  /** País onde opera/vende. */
+  country?: CountryId;
+  /** Moeda que vende. */
+  currency?: CurrencyId;
+  /** Para quem vende (público-alvo / clientes). */
+  targetAudience?: TargetAudienceId;
 }
 
 export type SuggestionTone = 'cordial' | 'objetiva' | 'persuasiva';
@@ -128,7 +151,12 @@ export interface ScheduleItem {
   /** Cliente do CRM ligado ao compromisso. */
   clientId?: string;
   clientName?: string;
+  /** WhatsApp / Telefone do cliente. */
+  clientPhone?: string;
+  /** Assunto / observações do compromisso. */
   notes?: string;
+  /** Link da reunião no Google Meet (ex.: https://meet.google.com/xxx-yyyy-zzz). */
+  meetUrl?: string;
   done: boolean;
 }
 

@@ -10,7 +10,7 @@
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { InputContext, SelectionChangeEvent } from '../../native/KeyboardBridge';
 
-const MAX_CONTEXT = 200;
+const MAX_CONTEXT = 800;
 /** No iOS o aviso de mudança vem sem posição: relê depois de uma pausa. */
 const RESYNC_DELAY_MS = 120;
 
@@ -97,6 +97,17 @@ export class TypingContext {
     if (head.trim() === '' || /[.!?…]\s*$/.test(head) || /\n\s*$/.test(head)) return '^';
     const m = /([A-Za-zÀ-ÖØ-öø-ÿ]+(?:-[A-Za-zÀ-ÖØ-öø-ÿ]+)*)[\s,]+$/.exec(head);
     return m ? m[1].toLowerCase() : undefined;
+  }
+
+  /**
+   * Até n palavras antes da atual, na mesma frase, em minúsculas e na ordem do
+   * texto (as sugestões usam para combinações de palavras, ex.: "bom dia").
+   */
+  previousWords(n: number): string[] {
+    const head = this.before.slice(0, this.before.length - this.currentWord().length);
+    const sentence = head.split(/[.!?…\n]/).pop() ?? '';
+    const words = sentence.toLowerCase().match(/[a-zà-öø-ÿ]+(?:-[a-zà-öø-ÿ]+)*/g) ?? [];
+    return words.slice(-n);
   }
 
   /** A palavra atual começa a frase (maiúscula ali é só a automática, não um nome). */

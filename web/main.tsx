@@ -31,6 +31,11 @@ if (!Repo.isLoggedIn()) {
   Repo.setAuthToken('test-web-token');
 }
 
+const initialSeller = Repo.getSeller();
+if (!initialSeller.name || initialSeller.name === 'Alex Morgan') {
+  Repo.setSeller({ ...initialSeller, name: 'Rafael Martinez', business: initialSeller.business || 'KEYCON Demo' });
+}
+
 type Screen = 'app' | 'chat';
 
 /** *negrito* e _itálico_ como o WhatsApp mostra. */
@@ -190,12 +195,22 @@ function Chat({ visible }: { visible: boolean }) {
           rows={1}
           placeholder="Message"
           value={draft}
+          onFocus={() => {
+            WebKeyboardHost.focusDeviceField();
+            WebKeyboardHost.selectionChanged();
+          }}
+          onClick={() => {
+            WebKeyboardHost.focusDeviceField();
+            WebKeyboardHost.selectionChanged();
+          }}
           onChange={e => {
             update(e.target.value, e.target.selectionStart);
+            WebKeyboardHost.focusDeviceField();
             WebKeyboardHost.selectionChanged();
           }}
           onSelect={e => {
             caret.current = e.currentTarget.selectionStart;
+            WebKeyboardHost.focusDeviceField();
             WebKeyboardHost.selectionChanged();
           }}
         />

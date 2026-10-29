@@ -115,7 +115,11 @@ export function confirmationMessage(item: ScheduleItem): string {
     item.date !== todayISO() ? ` (${formatDayShort(item.date)})` : ''
   }`;
   const at = item.time ? tIn(lang, ' às {time}', { time: item.time }) : '';
-  return tIn(lang, 'Olá{who}! Passando para confirmar: {title}, {when}{at}. Tudo certo?', { who, title: item.title, when, at });
+  const base = tIn(lang, 'Olá{who}! Passando para confirmar: {title}, {when}{at}. Tudo certo?', { who, title: item.title, when, at });
+  if (item.meetUrl) {
+    return `${base}\n${tIn(lang, 'Link da reunião: {url}', { url: item.meetUrl })}`;
+  }
+  return base;
 }
 
 export function newAgendaId(): string {

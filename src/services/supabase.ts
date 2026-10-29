@@ -6,6 +6,7 @@
  * teclado logado.
  */
 import 'react-native-url-polyfill/auto';
+import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../config/supabase';
 import { storage } from '../storage/storage';
@@ -21,6 +22,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: mmkvAuthStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
+    // Só na web o login volta pela URL da página; no celular volta por keycon://auth-callback (handleAuthUrl)
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });

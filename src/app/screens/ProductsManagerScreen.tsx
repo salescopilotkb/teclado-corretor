@@ -71,7 +71,7 @@ function confirmDelete(title: string, message: string, onConfirm: () => void) {
   ]);
 }
 
-export function ProductsManagerScreen() {
+export function ProductsManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   const colors = useColors();
   const styles = useStyles();
   const [segment] = useState(() => getSegment(Repo.getSegment()));
@@ -573,9 +573,21 @@ export function ProductsManagerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.badge}>{t('Catálogo')}</Text>
-          <Text style={styles.headerTitle}>{segment.terms.catalog}</Text>
+        <View style={styles.headerLeft}>
+          {onBack && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('Voltar')}
+              style={({ pressed }) => [styles.headerBackBtn, pressed && styles.pressed]}
+              onPress={onBack}
+              hitSlop={8}>
+              <Icon name="voltar" size={20} color={colors.textMuted} />
+            </Pressable>
+          )}
+          <View>
+            <Text style={styles.badge}>{t('Catálogo')}</Text>
+            <Text style={styles.headerTitle}>{segment.terms.catalog}</Text>
+          </View>
         </View>
         <View style={styles.headerActions}>
           <Pressable
@@ -641,6 +653,20 @@ const useStyles = makeStyles(colors => ({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexShrink: 1,
+  },
+  headerBackBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: radius.md,
+  },
+  pressed: { opacity: 0.7 },
   headerBack: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   headerTitle: {
     flexShrink: 1,

@@ -127,7 +127,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       {folder ? (
         <SubHeader title={folder.name} onBack={() => (mode ? setMode(null) : open(folder.parentId))} />
       ) : onBack ? (
-        <SubHeader title={t('Arquivos')} onBack={onBack} />
+        <SubHeader title={t('Arquivos')} subtitle={t('Fotos e vídeos em pastas, também no teclado')} onBack={onBack} />
       ) : (
         <ScreenTitle title={t('Arquivos')} subtitle={t('Fotos e vídeos em pastas, também no teclado')} />
       )}

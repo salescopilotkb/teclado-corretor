@@ -53,16 +53,24 @@ export function ScreenTitle({ overline, title, subtitle }: { overline?: string; 
 }
 
 /** Cabeçalho de submenu: voltar + título. O "voltar" do celular faz o mesmo. */
-export function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
+export function SubHeader({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack: () => void }) {
   const colors = useColors();
   const styles = useStyles();
   useAppBack(onBack);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={t('Voltar')} style={styles.subHeader} onPress={onBack} hitSlop={8}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('Voltar')}
+      style={({ pressed }) => [styles.subHeader, pressed && styles.pressed]}
+      onPress={onBack}
+      hitSlop={8}>
       <Icon name="voltar" size={20} color={colors.textMuted} />
-      <Text style={styles.subHeaderTitle} numberOfLines={1}>
-        {title}
-      </Text>
+      <View style={styles.subHeaderInfo}>
+        <Text style={styles.subHeaderTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? <Text style={styles.subHeaderSubtitle}>{subtitle}</Text> : null}
+      </View>
     </Pressable>
   );
 }
@@ -91,10 +99,11 @@ interface MenuRowProps {
   value?: string;
   onPress: () => void;
   testID?: string;
+  iconColor?: string;
 }
 
 /** Linha de menu: ícone, título, apoio e seta. Use várias dentro de um MenuGroup. */
-export function MenuRow({ icon, title, subtitle, value, onPress, testID }: MenuRowProps) {
+export function MenuRow({ icon, title, subtitle, value, onPress, testID, iconColor: customIconColor }: MenuRowProps) {
   const colors = useColors();
   const styles = useStyles();
   return (
@@ -103,19 +112,26 @@ export function MenuRow({ icon, title, subtitle, value, onPress, testID }: MenuR
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}>
-      <IconTile name={icon} size={40} />
-      <View style={styles.menuInfo}>
-        <Text style={styles.menuTitle} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={styles.menuSubtitle} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        ) : null}
-      </View>
-      {value ? <Text style={styles.menuValue}>{value}</Text> : null}
-      <Icon name="avancar" size={18} color={colors.textMuted} />
+      {({ pressed }) => {
+        const iconFg = pressed ? colors.primary : (customIconColor ?? colors.iconNeutral);
+        return (
+          <>
+            <IconTile name={icon} size={40} color={iconFg} />
+            <View style={styles.menuInfo}>
+              <Text style={styles.menuTitle} numberOfLines={1}>
+                {title}
+              </Text>
+              {subtitle ? (
+                <Text style={styles.menuSubtitle} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+            {value ? <Text style={styles.menuValue}>{value}</Text> : null}
+            <Icon name="avancar" size={18} color={pressed ? colors.primary : colors.textMuted} />
+          </>
+        );
+      }}
     </Pressable>
   );
 }
@@ -245,7 +261,12 @@ const useStyles = makeStyles(colors => ({
     minHeight: touchTarget,
     alignSelf: 'flex-start',
   },
+  subHeaderInfo: {
+    flexShrink: 1,
+    gap: 2,
+  },
   subHeaderTitle: { ...typography.title, color: colors.text },
+  subHeaderSubtitle: { ...typography.body, color: colors.textMuted, fontSize: 13 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: colors.glass ? GLASS_RADIUS : radius.xl,

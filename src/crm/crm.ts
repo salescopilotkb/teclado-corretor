@@ -47,10 +47,12 @@ export function whatsappNumber(phone: string | undefined): string | null {
   return digits.length >= 10 && digits.length <= 15 ? digits : null;
 }
 
-/** Link que abre a conversa com o cliente no WhatsApp (ou null sem número válido). */
-export function whatsappLink(phone: string | undefined): string | null {
+/** Link que abre a conversa com o cliente no WhatsApp (ou null sem número válido), opcionalmente com mensagem pré-preenchida. */
+export function whatsappLink(phone: string | undefined, message?: string): string | null {
   const digits = whatsappNumber(phone);
-  return digits ? `https://wa.me/${digits}` : null;
+  if (!digits) return null;
+  const query = message ? `?text=${encodeURIComponent(message)}` : '';
+  return `https://wa.me/${digits}${query}`;
 }
 
 // ── Etiquetas ──────────────────────────────────────────────────────────

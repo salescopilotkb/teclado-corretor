@@ -93,6 +93,8 @@ const noop = async () => false;
 
 /** Galeria/câmera aberta pelo teclado (o teclado some até ela fechar). */
 let picking = false;
+let pickingUntil = 0;
+let activeUploads = 0;
 
 export const KeyboardBridge = {
   /** Injeta texto no campo ativo (InputConnection.commitText / insertText). */
@@ -159,12 +161,20 @@ export const KeyboardBridge = {
   pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> => {
     if (!Native?.pickMedia) return Promise.reject(new Error('No iPhone, adicione fotos, vídeos e áudios pelo app KEYCON.'));
     picking = true;
+    pickingUntil = Date.now() + 60000;
     return Native.pickMedia(source).finally(() => {
       picking = false;
+      // Carência de 3 s para o Android fechar a Activity e restaurar a janela do IME
+      pickingUntil = Date.now() + 3000;
     });
   },
-  /** A galeria/câmera do teclado está aberta? (o teclado fechou por causa dela) */
-  isPickingMedia: () => picking,
+  /** A galeria/câmera está aberta ou o teclado ainda está voltando dela ou enviando arquivo? */
+  isPickingMedia: () => picking || Date.now() < pickingUntil || activeUploads > 0,
+  /** Marca que um upload de mídia está em andamento no teclado */
+  setMediaUploading: (uploading: boolean) => {
+    if (uploading) activeUploads++;
+    else activeUploads = Math.max(0, activeUploads - 1);
+  },
   /**
    * Permissão do microfone pedida de dentro do teclado (abre o pedido do
    * Android por cima da conversa; o teclado some até a pessoa responder).
@@ -172,8 +182,10 @@ export const KeyboardBridge = {
   requestMicPermission: (): Promise<MicPermission> => {
     if (!Native?.requestMicPermission) return Promise.resolve('denied');
     picking = true;
+    pickingUntil = Date.now() + 60000;
     return Native.requestMicPermission().finally(() => {
       picking = false;
+      pickingUntil = Date.now() + 3000;
     });
   },
 
@@ -208,6 +220,10 @@ export const KeyboardBridge = {
   },
   onSelectionChange(cb: (e: SelectionChangeEvent) => void) {
     const sub = emitter?.addListener('onSelectionChange', cb);
+    return () => sub?.remove();
+  },
+  onFocusDeviceField(cb: () => void) {
+    const sub = emitter?.addListener('onFocusDeviceField', cb);
     return () => sub?.remove();
   },
   /** Alguma tela do teclado tem para onde voltar? (o Android então entrega o "voltar" ao JS) */

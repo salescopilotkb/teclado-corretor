@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Icon } from '../../keyboard/components/Icon';
 import type { IconName } from '../../keyboard/components/Icon';
 import { glassBorder, makeStyles, radius, spacing, useColors } from '../../keyboard/theme';
+import { KeyboardBridge } from '../../native/KeyboardBridge';
 import { PickError } from '../../native/MediaPicker';
 import { UploadError, uploadMedia } from '../../services/mediaUpload';
 import type { LocalMedia, UploadedMedia } from '../../services/mediaUpload';
@@ -60,6 +61,7 @@ export function useUploader() {
       if (busy.current) return;
       busy.current = true;
       setError(null);
+      KeyboardBridge.setMediaUploading?.(true);
       try {
         const media = await pick();
         if (!media) return;
@@ -76,6 +78,7 @@ export function useUploader() {
       } finally {
         busy.current = false;
         setUploading(null);
+        KeyboardBridge.setMediaUploading?.(false);
       }
     },
     [],

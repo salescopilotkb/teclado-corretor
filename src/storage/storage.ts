@@ -43,6 +43,10 @@ const KEYS = {
   files: 'user.files',
   theme: 'user.theme',
   authToken: 'auth.token',
+  googleToken: 'auth.googleToken',
+  /** Renovação do acesso ao Google Agenda (o token de acesso expira em ~1 h). */
+  googleRefresh: 'auth.googleRefresh',
+  googleExpiry: 'auth.googleExpiry',
   /** Conta dona dos dados deste aparelho (outra conta entrando = começa do zero). */
   userId: 'auth.userId',
   tutorialSeen: 'app.tutorialSeen',
@@ -105,6 +109,9 @@ function readSeller(): SellerProfile {
     // Perfis de antes dos idiomas: português, Brasil
     language: isLang(s.language) ? s.language : 'pt',
     market: isMarketId(s.market) ? s.market : 'BR',
+    country: s.country,
+    currency: s.currency,
+    targetAudience: s.targetAudience,
   };
 }
 
@@ -197,7 +204,28 @@ export const Repo = {
   /** O teclado usa o mesmo armazenamento do app: logado no app = logado no teclado. */
   isLoggedIn: (): boolean => !!storage.getString(KEYS.authToken),
   setAuthToken: (t: string) => storage.set(KEYS.authToken, t),
-  clearAuth: () => storage.delete(KEYS.authToken),
+  getGoogleAccessToken: (): string | undefined => storage.getString(KEYS.googleToken),
+  /** Guarda o acesso do Google; sem prazo informado, vale ~1 h (padrão do Google). */
+  setGoogleAccessToken: (t: string, expiresInSec = 3600) => {
+    storage.set(KEYS.googleToken, t);
+    storage.set(KEYS.googleExpiry, Date.now() + expiresInSec * 1000);
+  },
+  getGoogleExpiry: (): number => storage.getNumber(KEYS.googleExpiry) ?? 0,
+  getGoogleRefreshToken: (): string | undefined => storage.getString(KEYS.googleRefresh),
+  setGoogleRefreshToken: (t: string) => storage.set(KEYS.googleRefresh, t),
+  clearGoogleAccessToken: () => {
+    storage.delete(KEYS.googleToken);
+    storage.delete(KEYS.googleRefresh);
+    storage.delete(KEYS.googleExpiry);
+  },
+  /** Links de reunião no Google Meet vêm liberados com o login da conta Google. */
+  hasGoogleMeetAccess: (): boolean => !!(storage.getString(KEYS.googleToken) || storage.getString(KEYS.googleRefresh)),
+  clearAuth: () => {
+    storage.delete(KEYS.authToken);
+    storage.delete(KEYS.googleToken);
+    storage.delete(KEYS.googleRefresh);
+    storage.delete(KEYS.googleExpiry);
+  },
 
   getUserId: (): string | undefined => storage.getString(KEYS.userId),
   setUserId: (id: string) => storage.set(KEYS.userId, id),

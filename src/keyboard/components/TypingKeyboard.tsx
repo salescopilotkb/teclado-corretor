@@ -287,17 +287,22 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
   refresh.current = () => {
     const sentenceStart = context.atSentenceStart();
     if (shiftRef.current !== 'lock') setShift(sentenceStart ? 'once' : 'off');
+    // Campo vazio (nova mensagem ou campo limpo após envio): garante retorno ao teclado de letras
+    if (modeRef.current === 'symbols' && context.lastChar() === '' && !context.currentWord()) {
+      setMode('alpha');
+    }
     if (!context.allowsSuggestions()) {
       suggestionBar.current?.show([]);
       return;
     }
     const word = context.currentWord();
     const prev = context.previousWord();
+    const contextWords = context.previousWords(5);
     if (!word) {
       // Logo depois do espaço (ou no começo): as próximas palavras prováveis
       const last = context.lastChar();
       const atGap = last === '' || /\s/.test(last);
-      const next = atGap && prev ? predictNext(prev) : [];
+      const next = atGap && prev ? predictNext(prev, 3, contextWords) : [];
       const cased = (w: string) => (sentenceStart ? w.charAt(0).toUpperCase() + w.slice(1) : w);
       suggestionBar.current?.show(next.map(text => ({ text: cased(text), literal: false })));
       return;
@@ -309,27 +314,27 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     };
     // Barra na hora (erros simples); a busca ampla (erros de várias letras)
     // completa logo depois, sem segurar a próxima tecla
-    show(suggest(word, 3, prev, true));
+    show(suggest(word, 3, prev, true, contextWords));
     if (fullTimer.current) clearTimeout(fullTimer.current);
-    if (needsFullSuggest(word, prev)) {
+    if (needsFullSuggest(word, prev, contextWords)) {
       fullTimer.current = setTimeout(() => {
         fullTimer.current = null;
-        if (context.currentWord() === word) show(suggest(word, 3, prev));
+        if (context.currentWord() === word) show(suggest(word, 3, prev, false, contextWords));
       }, 0);
     }
   };
 
   /**
    * Correção automática antes do espaço ou da pontuação (`trail`). Não mexe em
-   * nomes (maiúscula no meio da frase), em palavras que a pessoa já desfez nem
-   * fora do modo de letras.
+   * palavras que a pessoa já desfez nem fora do modo de letras.
    */
   const applyAutocorrect = (trail: string): boolean => {
     if (!context.allowsSuggestions() || modeRef.current !== 'alpha') return false;
     const word = context.currentWord();
     if (!word || keepAsTyped.current.has(word.toLowerCase())) return false;
     if (word[0] !== word[0].toLowerCase() && !context.wordStartsSentence()) return false;
-    const { autocorrect } = suggest(word, 3, context.previousWord());
+    const contextWords = context.previousWords(5);
+    const { autocorrect } = suggest(word, 3, context.previousWord(), false, contextWords);
     if (!autocorrect || autocorrect === word) return false;
     out.current.replaceTextBeforeCursor(word.length, autocorrect + trail);
     context.replace(word.length, autocorrect + trail);
@@ -358,19 +363,34 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     return () => clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode, setMode]);
+
   // Contexto do campo: ao abrir, ao trocar de campo e quando o cursor muda por fora
   useEffect(() => {
     context.reset();
     // Campo do próprio teclado: o texto só muda por aqui, não há o que vigiar
     if (internal) return () => context.dispose();
-    const offShow = KeyboardBridge.onKeyboardShow(() => context.reset());
+    const offShow = KeyboardBridge.onKeyboardShow(e => {
+      context.reset();
+      setEmojiOpen(false);
+      // Se o campo for numérico no Android (telefone/números), abre em numeric; senão, SEMPRE letras (alpha)
+      const isNumericField = !!(e?.inputType && ((e.inputType & 0xf) === 0x2 || (e.inputType & 0xf) === 0x3));
+      setMode(isNumericField ? 'numeric' : (initialMode ?? 'alpha'));
+    });
+    const offHide = KeyboardBridge.onKeyboardHide(() => {
+      setEmojiOpen(false);
+      setMode(initialMode ?? 'alpha');
+    });
     const offSel = KeyboardBridge.onSelectionChange(e => context.onSelectionChange(e));
     return () => {
       offShow();
+      offHide();
       offSel();
       context.dispose();
     };
-  }, [context, internal]);
+  }, [context, initialMode, internal, setMode]);
 
   // ── Ações ────────────────────────────────────────────────────────────
 
@@ -490,6 +510,8 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
           out.current.sendEnter();
           // No formulário, ↵ passa para o próximo campo (o texto não ganha quebra)
           if (!internal) context.insert('\n');
+          // Enter: se estava em símbolos, volta para letras
+          if (modeRef.current === 'symbols') setMode('alpha');
           refresh.current();
           break;
         case 'mode':

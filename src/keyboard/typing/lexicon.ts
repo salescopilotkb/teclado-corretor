@@ -2,19 +2,23 @@
  * Motor de palavras do teclado (português, inglês e espanhol).
  *
  *  - suggest(): completa a palavra, corrige erro de digitação e devolve o
- *    acento ("voce" → "você") para a barra de sugestões, levando em conta a
- *    palavra anterior da frase (bigramas), e diz se dá para corrigir sozinho;
- *  - predictNext(): as próximas palavras prováveis, logo depois do espaço;
+ *    acento ("voce" → "você") para a barra de sugestões, levando em conta o
+ *    histórico e o contexto da frase (janela expandida, n-gramas e concordância),
+ *    e diz se dá para corrigir sozinho;
+ *  - predictNext(): as próximas palavras prováveis, logo depois do espaço,
+ *    combinando bigramas e predições contextuais da oração;
  *  - nextLetterLogProb(): chance de cada letra ser a próxima da palavra — é o
  *    que deixa a "área invisível" da tecla provável maior (ver keyResolver).
  *
- * Erros de várias letras ("wetrndo" → "querendo") entram por uma busca
- * ampla que mede a distância pelas teclas (ver keyboardDistance). Medido com
- * scripts/eval_corrector.ts.
+ * Suporta:
+ *  - Detecção e separação de palavras coladas sem espaço ("bomdia" → "bom dia",
+ *    "comovai" → "como vai", "deusabencoe" → "Deus abençoe", "chavepix" → "chave Pix");
+ *  - Tolerância estendida a palavras muito erradas (busca fonética e teclado);
+ *  - Nomes próprios de pessoas brasileiras populares e marcas famosas;
+ *  - Capitalização estrita da palavra "Deus" sempre com 'D' maiúsculo.
  *
  * Tudo roda no próprio aparelho, sem internet. O índice é montado fora do
- * caminho do primeiro toque. Segue o idioma de digitação (o do app; segurar
- * o espaço troca): português, inglês ou espanhol.
+ * caminho do primeiro toque. Segue o idioma de digitação.
  */
 import { getTypingLanguage, onTypingLanguageChange } from '../../i18n';
 import type { Lang } from '../../i18n';
@@ -24,6 +28,15 @@ import { BIGRAMS_PT } from './bigramsPt';
 import { WORDS_EN } from './wordsEn';
 import { WORDS_ES } from './wordsEs';
 import { WORDS_PT } from './wordsPt';
+import {
+  ALWAYS_CAPITALIZED,
+  BRAND_NAMES,
+  PEOPLE_NAMES,
+  COMMON_SPLIT_PHRASES,
+  getProperDisplayForm,
+  getCollocationBoost,
+  getContextualNextPredictions,
+} from './properNouns';
 
 const ACCENT_MAP: Record<string, string> = {
   á: 'a', à: 'a', â: 'a', ã: 'a', ä: 'a',
@@ -54,6 +67,33 @@ const NEIGHBORS: Record<string, string> = {
   z: 'asx', x: 'zsdc', c: 'xdfv', v: 'cfgb', b: 'vghn', n: 'bhjm', m: 'njk',
 };
 
+/**
+ * Trocas fonéticas comuns no português (s/c, z/s, j/g, m/n, etc.).
+ * Reduzem o custo de substituição para 0.4 para aproximar erros gramaticais e de pronúncia.
+ */
+const PHONETIC_EQUIVALENTS: Record<string, string> = {
+  c: 'sz',
+  s: 'cz',
+  z: 'sc',
+  j: 'g',
+  g: 'j',
+  m: 'n',
+  n: 'm',
+  x: 's',
+};
+
+/** Alternativas para a letra inicial na busca de palavras muito erradas. */
+const INITIAL_ALTERNATIVES: Record<string, string> = {
+  c: 'sz',
+  s: 'cz',
+  z: 'sc',
+  g: 'j',
+  j: 'g',
+  o: 'h',
+  h: 'oaei',
+  x: 's',
+};
+
 /** Posição de cada tecla no teclado (coluna, fileira), com o recuo real das fileiras de baixo. */
 const KEY_POS: Record<string, [number, number]> = (() => {
   const out: Record<string, [number, number]> = {};
@@ -67,11 +107,14 @@ const KEY_POS: Record<string, [number, number]> = (() => {
 
 /**
  * Custo de trocar a letra `a` pela `b` (digitou `a` querendo `b`): o dedo
- * escorregar para o lado na mesma fileira (r↔t) é o erro mais comum; para a
- * fileira de cima/baixo custa um pouco mais; tecla longe custa muito.
+ * escorregar para o lado na mesma fileira (r↔t) é o erro mais comum;
+ * trocas fonéticas (c↔s, z↔s, j↔g) têm custo bem reduzido (0.4).
  */
 function substitutionCost(a: string, b: string): number {
   if (a === b) return 0;
+  if (currentLexiconLang === 'pt' && PHONETIC_EQUIVALENTS[a]?.includes(b)) {
+    return 0.4;
+  }
   const pa = KEY_POS[a];
   const pb = KEY_POS[b];
   if (!pa || !pb) return 1.6;
@@ -81,18 +124,16 @@ function substitutionCost(a: string, b: string): number {
 }
 
 /** Até esta posição na lista, a palavra entra na busca ampla (as mais usadas). */
-const FUZZY_RANK = 20000;
+const FUZZY_RANK = 22000;
 /** Busca ampla só para palavras com pelo menos tantas letras. */
-const FUZZY_MIN_LENGTH = 4;
+const FUZZY_MIN_LENGTH = 3;
 /**
- * Placar da busca ampla: o formato pesa mais que o quanto a palavra é comum
- * (senão "sendo" ganharia de "querendo" para "wetrndo"). Ajustados com
- * scripts/eval_corrector.ts.
+ * Placar da busca ampla: o formato pesa mais que o quanto a palavra é comum.
  */
 const FUZZY_FREQ_WEIGHT = 0.2;
-const FUZZY_DISTANCE_WEIGHT = 2.6;
+const FUZZY_DISTANCE_WEIGHT = 2.4;
 /** Folga extra sobre a 2ª opção para a busca ampla corrigir sozinha. */
-const FUZZY_MARGIN = 1.6;
+const FUZZY_MARGIN = 1.4;
 
 /** Linhas da conta de distância, reaproveitadas (a busca roda a cada letra). */
 let rowA = new Float32Array(32);
@@ -102,9 +143,8 @@ let rowC = new Float32Array(32);
 /**
  * Distância entre o que foi digitado e a palavra, pelo teclado (Damerau-
  * Levenshtein com pesos): tecla vizinha 0,5–0,7 (ver substitutionCost); letra
- * a mais 1,0 (0,8 se for vizinha da anterior — o dedo pegou duas teclas);
- * letra faltando 0,9 (0,4 para o "u" depois do "q"); duas letras invertidas
- * 0,7. Para cedo quando passa de `limit`.
+ * a mais 1,0 (0,8 se for vizinha da anterior); letra faltando 0,9;
+ * duas letras invertidas 0,7.
  */
 function keyboardDistance(typed: string, word: string, limit: number): number {
   const n = typed.length;
@@ -120,14 +160,11 @@ function keyboardDistance(typed: string, word: string, limit: number): number {
   for (let j = 0; j <= m; j++) prev[j] = j * 0.9;
   for (let i = 1; i <= n; i++) {
     const t = typed[i - 1];
-    // Letra a mais no que foi digitado (vizinha da anterior = dedo pegou duas
-    // teclas); pegar letra a mais é menos comum que pular uma
     const extra = i > 1 && substitutionCost(t, typed[i - 2]) <= 0.7 ? 0.8 : 1.0;
     cur[0] = i * 0.9;
     let rowMin = cur[0];
     for (let j = 1; j <= m; j++) {
       const w = word[j - 1];
-      // Letra que faltou digitar
       const missing = w === 'u' && j > 1 && word[j - 2] === 'q' ? 0.4 : 0.9;
       let v = prev[j] + extra;
       const ins = cur[j - 1] + missing;
@@ -147,8 +184,8 @@ function keyboardDistance(typed: string, word: string, limit: number): number {
   return prev[m];
 }
 
-/** Erro aceito na busca ampla: cresce com o tamanho da palavra ("wetrndo" → "querendo" = 2,7). */
-const fuzzyLimit = (length: number) => Math.min(3.2, 0.9 + length * 0.3);
+/** Erro aceito na busca ampla: ampliado para capturar palavras muito erradas. */
+const fuzzyLimit = (length: number) => Math.min(4.2, 1.2 + length * 0.35);
 
 /** Palavras da busca ampla por letra inicial (montado uma vez por idioma). */
 const fuzzyIndexCache: Partial<Record<Lang, Map<string, Entry[]>>> = {};
@@ -170,15 +207,28 @@ function fuzzyIndex(lex: Lexicon): Map<string, Entry[]> {
 /** Última busca ampla (a mesma palavra é consultada várias vezes: barra, espaço...). */
 let fuzzyCache: { lang: Lang; key: string; hits: Array<{ e: Entry; distance: number }> } | null = null;
 
-/** Palavras parecidas pelo teclado: mesmo começo (ou tecla vizinha) e tamanho próximo. */
+/** Palavras parecidas pelo teclado e fonética: mesmo começo, tecla vizinha, fonética ou inversão inicial. */
 function fuzzyMatches(lex: Lexicon, key: string): Array<{ e: Entry; distance: number }> {
   if (fuzzyCache && fuzzyCache.lang === currentLexiconLang && fuzzyCache.key === key) return fuzzyCache.hits;
   const limit = fuzzyLimit(key.length);
   const index = fuzzyIndex(lex);
   const hits: Array<{ e: Entry; distance: number }> = [];
-  for (const first of [key[0], ...(NEIGHBORS[key[0]] ?? '')]) {
+  const triedFirst = new Set<string>();
+
+  const candidatesFirst = [
+    key[0],
+    ...(NEIGHBORS[key[0]] ?? ''),
+    ...(currentLexiconLang === 'pt' ? (INITIAL_ALTERNATIVES[key[0]] ?? '') : ''),
+    ...(key.length >= 2 ? [key[1]] : []),
+  ];
+
+  const maxLenDiff = key.length >= 6 ? 3 : 2;
+
+  for (const first of candidatesFirst) {
+    if (!first || triedFirst.has(first)) continue;
+    triedFirst.add(first);
     for (const e of index.get(first) ?? []) {
-      if (Math.abs(e.key.length - key.length) > 2) continue;
+      if (Math.abs(e.key.length - key.length) > maxLenDiff) continue;
       const distance = keyboardDistance(key, e.key, limit);
       if (distance <= limit) hits.push({ e, distance });
     }
@@ -227,10 +277,8 @@ const ABBREVIATIONS_BY_LANG: Record<Lang, Record<string, string>> = {
 };
 
 /**
- * Como a palavra aparece na tela. As listas de inglês guardam as contrações
- * sem apóstrofo ("dont", "im") e o pronome "i" minúsculo: aqui saem como
- * "don't", "I'm" e "I" — na barra e na correção ao apertar espaço. Ficam de
- * fora as que também são palavras ("ill", "id", "its", "were", "well").
+ * Como a palavra aparece na tela.
+ * Inclui formas de nomes próprios, marcas e Deus maiúsculo.
  */
 const DISPLAY_FORMS: Partial<Record<Lang, Record<string, string>>> = {
   en: {
@@ -242,7 +290,13 @@ const DISPLAY_FORMS: Partial<Record<Lang, Record<string, string>>> = {
   },
 };
 
-const displayForm = (word: string) => DISPLAY_FORMS[currentLexiconLang]?.[word] ?? word;
+const displayForm = (word: string): string => {
+  if (currentLexiconLang === 'pt') {
+    const proper = getProperDisplayForm(word);
+    if (proper) return proper;
+  }
+  return DISPLAY_FORMS[currentLexiconLang]?.[word] ?? word;
+};
 
 /** Chave da tabela de seguintes: "don't" está lá como "dont". */
 const bigramKey = (word: string) => (currentLexiconLang === 'en' ? word.replace(/['’]/g, '') : word);
@@ -272,7 +326,7 @@ interface Lexicon {
   cumulative: Float64Array;
   /** Chave → formas reais (mais usada primeiro). Ex.: "e" → ["é", "e"]. */
   byKey: Map<string, Entry[]>;
-  /** Palavras reais conhecidas, em minúsculas. */
+  /** Palavras reais conhecidas, em minúsculas e originais. */
   words: Set<string>;
 }
 
@@ -307,11 +361,38 @@ export function buildLexicon(targetLang?: Lang): void {
       if (forms) forms.push(entry);
       else byKey.set(key, [entry]);
     }
+
+    // Injeta marcas famosas, nomes populares e termos sagrados com alta relevância
+    if (target === 'pt') {
+      const properEntries: string[] = [
+        ...Object.values(ALWAYS_CAPITALIZED),
+        ...Object.values(BRAND_NAMES),
+        ...Object.values(PEOPLE_NAMES),
+      ];
+      for (let i = 0; i < properEntries.length; i++) {
+        const word = properEntries[i];
+        const key = toKey(word);
+        const forms = byKey.get(key);
+        const rank = 600 + (i % 800);
+        const entry = { word, key, rank };
+        if (!forms) {
+          byKey.set(key, [entry]);
+        } else if (!forms.some(f => f.word.toLowerCase() === word.toLowerCase())) {
+          forms.push(entry);
+        }
+      }
+    }
+
     const entries = [...byKey.values()].flat();
     const sorted = entries.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.rank - b.rank));
     const cumulative = new Float64Array(sorted.length + 1);
     for (let i = 0; i < sorted.length; i++) cumulative[i + 1] = cumulative[i] + weightOf(sorted[i].rank);
-    lexicon = { sorted, cumulative, byKey, words: new Set(entries.map(e => e.word)) };
+    lexicon = {
+      sorted,
+      cumulative,
+      byKey,
+      words: new Set(entries.map(e => e.word.toLowerCase()).concat(entries.map(e => e.word))),
+    };
     lexiconCache[target] = lexicon;
   }
 
@@ -353,7 +434,7 @@ function lowerBound(sorted: Entry[], key: string): number {
 
 /** Faixa [início, fim) das palavras que começam com `prefix` (chave). */
 function prefixRange(lex: Lexicon, prefix: string): [number, number] {
-  return [lowerBound(lex.sorted, prefix), lowerBound(lex.sorted, prefix + '￿')];
+  return [lowerBound(lex.sorted, prefix), lowerBound(lex.sorted, prefix + '')];
 }
 
 function rangeWeight(lex: Lexicon, [start, end]: [number, number]): number {
@@ -362,7 +443,7 @@ function rangeWeight(lex: Lexicon, [start, end]: [number, number]): number {
 
 /**
  * log P(próxima letra = `letter` | palavra começa com `prefix`), suavizado.
- * Devolve null quando o dicionário não sabe nada sobre o prefixo (sem palpite).
+ * Devolve null quando o dicionário não sabe nada sobre o prefixo.
  */
 export function nextLetterLogProb(prefix: string, letter: string): number | null {
   const lex = ensureLexicon();
@@ -378,11 +459,18 @@ export function nextLetterLogProb(prefix: string, letter: string): number | null
 /** Palavra conhecida do jeito que foi digitada (ignorando maiúsculas)? */
 export function isKnownWord(word: string): boolean {
   const lex = ensureLexicon();
-  return !!lex && lex.words.has(word.toLowerCase());
+  return !!lex && (lex.words.has(word.toLowerCase()) || lex.words.has(word));
 }
 
-/** Mantém o jeito que a pessoa escreveu: "Voce" → "Você", "VOCE" → "VOCÊ". */
+/** Mantém o jeito que a pessoa escreveu, preservando marcas e nomes próprios. */
 function matchCase(typed: string, suggestion: string): string {
+  // Nomes com capitalização específica
+  const proper = getProperDisplayForm(suggestion);
+  if (proper) return proper;
+  if (ALWAYS_CAPITALIZED[suggestion.toLowerCase()]) return ALWAYS_CAPITALIZED[suggestion.toLowerCase()];
+  if (BRAND_NAMES[suggestion.toLowerCase()]) return BRAND_NAMES[suggestion.toLowerCase()];
+  if (PEOPLE_NAMES[suggestion.toLowerCase()]) return PEOPLE_NAMES[suggestion.toLowerCase()];
+
   if (typed.length > 1 && typed === typed.toUpperCase() && typed !== typed.toLowerCase()) {
     return suggestion.toUpperCase();
   }
@@ -402,8 +490,8 @@ function editsOf(key: string): Array<[string, number]> {
     if (tail.length > 1) out.push([head + tail[1] + tail[0] + tail.slice(2), 1.2]); // letras invertidas
     for (const c of ALPHABET) {
       if (tail && c !== tail[0]) {
-        const near = NEIGHBORS[tail[0]]?.includes(c);
-        out.push([head + c + tail.slice(1), near ? 1.0 : 2.6]); // tecla errada
+        const near = NEIGHBORS[tail[0]]?.includes(c) || PHONETIC_EQUIVALENTS[tail[0]]?.includes(c);
+        out.push([head + c + tail.slice(1), near ? 0.9 : 2.5]); // tecla errada / fonética
       }
       out.push([head + c + tail, 1.8]); // letra faltando
     }
@@ -423,10 +511,6 @@ export interface Suggestions {
   autocorrect: string | null;
 }
 
-/**
- * De onde veio cada candidata: só acento e erro de digitação corrigem
- * sozinhos ("fuzzy" = erro de várias letras, da busca ampla, com mais cuidado).
- */
 type Kind = 'abbr' | 'accent' | 'complete' | 'fix' | 'fuzzy';
 
 interface Candidate {
@@ -438,14 +522,14 @@ interface Candidate {
 }
 
 /** Peso da frase: cada ponto de força (1–9) da palavra anterior vale isto no placar. */
-const CONTEXT_WEIGHT = 0.45;
+const CONTEXT_WEIGHT = 0.50;
 /** Vantagem mínima da melhor correção sobre a 2ª para corrigir sozinha. */
 const AUTOCORRECT_MARGIN = 0.6;
 
 const ONLY_LETTERS = /^[a-zà-öø-ÿ]+(?:-[a-zà-öø-ÿ]+)*$/i;
 
 /** Até esta posição na lista de frequência, a palavra é comum o bastante para corrigir sozinha. */
-const COMMON_RANK = 3000;
+const COMMON_RANK = 3500;
 
 function loadBigrams(): Map<string, Map<string, number>> {
   if (bigrams) return bigrams;
@@ -480,8 +564,109 @@ function contextStrength(prev: string | undefined, word: string): number {
   return loadBigrams().get(prev)?.get(word) ?? 0;
 }
 
-/** Todas as candidatas para `typed`, com placar e origem. */
-function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true): Candidate[] {
+/**
+ * Detecta quando duas palavras foram digitadas coladas sem espaço
+ * ("bomdia" → "bom dia", "bndia" → "bom dia", "comovai" → "como vai",
+ * "deusabencoe" → "Deus abençoe", "chavepix" → "chave Pix", etc.).
+ */
+function findSplitWordCandidate(
+  lex: Lexicon,
+  typed: string,
+  prev?: string,
+  contextWords?: string[]
+): { text: string; score: number } | null {
+  if (typed.length < 5) return null;
+  const key = toKey(typed);
+
+  // 1. Frases comuns pré-mapeadas
+  const common = COMMON_SPLIT_PHRASES[key];
+  if (common) {
+    return { text: common, score: 38 };
+  }
+
+  // 2. Busca dinâmica por divisão em 2 palavras
+  let bestCandidate: { text: string; score: number } | null = null;
+  const n = key.length;
+
+  const VALID_2_LETTER = new Set(['de', 'em', 'se', 'me', 'te', 'eu', 'tu', 'na', 'no', 'um', 'ja', 'so', 'la', 'da', 'do', 'ou', 'ir', 'vi', 'va']);
+  const bigramMap = loadBigrams();
+
+  for (let i = 2; i <= n - 2; i++) {
+    const p1Key = key.slice(0, i);
+    const p2Key = key.slice(i);
+
+    if (p1Key.length === 2 && !VALID_2_LETTER.has(p1Key)) continue;
+    if (p2Key.length === 2 && !VALID_2_LETTER.has(p2Key)) continue;
+
+    // Busca correspondência para a primeira palavra
+    let w1Entries = lex.byKey.get(p1Key);
+    let p1Cost = 0;
+    if (!w1Entries && p1Key.length >= 3) {
+      for (const [cand, cost] of editsOf(p1Key)) {
+        const e = lex.byKey.get(cand);
+        if (e && e[0].rank <= 3000) {
+          w1Entries = e;
+          p1Cost = cost;
+          break;
+        }
+      }
+    }
+    if (!w1Entries || w1Entries.length === 0) continue;
+
+    // Busca correspondência para a segunda palavra
+    let w2Entries = lex.byKey.get(p2Key);
+    let p2Cost = 0;
+    if (!w2Entries && p2Key.length >= 3) {
+      for (const [cand, cost] of editsOf(p2Key)) {
+        const e = lex.byKey.get(cand);
+        if (e && e[0].rank <= 3000) {
+          w2Entries = e;
+          p2Cost = cost;
+          break;
+        }
+      }
+    }
+    if (!w2Entries || w2Entries.length === 0) continue;
+
+    const e1 = w1Entries[0];
+    const e2 = w2Entries[0];
+
+    if (e1.rank > 14000 || e2.rank > 14000) continue;
+
+    const bigramStrength = bigramMap.get(e1.word)?.get(e2.word) ?? 0;
+    const contextStrengthW1 = prev ? (bigramMap.get(prev)?.get(e1.word) ?? 0) : 0;
+    const collocBoost = contextWords ? getCollocationBoost(contextWords, e1.word) : 0;
+
+    let score = 22 - Math.log(e1.rank + 10) - Math.log(e2.rank + 10);
+    score -= (p1Cost + p2Cost) * 1.8;
+    score += bigramStrength * 1.6;
+    score += contextStrengthW1 * 0.8;
+    score += collocBoost;
+
+    // Se houve erro nas duas partes e sem bigrama conhecido, descarta
+    if (p1Cost > 0 && p2Cost > 0 && bigramStrength === 0) continue;
+
+    if (!bestCandidate || score > bestCandidate.score) {
+      const t1 = displayForm(e1.word);
+      const t2 = displayForm(e2.word);
+      bestCandidate = { text: `${t1} ${t2}`, score };
+    }
+  }
+
+  if (bestCandidate && bestCandidate.score >= 5.0) {
+    return bestCandidate;
+  }
+  return null;
+}
+
+/** Todas as candidatas para `typed`, com placar, origem e contexto expandido. */
+function candidatesFor(
+  lex: Lexicon,
+  typed: string,
+  prev?: string,
+  fuzzy = true,
+  contextWords?: string[]
+): Candidate[] {
   const lowerTyped = typed.toLowerCase();
   const key = toKey(typed);
   const known = lex.words.has(lowerTyped);
@@ -492,7 +677,8 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true)
   const offer = (word: string, base: number, kind: Kind) => {
     if (word === lowerTyped || neverSuggest.has(word)) return;
     const context = contextStrength(prev, word);
-    const score = base + CONTEXT_WEIGHT * context;
+    const colloc = contextWords && currentLexiconLang === 'pt' ? getCollocationBoost(contextWords, word) : 0;
+    const score = base + CONTEXT_WEIGHT * context + colloc;
     const old = found.get(word);
     if (!old || score > old.score) found.set(word, { word, score, kind, context });
   };
@@ -501,6 +687,19 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true)
   // 0) Abreviação de conversa (só na barra, nunca sozinha)
   const expanded = abbreviations[lowerTyped];
   if (expanded) offer(expanded, 100, 'abbr');
+
+  // 0.5) Verificação de expressões coladas pré-definidas (ex.: "bomdia" → "bom dia")
+  if (currentLexiconLang === 'pt') {
+    const commonSplit = COMMON_SPLIT_PHRASES[key];
+    if (commonSplit) {
+      found.set(commonSplit, {
+        word: commonSplit,
+        score: 42,
+        kind: 'fix',
+        context: 0,
+      });
+    }
+  }
 
   // 1) Mesma palavra com acento: "voce" → "você", "nao" → "não"
   for (const e of lex.byKey.get(key) ?? []) offer(e.word, freq(e) + (known ? 0.5 : 4), 'accent');
@@ -519,7 +718,7 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true)
       best.sort((a, b) => a.rank - b.rank);
     }
   }
-  // A frase também entra aqui
+  // A frase anterior também ajuda a completar
   if (prev) {
     for (const [word] of loadBigrams().get(prev) ?? []) {
       const forms = lex.byKey.get(toKey(word));
@@ -537,9 +736,24 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true)
     }
   }
 
-  // 4) Erro de várias letras ("wetrndo" → "querendo"): busca ampla pelo
-  // teclado, só quando os passos 1 e 3 não acharam nada — erros simples
-  // continuam como antes. A frase também ajuda a escolher.
+  // 3.5) Identificar palavras coladas sem espaço (split words dinâmico)
+  if (currentLexiconLang === 'pt' && !known && key.length >= 5 && !found.has(COMMON_SPLIT_PHRASES[key] ?? '')) {
+    const splitCand = findSplitWordCandidate(lex, typed, prev, contextWords);
+    if (splitCand) {
+      const old = found.get(splitCand.text);
+      if (!old || splitCand.score > old.score) {
+        found.set(splitCand.text, {
+          word: splitCand.text,
+          score: splitCand.score,
+          kind: 'fix',
+          context: 0,
+        });
+      }
+    }
+  }
+
+  // 4) Erro de várias letras ou muito errada ("wetrndo" → "querendo", "geito" → "jeito"):
+  // busca ampla pelo teclado e fonética
   const hasFix = [...found.values()].some(c => c.kind === 'fix' || c.kind === 'accent');
   if (fuzzy && !known && !hasFix && key.length >= FUZZY_MIN_LENGTH) {
     for (const { e, distance } of fuzzyMatches(lex, key)) {
@@ -551,24 +765,54 @@ function candidatesFor(lex: Lexicon, typed: string, prev?: string, fuzzy = true)
 
 /**
  * Sugestões para a palavra que está sendo digitada.
- * `prev`: palavra anterior da frase, em minúsculas ("^" = começo de frase).
+ * `prev`: palavra anterior da frase.
+ * `contextWords`: lista das últimas palavras da oração para concordância e contexto estendido.
  */
-/**
- * `fast`: sem a busca ampla (erros de várias letras), para a barra aparecer
- * na hora a cada tecla; quem chama completa depois com `needsFull`.
- */
-export function suggest(typed: string, limit = 3, prevWord?: string, fast = false): Suggestions {
+export function suggest(
+  typed: string,
+  limit = 3,
+  prevWord?: string,
+  fast = false,
+  contextWords?: string[]
+): Suggestions {
   const lex = ensureLexicon();
   const prev = prevWord && bigramKey(prevWord);
   if (!lex || !typed) return { unknown: false, words: [], autocorrect: null };
-  const known = lex.words.has(typed.toLowerCase());
-  const all = candidatesFor(lex, typed, prev, !fast);
+
+  const lowerTyped = typed.toLowerCase();
+
+  // Regra absoluta para "deus" em português: SEMPRE "Deus" com D maiúsculo
+  if (currentLexiconLang === 'pt' && lowerTyped === 'deus') {
+    return {
+      unknown: false,
+      words: ['Deus'],
+      autocorrect: 'Deus',
+    };
+  }
+  if (currentLexiconLang === 'pt' && lowerTyped === 'deuses') {
+    return {
+      unknown: false,
+      words: ['Deuses'],
+      autocorrect: 'Deuses',
+    };
+  }
+
+  const known = lex.words.has(lowerTyped);
+  const all = candidatesFor(lex, typed, prev, !fast, contextWords);
   const fix = pickAutocorrect(lex, typed, known, all);
+
   // A correção automática vai na frente (é a que aparece em destaque)
   const ordered = fix ? [fix, ...all.filter(c => c !== fix)] : all;
-  // "dont" é palavra da lista, mas o certo na tela é "don't": vira a correção
-  const form = DISPLAY_FORMS[currentLexiconLang]?.[typed.toLowerCase()];
-  const autocorrect = fix ? matchCase(typed, displayForm(fix.word)) : form && form !== typed ? matchCase(typed, form) : null;
+
+  // Nomes próprios e marcas (ex.: WhatsApp, iPhone, Pix, Deus) ou contrações
+  const proper = displayForm(lowerTyped);
+  const form = proper !== lowerTyped ? proper : DISPLAY_FORMS[currentLexiconLang]?.[lowerTyped];
+  const autocorrect = fix
+    ? matchCase(typed, displayForm(fix.word))
+    : form && form !== typed
+    ? matchCase(typed, form)
+    : null;
+
   const shown = ordered.map(c => matchCase(typed, displayForm(c.word)));
   const words = [...new Set(autocorrect ? [autocorrect, ...shown] : shown)].filter(w => w !== typed).slice(0, limit);
   return {
@@ -579,9 +823,8 @@ export function suggest(typed: string, limit = 3, prevWord?: string, fast = fals
 }
 
 /**
- * Correção automática: só quando a palavra digitada não existe, é uma palavra
- * de letras (sem número, link ou e-mail), não é abreviação e a melhor correção
- * (acento ou erro de digitação) ganha com folga das outras.
+ * Correção automática: quando a palavra digitada não existe (ou é colada),
+ * não é abreviação e a melhor correção ganha com folga das outras.
  */
 function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candidate[]): Candidate | null {
   if (known || typed.length < 2 || !ONLY_LETTERS.test(typed)) return null;
@@ -590,6 +833,8 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
   const typedLength = toKey(typed).length;
   loadBigrams();
   const fixes = all.filter(c => {
+    // Palavras divididas (split words) com bom placar podem ser autocorrigidas
+    if (c.word.includes(' ')) return true;
     const rank = lex.byKey.get(toKey(c.word))?.find(e => e.word === c.word)?.rank ?? Infinity;
     if (rank > COMMON_RANK && !seenInSentences?.has(c.word)) return false;
     if (c.kind === 'accent' || c.kind === 'fix' || c.kind === 'fuzzy') return true;
@@ -598,8 +843,8 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
   });
   const best = fixes[0];
   if (!best) return null;
-  // Acento é certeiro: "voce" → "você"
-  if (best.kind === 'accent') return best;
+  // Acento ou split direto é certeiro
+  if (best.kind === 'accent' || best.word.includes(' ')) return best;
   // Rival que só muda a última letra não trava: vale a mais comum
   const stem = (w: string) => toKey(w).slice(0, -1);
   const rival = fixes.slice(1).find(c => stem(c.word) !== stem(best.word));
@@ -610,28 +855,55 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
 }
 
 /**
- * A busca ampla pode mudar as sugestões desta palavra? (palavra desconhecida,
- * comprida o bastante e sem erro simples achado) — a barra rápida é completada depois.
+ * A busca ampla pode mudar as sugestões desta palavra?
  */
-export function needsFullSuggest(typed: string, prevWord?: string): boolean {
+export function needsFullSuggest(typed: string, prevWord?: string, contextWords?: string[]): boolean {
   const lex = ensureLexicon();
   if (!lex || typed.length < FUZZY_MIN_LENGTH || lex.words.has(typed.toLowerCase())) return false;
   const prev = prevWord && bigramKey(prevWord);
-  return !candidatesFor(lex, typed, prev, false).some(c => c.kind === 'fix' || c.kind === 'accent');
+  return !candidatesFor(lex, typed, prev, false, contextWords).some(c => c.kind === 'fix' || c.kind === 'accent');
 }
 
-/** Próximas palavras prováveis depois de `prev` (barra logo após o espaço). */
-export function predictNext(prev: string, limit = 3): string[] {
+/**
+ * Próximas palavras prováveis depois de `prev` e do histórico recente da oração (após o espaço).
+ */
+export function predictNext(prev: string, limit = 3, contextWords?: string[]): string[] {
   const lex = ensureLexicon();
   if (!lex) return [];
+  const results: string[] = [];
+  const seen = new Set<string>();
+
+  // 1. Predições contextuais avançadas pelo histórico da oração
+  if (currentLexiconLang === 'pt' && contextWords && contextWords.length > 0) {
+    const contextual = getContextualNextPredictions(contextWords);
+    for (const w of contextual) {
+      const form = displayForm(w);
+      if (!seen.has(form.toLowerCase())) {
+        seen.add(form.toLowerCase());
+        results.push(form);
+      }
+    }
+  }
+
+  // 2. Bigramas estatísticos da língua
   const next = loadBigrams().get(bigramKey(prev));
-  if (!next) return [];
-  const neverSuggest = NEVER_SUGGEST_BY_LANG[currentLexiconLang] ?? NEVER_SUGGEST_BY_LANG.pt;
-  return [...next.entries()]
-    .filter(([w]) => !neverSuggest.has(w))
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([w]) => displayForm(w));
+  if (next) {
+    const neverSuggest = NEVER_SUGGEST_BY_LANG[currentLexiconLang] ?? NEVER_SUGGEST_BY_LANG.pt;
+    const sorted = [...next.entries()]
+      .filter(([w]) => !neverSuggest.has(w))
+      .sort((a, b) => b[1] - a[1]);
+
+    for (const [w] of sorted) {
+      const form = displayForm(w);
+      if (!seen.has(form.toLowerCase())) {
+        seen.add(form.toLowerCase());
+        results.push(form);
+      }
+      if (results.length >= limit) break;
+    }
+  }
+
+  return results.slice(0, limit);
 }
 
 /** Mantém maiúsculas como a pessoa digitou (para quem aplica a correção). */

@@ -43,21 +43,57 @@ function translatorFor(source: TranslateLang, target: TranslateLang): Promise<Ch
   return t;
 }
 
-/** Pronto para traduzir sem esperar download (o painel mostra "baixando" quando não está). */
-export async function isTranslatorReady(source: TranslateLang, target: TranslateLang): Promise<boolean> {
-  if (!api) return false;
-  try {
-    return (await api.availability({ sourceLanguage: source, targetLanguage: target })) === 'available';
-  } catch {
-    return false;
+/** Fallback web que funciona em qualquer navegador sem depender de modelos locais de IA. */
+async function translateWebFallback(text: string, source: TranslateLang, target: TranslateLang): Promise<string> {
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(source)}&tl=${encodeURIComponent(target)}&dt=t&q=${encodeURIComponent(text)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Não foi possível traduzir.');
+  const data = (await res.json()) as unknown;
+  if (Array.isArray(data) && Array.isArray(data[0])) {
+    const segments = data[0] as unknown[];
+    const result = segments
+      .map(item => (Array.isArray(item) && typeof item[0] === 'string' ? item[0] : ''))
+      .join('');
+    if (result) return result;
   }
+  throw new Error('Não foi possível traduzir.');
+}
+
+/** Pronto para traduzir sem esperar download (na web o fallback é imediato). */
+export async function isTranslatorReady(source: TranslateLang, target: TranslateLang): Promise<boolean> {
+  if (source === target) return true;
+  if (api) {
+    try {
+      const avail = await api.availability({ sourceLanguage: source, targetLanguage: target });
+      if (avail === 'available') return true;
+    } catch {
+      // cai no fallback
+    }
+  }
+  return true;
 }
 
 export async function translate(text: string, source: TranslateLang, target: TranslateLang): Promise<string> {
   if (!text.trim() || source === target) return text;
-  if (!api) throw new Error('Tradução indisponível neste navegador. Use o Google Chrome no computador.');
-  const t = await translatorFor(source, target);
-  return t.translate(text);
+
+  // 1. Tenta o tradutor do Chrome se disponível e pronto
+  if (api) {
+    const key = `${source}>${target}`;
+    try {
+      const avail = await api.availability({ sourceLanguage: source, targetLanguage: target }).catch(() => 'unavailable');
+      if (avail === 'available') {
+        const t = await translatorFor(source, target);
+        const result = await t.translate(text);
+        if (result) return result;
+      }
+    } catch (err) {
+      cache.delete(key);
+      console.warn('[Translator.web] Falha no modelo local do Chrome, usando fallback web:', err);
+    }
+  }
+
+  // 2. Fallback web resiliente (evita "Other generic failures occurred" e funciona em qualquer navegador)
+  return translateWebFallback(text, source, target);
 }
 
 export const isSimulated = false;

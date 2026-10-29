@@ -24,3 +24,5 @@ keycon-upload*
 # Pacote para o HostGator (gerado a partir de landing/ e dist/)
 hostgator/
 keyconapp-public_html.zip
+# Supabase CLI (link local do projeto)
+supabase/.temp/

@@ -57,10 +57,28 @@ type Screen =
   | { name: 'product-form'; id: string | null }
   | { name: 'folder-form'; id: string | null };
 
+/** Rascunho temporário do produto em edição: sobrevive a recriação da janela pelo Android ao abrir a galeria/câmera. */
+let activeProductDraft: {
+  id: string | null;
+  folderId: string;
+  category: string;
+  newCategoryName: string;
+  title: string;
+  price: string;
+  desc: string;
+  imageUrl: string;
+  imageStoragePath?: string;
+} | null = null;
+
 export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWithCaption, onExpandedChange, onChanged }: Props) {
   /** Pasta aberta (null = lista de pastas). */
   const [folderId, setFolderId] = useState<string | null>(null);
-  const [screen, setScreen] = useState<Screen>({ name: 'browse' });
+  const [screen, setScreen] = useState<Screen>(() => {
+    if (activeProductDraft) {
+      return { name: 'product-form', id: activeProductDraft.id };
+    }
+    return { name: 'browse' };
+  });
 
   const folder = folderId ? folders.find(f => f.id === folderId) : undefined;
   // Pasta excluída (aqui ou no app): volta para a lista
@@ -181,8 +199,13 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWi
         segment={segment}
         folders={folders}
         initial={product && from ? draftFromProduct(product, from.id) : emptyDraft(folder?.id ?? folders[0]?.id ?? '')}
-        onCancel={() => (product ? setScreen({ name: 'product', id: product.id }) : browse())}
+        onCancel={() => {
+          activeProductDraft = null;
+          if (product) setScreen({ name: 'product', id: product.id });
+          else browse();
+        }}
         onSaved={(id, savedFolderId) => {
+          activeProductDraft = null;
           onChanged();
           setFolderId(savedFolderId);
           setScreen({ name: 'product', id });
@@ -441,8 +464,23 @@ function ProductForm({
   const styles = useStyles();
   const { item } = segment.terms;
   const market = currentMarketInfo();
-  const [category, setCategory] = useState(initial.folderId && folders.some(f => f.id === initial.folderId) ? initial.folderId : NEW_FOLDER);
-  const [image, setImage] = useState({ url: initial.imageUrl, storagePath: initial.imageStoragePath });
+
+  // "Voltar" do celular fecha o formulário voltando à tela anterior, sem resetar o teclado
+  useKeyboardBack(onCancel);
+
+  // Restaura rascunho em memória caso a tela tenha reaberto após a galeria/câmera
+  const hasSavedDraft = activeProductDraft && activeProductDraft.id === initial.id;
+  const baseCategory = hasSavedDraft
+    ? activeProductDraft!.category
+    : initial.folderId && folders.some(f => f.id === initial.folderId)
+      ? initial.folderId
+      : NEW_FOLDER;
+
+  const [category, setCategory] = useState(baseCategory);
+  const [image, setImage] = useState({
+    url: hasSavedDraft ? activeProductDraft!.imageUrl : initial.imageUrl,
+    storagePath: hasSavedDraft ? activeProductDraft!.imageStoragePath : initial.imageStoragePath,
+  });
   const [error, setError] = useState<string | null>(null);
   const uploader = useUploader();
 
@@ -463,8 +501,34 @@ function ProductForm({
     ],
     [category, market, segment],
   );
-  const form = useKeyboardForm(fields, { title: initial.title, price: initial.price, desc: initial.desc, newCategoryName: '' });
+
+  const initialValues = hasSavedDraft
+    ? {
+        title: activeProductDraft!.title,
+        price: activeProductDraft!.price,
+        desc: activeProductDraft!.desc,
+        newCategoryName: activeProductDraft!.newCategoryName,
+      }
+    : { title: initial.title, price: initial.price, desc: initial.desc, newCategoryName: '' };
+
+  const form = useKeyboardForm(fields, initialValues);
   const activeSpec = fields.find(f => f.key === form.active) ?? fields[0];
+
+  // Mantém o rascunho em sincronia para o caso de o teclado recriar a janela
+  useEffect(() => {
+    activeProductDraft = {
+      id: initial.id,
+      folderId: category === NEW_FOLDER ? '' : category,
+      category,
+      newCategoryName: form.values.newCategoryName ?? '',
+      title: form.values.title ?? '',
+      price: form.values.price ?? '',
+      desc: form.values.desc ?? '',
+      imageUrl: image.url,
+      imageStoragePath: image.storagePath,
+    };
+  }, [initial.id, category, form.values, image]);
+
   const field = (key: string) => {
     const spec = fields.find(f => f.key === key)!;
     return <KeyboardFormField key={key} spec={spec} value={form.values[key] ?? ''} active={form.active === key} onPress={() => form.setActive(key)} />;
@@ -474,7 +538,14 @@ function ProductForm({
     setError(null);
     uploader.run(
       () => KeyboardBridge.pickMedia(source),
-      uploaded => setImage({ url: uploaded.url, storagePath: uploaded.storagePath }),
+      (uploaded, local) => {
+        const finalUrl = uploaded.url || local.uri;
+        setImage({ url: finalUrl, storagePath: uploaded.storagePath });
+        if (activeProductDraft) {
+          activeProductDraft.imageUrl = finalUrl;
+          activeProductDraft.imageStoragePath = uploaded.storagePath;
+        }
+      },
     );
   };
 
@@ -497,6 +568,7 @@ function ProductForm({
       setError(result.error);
       return;
     }
+    activeProductDraft = null;
     onSaved(result.product.id, result.folderId);
   };
 
@@ -515,10 +587,10 @@ function ProductForm({
         disabled={!!uploader.uploading}
       />
       <ScrollView style={styles.flex} contentContainerStyle={styles.form} keyboardShouldPersistTaps="always">
-        {error ? (
+        {error || uploader.error ? (
           <View style={styles.error} accessibilityLiveRegion="polite">
             <Icon name="info" size={16} color={colors.danger} />
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorText}>{error || uploader.error}</Text>
           </View>
         ) : null}
         <Text style={styles.section}>{t('Categoria')}</Text>

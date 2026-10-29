@@ -65,7 +65,7 @@ Você vai continuar o desenvolvimento do **KEYCON**, um app de vendas com teclad
 
 ## App web de testes (`web/`, publicado em keyconapp.com/app)
 - **Modo demonstração** (`src/config/demo.web.ts` com `DEMO_MODE = true`):
-  - abre logado com o usuário de exemplo **Alex Morgan (KEYCON Demo)**, em inglês;
+  - abre logado com o usuário de exemplo **Rafael Martinez (KEYCON Demo)**, em inglês;
   - não chama o servidor (login, perfil e upload); fotos e arquivos ficam como links `blob:` na aba;
   - recarregar a página limpa tudo (script no `<head>` de `web/index.html`).
 - O simulador é um **iPhone 17 Pro Max** em CSS: tela de 440×956 pontos, carcaça laranja-cósmico com espessura e Dynamic Island.

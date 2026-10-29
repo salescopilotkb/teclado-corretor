@@ -70,7 +70,7 @@ export function HomeScreen({ onNavigate, onOpenTutorial }: Props) {
   return (
     <HomeRoot
       steps={steps}
-      keyboardReady={keyboard.selected === true || steps[0].done}
+      keyboardReady={keyboard.selected === true || (keyboard.selected === null && steps[0].done)}
       keyboardHalfway={keyboard.enabled === true && keyboard.selected === false}
       onSection={setSection}
       onNavigate={onNavigate}

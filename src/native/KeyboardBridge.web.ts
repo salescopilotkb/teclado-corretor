@@ -54,6 +54,7 @@ let expandHandler: ((mode: HeightMode) => void) | null = null;
 const showListeners = new Set<(e: KeyboardShowEvent) => void>();
 const hideListeners = new Set<() => void>();
 const selectionListeners = new Set<(e: SelectionChangeEvent) => void>();
+const deviceFocusListeners = new Set<() => void>();
 const backListeners = new Set<() => void>();
 let backEnabled = false;
 
@@ -71,6 +72,10 @@ export const WebKeyboardHost = {
   },
   hide() {
     hideListeners.forEach(cb => cb());
+  },
+  /** O usuário clicou ou focou no campo de texto do dispositivo (conversa). */
+  focusDeviceField() {
+    deviceFocusListeners.forEach(cb => cb());
   },
   /** O cursor do campo de teste mudou por fora do teclado (clique, colar...). */
   selectionChanged() {
@@ -94,6 +99,8 @@ export const WebKeyboardHost = {
 
 /** Seletor de arquivos aberto pelo teclado (mesma API do KeyboardBridge.ts). */
 let picking = false;
+let pickingUntil = 0;
+let activeUploads = 0;
 
 const unavailable = (what: string) =>
   Promise.reject(new Error(t('{what} funciona só no celular. Use "segurar" para enviar o link.', { what: t(what) })));
@@ -176,6 +183,7 @@ export const KeyboardBridge = {
   pickMedia: (source: KeyboardPickSource): Promise<LocalMedia | null> => {
     if (IOS_SIMULATION) return Promise.reject(new Error('No iPhone, adicione fotos, vídeos e áudios pelo app KEYCON.'));
     picking = true;
+    pickingUntil = Date.now() + 60000;
     const pick =
       source === 'gallery'
         ? pickPhotoOrVideo()
@@ -186,9 +194,14 @@ export const KeyboardBridge = {
             : captureWithCamera(source === 'camera-video' ? 'video' : 'image');
     return pick.finally(() => {
       picking = false;
+      pickingUntil = Date.now() + 3000;
     });
   },
-  isPickingMedia: () => picking,
+  isPickingMedia: () => picking || Date.now() < pickingUntil || activeUploads > 0,
+  setMediaUploading: (uploading: boolean) => {
+    if (uploading) activeUploads++;
+    else activeUploads = Math.max(0, activeUploads - 1);
+  },
   // Na web o próprio navegador pede o microfone ao gravar
   requestMicPermission: async (): Promise<MicPermission> => 'granted',
   // Na web, numa aba nova
@@ -219,6 +232,12 @@ export const KeyboardBridge = {
     selectionListeners.add(cb);
     return () => {
       selectionListeners.delete(cb);
+    };
+  },
+  onFocusDeviceField(cb: () => void) {
+    deviceFocusListeners.add(cb);
+    return () => {
+      deviceFocusListeners.delete(cb);
     };
   },
   setBackEnabled: (enabled: boolean) => {

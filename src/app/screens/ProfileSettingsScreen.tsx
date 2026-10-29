@@ -1,20 +1,21 @@
 import { getLanguage, LANGUAGES, t } from '../../i18n';
 import type { Lang } from '../../i18n';
+import { COUNTRIES, CURRENCIES, deduceFromMarketId, resolveMarketId, TARGET_AUDIENCES } from '../../i18n/markets';
 import type { MarketId } from '../../i18n/markets';
 import { applyProfileLanguages } from '../../i18n/profile';
-import { LanguagePicker, MarketPicker, marketSummary } from '../components/LanguagePickers';
+import { AudiencePicker, CountryPicker, CurrencyPicker, LanguagePicker, marketSummary } from '../components/LanguagePickers';
 /**
  * Conta — perfil e configurações, cada assunto no seu submenu.
  */
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import { Repo } from '../../storage/storage';
-import type { SegmentId, SellerProfile, ThemePreference } from '../../types';
+import type { CountryId, CurrencyId, SegmentId, SellerProfile, TargetAudienceId, ThemePreference } from '../../types';
 import { getSegment } from '../../segments/segments';
 import { makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { Icon } from '../../keyboard/components/Icon';
 import { AI_CONFIG } from '../../services/aiService';
-import { AuthError, currentEmail, pushProfile } from '../../services/auth';
+import { AuthError, currentEmail, pushProfile, signInWithGoogle } from '../../services/auth';
 import { SegmentPicker } from '../components/SegmentPicker';
 import { BUILD_INFO } from '../../config/buildInfo';
 import { fillLegal, LEGAL_UPDATED, PRIVACY, TERMS } from '../../legal/legal';
@@ -119,12 +120,18 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
   if (section === 'market') {
     return (
       <MarketSection
-        current={seller.market ?? 'BR'}
+        seller={seller}
         onBack={back}
-        onSave={market => {
-          const updated = { ...seller, market };
+        onSave={settings => {
+          const updated: SellerProfile = {
+            ...seller,
+            market: settings.market,
+            country: settings.country,
+            currency: settings.currency,
+            targetAudience: settings.targetAudience,
+          };
           applyProfileLanguages(updated);
-          saveProfile(updated, t('Mercado e moeda alterados com sucesso.'));
+          saveProfile(updated, t('Configurações de venda atualizadas com sucesso.'));
         }}
       />
     );
@@ -174,7 +181,7 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
         <MenuRow
           icon="etiquetas"
           title={t('Onde você vende?')}
-          value={marketSummary(seller.market ?? 'BR')}
+          value={marketSummary(seller)}
           onPress={() => setSection('market')}
         />
         <MenuRow
@@ -310,8 +317,29 @@ function ThemeSection({ theme, onBack, onSelect }: { theme: ThemePreference; onB
 }
 
 function StatusSection({ email, onBack }: { email: string | null; onBack: () => void }) {
+  const [connecting, setConnecting] = useState(false);
+  const hasGoogle = Repo.hasGoogleMeetAccess();
+
+  const handleConnectGoogle = async () => {
+    setConnecting(true);
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      Alert.alert(t('Não foi possível conectar o Google'), String(e));
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   const rows: Array<{ done: boolean; title: string; text: string }> = [
     { done: !!email, title: t('Conta'), text: email ? t('Conectada: {email}', { email }) : t('Verificando conexão...') },
+    {
+      done: hasGoogle,
+      title: t('Reuniões no Google Meet'),
+      text: hasGoogle
+        ? t('Liberado: links e salas do Google Meet gerados automaticamente.')
+        : t('Pendente: conecte sua conta Google para liberar links de reunião automáticos.'),
+    },
     { done: true, title: t('Teclado'), text: t('Login e dados compartilhados com o teclado neste aparelho.') },
     { done: false, title: t('Itens e atalhos'), text: t('Salvos neste aparelho. Sincronização com a nuvem em breve.') },
     { done: false, title: t('Fotos e vídeos'), text: t('Enviados como links externos por enquanto.') },
@@ -331,6 +359,15 @@ function StatusSection({ email, onBack }: { email: string | null; onBack: () => 
           <CardText>{r.text}</CardText>
         </Card>
       ))}
+      {!hasGoogle && (
+        <Button
+          label={t('Liberar com conta Google')}
+          variant="secondary"
+          icon="respostas"
+          disabled={connecting}
+          onPress={handleConnectGoogle}
+        />
+      )}
     </Page>
   );
 }
@@ -439,17 +476,109 @@ function LanguageSection({ current, onBack, onSave }: { current: Lang; onBack: (
   );
 }
 
-function MarketSection({ current, onBack, onSave }: { current: MarketId; onBack: () => void; onSave: (market: MarketId) => void }) {
-  const [selected, setSelected] = useState<MarketId>(current);
+function MarketSection({
+  seller,
+  onBack,
+  onSave,
+}: {
+  seller: SellerProfile;
+  onBack: () => void;
+  onSave: (settings: {
+    market: MarketId;
+    country: CountryId;
+    currency: CurrencyId;
+    targetAudience: TargetAudienceId;
+  }) => void;
+}) {
+  const styles = useStyles();
+  const deduced = deduceFromMarketId(seller.market);
+  const [country, setCountry] = useState<CountryId>(seller.country ?? deduced.country);
+  const [currency, setCurrency] = useState<CurrencyId>(seller.currency ?? deduced.currency);
+  const [audience, setAudience] = useState<TargetAudienceId>(seller.targetAudience ?? deduced.targetAudience);
+
+  const selectedCountry = COUNTRIES.find(c => c.id === country) ?? COUNTRIES[0];
+  const selectedCurrency = CURRENCIES.find(c => c.id === currency) ?? CURRENCIES[0];
+  const selectedAudience = TARGET_AUDIENCES.find(a => a.id === audience) ?? TARGET_AUDIENCES[0];
+
+  function handleCountryChange(newCountry: CountryId) {
+    setCountry(newCountry);
+    const countryObj = COUNTRIES.find(c => c.id === newCountry);
+    if (countryObj) {
+      setCurrency(countryObj.defaultCurrency);
+      setAudience(countryObj.defaultAudience);
+    }
+  }
+
+  function handleSave() {
+    const market = resolveMarketId(country, currency, audience);
+    onSave({
+      market,
+      country,
+      currency,
+      targetAudience: audience,
+    });
+  }
+
+  const samplePrice =
+    selectedCurrency.symbolPosition === 'before'
+      ? `${selectedCurrency.symbol}${selectedCurrency.symbolSpace ? ' ' : ''}150${selectedCurrency.decimals > 0 ? selectedCurrency.decimal + '00' : ''}`
+      : `150${selectedCurrency.decimals > 0 ? selectedCurrency.decimal + '00' : ''}${selectedCurrency.symbolSpace ? ' ' : ''}${selectedCurrency.symbol}`;
+
   return (
     <Page>
       <SubHeader title={t('Onde você vende?')} onBack={onBack} />
+
       <Card>
-        <CardTitle>{t('Mercado e moeda')}</CardTitle>
-        <CardText>{t('Define a moeda dos preços e o idioma das mensagens que vão para os seus clientes.')}</CardText>
-        <MarketPicker value={selected} onChange={setSelected} />
+        <CardTitle>{t('1. País onde você opera')}</CardTitle>
+        <CardText>{t('Define o código telefônico para links do WhatsApp e formatos regionais.')}</CardText>
+        <CountryPicker value={country} onChange={handleCountryChange} />
       </Card>
-      <Button label={t('Salvar')} onPress={() => onSave(selected)} />
+
+      <Card>
+        <CardTitle>{t('2. Moeda das suas vendas')}</CardTitle>
+        <CardText>{t('Define o símbolo monetário dos seus produtos no catálogo e orçamentos.')}</CardText>
+        <CurrencyPicker value={currency} onChange={setCurrency} />
+      </Card>
+
+      <Card>
+        <CardTitle>{t('3. Para quem você vende?')}</CardTitle>
+        <CardText>{t('O público define o idioma das mensagens automáticas para os clientes e o corretor do teclado.')}</CardText>
+        <AudiencePicker value={audience} onChange={setAudience} />
+      </Card>
+
+      <View style={styles.modelingCard}>
+        <View style={styles.modelingHead}>
+          <Icon name="ia" size={20} color={styles.modelingAiIcon.color} />
+          <Text style={styles.modelingTitle}>{t('Como o KEYCON se modela para você')}</Text>
+        </View>
+
+        <View style={styles.modelingGrid}>
+          <View style={styles.modelingRow}>
+            <Text style={styles.modelingLabel}>{t('Mensagens para clientes')}</Text>
+            <Text style={styles.modelingValue}>
+              {selectedAudience.languageLabel} ({selectedAudience.label})
+            </Text>
+          </View>
+          <View style={styles.modelingRow}>
+            <Text style={styles.modelingLabel}>{t('Teclado e corretor')}</Text>
+            <Text style={styles.modelingValue}>{selectedAudience.languageLabel}</Text>
+          </View>
+          <View style={styles.modelingRow}>
+            <Text style={styles.modelingLabel}>{t('Exemplo de preço')}</Text>
+            <Text style={styles.modelingValue}>
+              {samplePrice} ({selectedCurrency.id})
+            </Text>
+          </View>
+          <View style={styles.modelingRow}>
+            <Text style={styles.modelingLabel}>{t('WhatsApp internacional')}</Text>
+            <Text style={styles.modelingValue}>
+              +{selectedCountry.phoneCode} ({selectedCountry.name})
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <Button testID="save-market-btn" label={t('Salvar')} onPress={handleSave} />
     </Page>
   );
 }
@@ -494,4 +623,45 @@ const useStyles = makeStyles(colors => ({
   optionLabel: { fontSize: 15, fontWeight: '500', color: colors.textSecondary },
   optionLabelActive: { color: colors.text, fontWeight: '600' },
   optionDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  modelingCard: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.violetBg,
+  },
+  modelingHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  modelingAiIcon: {
+    color: colors.violet,
+  },
+  modelingTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modelingGrid: {
+    gap: spacing.sm,
+  },
+  modelingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  modelingLabel: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  modelingValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
 }));

@@ -176,11 +176,11 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
 
   // Ao fechar o teclado, a próxima abertura começa no teclado de letras e a aba
   // Mais volta ao menu inicial. Exceção: fechou porque a galeria/câmera do
-  // próprio teclado abriu — ao voltar, continua onde estava (ex.: no cadastro)
+  // próprio teclado abriu ou estava com formulário aberto — ao voltar, continua onde estava (ex.: no cadastro)
   useEffect(
     () =>
       KeyboardBridge.onKeyboardHide(() => {
-        if (KeyboardBridge.isPickingMedia()) return;
+        if (KeyboardBridge.isPickingMedia() || bigRef.current) return;
         setTranslating(false);
         setConfirmSwitch(false);
         setTab('keyboard');
@@ -410,7 +410,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             }}
           />
         )}
-        {!translating && tab === 'keyboard' && <TypingKeyboard />}
+        {!translating && tab === 'keyboard' && <TypingKeyboard key={`typing-${moreVisit}`} />}
         {/* Sem login no app, a área de vendas fica bloqueada (o ABC continua livre) */}
         {!translating && tab !== 'keyboard' && !loggedIn && <LoginRequiredPanel />}
         {!translating && loggedIn && tab === 'products' && (

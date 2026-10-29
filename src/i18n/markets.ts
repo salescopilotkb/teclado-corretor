@@ -6,6 +6,7 @@
  * todas as moedas e separadores.
  */
 import type { Lang } from './index';
+import type { CountryId, CurrencyId, TargetAudienceId } from '../types';
 
 export type MarketId = 'BR' | 'US_EN' | 'US_ES' | 'US_PT' | 'PT' | 'ES' | 'MX' | 'AR' | 'CO' | 'CL' | 'UK' | 'CA';
 
@@ -25,6 +26,189 @@ export interface Market {
   decimals: number;
   /** Exemplo de telefone (só para o campo de cadastro). */
   phoneExample: string;
+}
+
+export const COUNTRIES: Array<{
+  id: CountryId;
+  name: string;
+  flag: string;
+  defaultCurrency: CurrencyId;
+  phoneCode: string;
+  phoneExample: string;
+  defaultAudience: TargetAudienceId;
+}> = [
+  { id: 'US', name: 'Estados Unidos', flag: '🇺🇸', defaultCurrency: 'USD', phoneCode: '1', phoneExample: '(305) 555-0123', defaultAudience: 'americanos' },
+  { id: 'BR', name: 'Brasil', flag: '🇧🇷', defaultCurrency: 'BRL', phoneCode: '55', phoneExample: '(11) 98888-7777', defaultAudience: 'brasileiros' },
+  { id: 'PT', name: 'Portugal', flag: '🇵🇹', defaultCurrency: 'EUR', phoneCode: '351', phoneExample: '912 345 678', defaultAudience: 'europeus' },
+  { id: 'ES', name: 'Espanha', flag: '🇪🇸', defaultCurrency: 'EUR', phoneCode: '34', phoneExample: '612 34 56 78', defaultAudience: 'mexicanos' },
+  { id: 'MX', name: 'México', flag: '🇲🇽', defaultCurrency: 'MXN', phoneCode: '52', phoneExample: '55 1234 5678', defaultAudience: 'mexicanos' },
+  { id: 'AR', name: 'Argentina', flag: '🇦🇷', defaultCurrency: 'ARS', phoneCode: '549', phoneExample: '11 2345-6789', defaultAudience: 'mexicanos' },
+  { id: 'CO', name: 'Colômbia', flag: '🇨🇴', defaultCurrency: 'COP', phoneCode: '57', phoneExample: '300 123 4567', defaultAudience: 'mexicanos' },
+  { id: 'CL', name: 'Chile', flag: '🇨🇱', defaultCurrency: 'CLP', phoneCode: '56', phoneExample: '9 1234 5678', defaultAudience: 'mexicanos' },
+  { id: 'UK', name: 'Reino Unido', flag: '🇬🇧', defaultCurrency: 'GBP', phoneCode: '44', phoneExample: '07700 900123', defaultAudience: 'americanos' },
+  { id: 'CA', name: 'Canadá', flag: '🇨🇦', defaultCurrency: 'CAD', phoneCode: '1', phoneExample: '(416) 555-0123', defaultAudience: 'americanos' },
+  { id: 'OTHER', name: 'Outro país', flag: '🌍', defaultCurrency: 'USD', phoneCode: '1', phoneExample: '+1 555-0123', defaultAudience: 'americanos' },
+];
+
+export const CURRENCIES: Array<{
+  id: CurrencyId;
+  label: string;
+  symbol: string;
+  symbolPosition: 'before' | 'after';
+  symbolSpace: boolean;
+  thousands: string;
+  decimal: string;
+  decimals: number;
+}> = [
+  { id: 'USD', label: 'Dólar americano', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2 },
+  { id: 'BRL', label: 'Real brasileiro', symbol: 'R$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 2 },
+  { id: 'EUR', label: 'Euro', symbol: '€', symbolPosition: 'after', symbolSpace: true, thousands: ' ', decimal: ',', decimals: 2 },
+  { id: 'MXN', label: 'Peso mexicano', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2 },
+  { id: 'GBP', label: 'Libra esterlina', symbol: '£', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2 },
+  { id: 'CAD', label: 'Dólar canadense', symbol: 'CA$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2 },
+  { id: 'ARS', label: 'Peso argentino', symbol: '$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 2 },
+  { id: 'COP', label: 'Peso colombiano', symbol: '$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 0 },
+  { id: 'CLP', label: 'Peso chileno', symbol: '$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 0 },
+];
+
+export const TARGET_AUDIENCES: Array<{
+  id: TargetAudienceId;
+  label: string;
+  flag: string;
+  language: Lang;
+  languageLabel: string;
+  description: string;
+}> = [
+  {
+    id: 'brasileiros',
+    label: 'Brasileiros',
+    flag: '🇧🇷',
+    language: 'pt',
+    languageLabel: 'Português',
+    description: 'Clientes que falam português. Mensagens, fichas e corretor em português.',
+  },
+  {
+    id: 'americanos',
+    label: 'Americanos',
+    flag: '🇺🇸',
+    language: 'en',
+    languageLabel: 'English',
+    description: 'Clientes que falam inglês. Mensagens, fichas e corretor em inglês.',
+  },
+  {
+    id: 'mexicanos',
+    label: 'Mexicanos / Hispânicos',
+    flag: '🇲🇽',
+    language: 'es',
+    languageLabel: 'Español',
+    description: 'Clientes que falam espanhol. Mensagens, fichas e corretor em espanhol.',
+  },
+  {
+    id: 'europeus',
+    label: 'Portugueses / Europeus',
+    flag: '🇵🇹',
+    language: 'pt',
+    languageLabel: 'Português',
+    description: 'Clientes em Portugal e Europa. Mensagens, fichas e corretor em português.',
+  },
+];
+
+export function deduceFromMarketId(marketId: MarketId | string | null | undefined): {
+  country: CountryId;
+  currency: CurrencyId;
+  targetAudience: TargetAudienceId;
+} {
+  switch (marketId) {
+    case 'US_PT':
+      return { country: 'US', currency: 'USD', targetAudience: 'brasileiros' };
+    case 'US_ES':
+      return { country: 'US', currency: 'USD', targetAudience: 'mexicanos' };
+    case 'US_EN':
+      return { country: 'US', currency: 'USD', targetAudience: 'americanos' };
+    case 'BR':
+      return { country: 'BR', currency: 'BRL', targetAudience: 'brasileiros' };
+    case 'PT':
+      return { country: 'PT', currency: 'EUR', targetAudience: 'europeus' };
+    case 'ES':
+      return { country: 'ES', currency: 'EUR', targetAudience: 'mexicanos' };
+    case 'MX':
+      return { country: 'MX', currency: 'MXN', targetAudience: 'mexicanos' };
+    case 'AR':
+      return { country: 'AR', currency: 'ARS', targetAudience: 'mexicanos' };
+    case 'CO':
+      return { country: 'CO', currency: 'COP', targetAudience: 'mexicanos' };
+    case 'CL':
+      return { country: 'CL', currency: 'CLP', targetAudience: 'mexicanos' };
+    case 'UK':
+      return { country: 'UK', currency: 'GBP', targetAudience: 'americanos' };
+    case 'CA':
+      return { country: 'CA', currency: 'CAD', targetAudience: 'americanos' };
+    default:
+      return { country: 'US', currency: 'USD', targetAudience: 'americanos' };
+  }
+}
+
+export function resolveMarketId(
+  country: CountryId,
+  currency: CurrencyId,
+  audience: TargetAudienceId,
+): MarketId {
+  if (country === 'US' && currency === 'USD') {
+    if (audience === 'brasileiros') return 'US_PT';
+    if (audience === 'mexicanos') return 'US_ES';
+    return 'US_EN';
+  }
+  if (country === 'BR' && currency === 'BRL') return 'BR';
+  if (country === 'PT' && currency === 'EUR') return 'PT';
+  if (country === 'ES' && currency === 'EUR') return 'ES';
+  if (country === 'MX' && currency === 'MXN') return 'MX';
+  if (country === 'AR' && currency === 'ARS') return 'AR';
+  if (country === 'CO' && currency === 'COP') return 'CO';
+  if (country === 'CL' && currency === 'CLP') return 'CL';
+  if (country === 'UK' && currency === 'GBP') return 'UK';
+  if (country === 'CA' && currency === 'CAD') return 'CA';
+
+  // Fallbacks coerentes por moeda e público
+  if (currency === 'BRL') return 'BR';
+  if (currency === 'USD') {
+    if (audience === 'brasileiros') return 'US_PT';
+    if (audience === 'mexicanos') return 'US_ES';
+    return 'US_EN';
+  }
+  if (currency === 'EUR') return audience === 'mexicanos' ? 'ES' : 'PT';
+  if (currency === 'MXN') return 'MX';
+  if (currency === 'GBP') return 'UK';
+  if (currency === 'CAD') return 'CA';
+  if (currency === 'ARS') return 'AR';
+  if (currency === 'COP') return 'CO';
+  if (currency === 'CLP') return 'CL';
+
+  return 'US_EN';
+}
+
+export function buildCustomMarket(
+  countryId: CountryId,
+  currencyId: CurrencyId,
+  audienceId: TargetAudienceId,
+): Market {
+  const c = COUNTRIES.find(x => x.id === countryId) ?? COUNTRIES[0];
+  const curr = CURRENCIES.find(x => x.id === currencyId) ?? CURRENCIES[0];
+  const aud = TARGET_AUDIENCES.find(x => x.id === audienceId) ?? TARGET_AUDIENCES[0];
+  const marketId = resolveMarketId(countryId, currencyId, audienceId);
+
+  return {
+    id: marketId,
+    country: c.name,
+    language: aud.language,
+    currency: curr.id,
+    symbol: curr.symbol,
+    symbolPosition: curr.symbolPosition,
+    symbolSpace: curr.symbolSpace,
+    thousands: curr.thousands,
+    decimal: curr.decimal,
+    decimals: curr.decimals,
+    phoneExample: c.phoneExample,
+  };
 }
 
 export const MARKETS: Market[] = [
@@ -80,6 +264,11 @@ export function defaultMarketFor(lang: Lang): MarketId {
 }
 
 let currentMarket: MarketId = 'US_EN';
+let activeCustomMarket: Market | null = null;
+
+export function setActiveCustomMarket(market: Market | null): void {
+  activeCustomMarket = market;
+}
 
 /** Mercado do usuário logado (definido ao carregar o perfil, no app e no teclado). */
 export function setCurrentMarket(id: MarketId): void {
@@ -87,6 +276,7 @@ export function setCurrentMarket(id: MarketId): void {
 }
 
 export function currentMarketInfo(): Market {
+  if (activeCustomMarket) return activeCustomMarket;
   return getMarket(currentMarket);
 }
 
