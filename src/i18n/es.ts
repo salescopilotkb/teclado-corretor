@@ -875,5 +875,12 @@ export const ES: Record<string, string> = {
   "Ex: Mais vendidos, Promoções, Serviços": "Ej: Más vendidos, Promociones, Servicios",
   "Ex: Itens com pronta entrega": "Ej: Artículos con entrega inmediata",
   "Ex: Kit presente": "Ej: Kit de regalo",
-  "Detalhes, condições, prazo de entrega...": "Detalles, condiciones, plazo de entrega..."
+  "Detalhes, condições, prazo de entrega...": "Detalles, condiciones, plazo de entrega...",
+  "Tradução indisponível neste navegador. Use o Google Chrome no computador.": "La traducción no está disponible en este navegador. Usa Google Chrome en una computadora.",
+  "A galeria abre por cima da conversa. Nesta demonstração, o arquivo fica só neste navegador e some ao recarregar a página.": "La galería se abre sobre la conversación. En esta demostración, el archivo queda solo en este navegador y desaparece al recargar la página.",
+  "{what} funciona só no celular. Use \"segurar\" para enviar o link.": "{what} solo funciona en el celular. Usa \"mantener presionado\" para enviar el enlace.",
+  "O compartilhamento de arquivos": "Compartir archivos",
+  "O envio de foto com texto": "Enviar una foto con texto",
+  "Não foi possível abrir o link.": "No se pudo abrir el enlace.",
+  "Foto e texto enviados na conversa": "Foto y texto enviados en la conversación",
 };

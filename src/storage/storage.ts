@@ -70,7 +70,7 @@ const USER_DATA_KEYS = [
 ];
 
 const DEFAULT_THEME: ThemePreference = 'dark';
-const EMPTY_SELLER: SellerProfile = { name: '', business: '', phone: '', segment: 'general', language: 'pt', market: 'BR' };
+const EMPTY_SELLER: SellerProfile = { name: '', business: '', phone: '', segment: 'general', language: 'en', market: 'US_EN' };
 const EMPTY_SHORTCUTS: ShortcutsData = { texts: [], audios: [], links: [] };
 const EMPTY_FILES: FilesData = { folders: [], files: [] };
 

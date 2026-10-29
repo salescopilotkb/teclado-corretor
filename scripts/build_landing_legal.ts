@@ -101,5 +101,5 @@ ${LANGS.map(l => section(docs[l], l)).join('\n')}
 page('privacidade.html', PRIVACY as Record<Lang, LegalDocument>);
 page('termos.html', TERMS as Record<Lang, LegalDocument>);
 
-const pending = Object.entries(LEGAL_INFO).filter(([, v]) => v.startsWith('['));
+const pending = Object.entries(LEGAL_INFO).filter(([, v]) => v.startsWith("["));
 if (pending.length) console.warn(`⚠️  Ainda faltam os dados da empresa em src/legal/legal.ts (LEGAL_INFO): ${pending.map(([k]) => k).join(', ')}`);

@@ -2,7 +2,7 @@
 
 // Versão dos arquivos: troque a cada publicação para o navegador não usar imagens antigas
 // (a mesma usada no ?v= de index.html)
-var ASSET_VERSION = '2026102808';
+var ASSET_VERSION = '2026102901';
 
 // ── Preencha aqui quando tiver os links ────────────────────────────────
 // Enquanto um link das lojas estiver vazio, o botão mostra "Em breve".
@@ -10,7 +10,7 @@ var ASSET_VERSION = '2026102808';
 var CONFIG = {
   googlePlayUrl: '',  // ex.: 'https://play.google.com/store/apps/details?id=com.keycon.app'
   appStoreUrl: '',    // ex.: 'https://apps.apple.com/app/idXXXXXXXXXX'
-  contactEmail: '',   // ex.: 'contato@suaempresa.com'
+  contactEmail: 'support@keyconapp.com',
   // Lista de espera: tabela "waitlist" do Supabase do app (supabase/schema.sql).
   // A chave "anon" é pública (a mesma do app) e só permite SE INSCREVER;
   // ninguém lê a lista pelo site. NUNCA coloque aqui a chave "service_role".
@@ -517,12 +517,12 @@ var EN_EXTRA = {
     b.addEventListener('click', function () { apply(b.dataset.setLang); });
   });
 
-  // Idioma inicial: ?lang=, o último escolhido ou o do navegador
+  // Idioma inicial: ?lang= ou o último escolhido (senão, inglês)
   var saved = null;
   try { saved = localStorage.getItem('keycon.lang'); } catch (e) {}
   var query = new URLSearchParams(location.search).get('lang');
-  var browser = (navigator.language || 'en').slice(0, 2).toLowerCase();
-  apply([query, saved, browser].filter(function (l) { return LANGS.indexOf(l) >= 0; })[0] || 'en');
+  // Abre sempre em inglês; só muda se a pessoa pediu (?lang=) ou já escolheu outro idioma aqui
+  apply([query, saved].filter(function (l) { return LANGS.indexOf(l) >= 0; })[0] || 'en');
 
   // ── Abertura: teclado 3D que segue o mouse, digitação e linhas no fundo ──
   // Tudo para quando a abertura sai da tela, com a aba escondida ou quando a

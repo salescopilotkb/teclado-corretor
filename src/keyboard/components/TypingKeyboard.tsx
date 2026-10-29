@@ -1,5 +1,5 @@
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent, NativeTouchEvent } from 'react-native';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { InputContext } from '../../native/KeyboardBridge';
@@ -505,6 +505,59 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     [context, internal, setMode, typeSpace, typeText],
   );
 
+  // Versão web: o teclado do computador digita como as teclas do KEYCON (mesma
+  // correção, sugestões, ⌫ e ↵). Num campo do próprio teclado (tradução,
+  // formulários) as teclas vão para ele mesmo com o cursor na conversa; na
+  // conversa, o campo da página aceita a digitação direta. Só com este teclado à
+  // vista: os campos da tela do app (TextInput) continuam com o teclado do PC.
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const doc = (globalThis as { document?: { addEventListener: Function; removeEventListener: Function } }).document;
+    if (!doc) return;
+    const onKey = (e: {
+      key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; isComposing?: boolean;
+      target: unknown; preventDefault(): void; stopPropagation(): void;
+    }) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+      const area = areaRef.current as unknown as { offsetParent?: unknown } | null;
+      if (!area || !area.offsetParent) return; // teclado escondido (ex.: tela do App)
+      const el = e.target as { tagName?: string; isContentEditable?: boolean } | null;
+      const inField = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || !!el.isContentEditable);
+      if (!internal && inField) return; // conversa: o próprio campo da página recebe
+      const key = e.key;
+      if (key === 'Backspace') deleteOnceRef.current();
+      else if (key === 'Enter') runRef.current({ id: 'enter', label: '', kind: 'enter', flex: 1, action: { t: 'enter' } } as KeyDef);
+      else if (key === ' ') typeSpace();
+      else if (key.length === 1) {
+        // Letra sem Shift no PC: segue a maiúscula automática do teclado (início de frase, caps)
+        const auto = /\p{L}/u.test(key) && key === key.toLowerCase() && shiftRef.current !== 'off';
+        typeText(auto ? key.toUpperCase() : key);
+      }
+      else return;
+      e.preventDefault();
+      e.stopPropagation();
+      handled = key;
+    };
+    // Botão com foco (ex.: o do Traduzir) "clica" ao soltar o espaço: segura esse clique
+    let handled = '';
+    const onKeyUp = (e: { key: string; preventDefault(): void; stopPropagation(): void }) => {
+      if (handled && e.key === handled) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      handled = '';
+    };
+    // Fase de captura: a tecla chega aqui antes do botão com foco
+    doc.addEventListener('keydown', onKey, true);
+    doc.addEventListener('keyup', onKeyUp, true);
+    return () => {
+      doc.removeEventListener('keydown', onKey, true);
+      doc.removeEventListener('keyup', onKeyUp, true);
+    };
+  }, [internal, typeSpace, typeText]);
+
   /** Painel de emojis aberto no lugar das teclas. */
   const [emojiOpen, setEmojiOpen] = useState(false);
   const insertEmoji = useCallback(
@@ -549,10 +602,25 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
   const origin = useRef<{ x: number; y: number } | null>(null);
   const rowBoxes = useRef<Box[]>([]);
   const areaWidth = useRef(0);
+  /** Layout ÷ tela: 1 no celular; menor que 1 quando a página reduz o teclado (zoom do simulador web). */
+  const scale = useRef(1);
   const touches = useRef(new Map<string, ActiveTouch>());
 
   const measureOrigin = useCallback((e?: LayoutChangeEvent) => {
     if (e) areaWidth.current = e.nativeEvent.layout.width;
+    if (Platform.OS === 'web') {
+      // Na web a página pode reduzir o teclado (zoom do simulador): mede na tela,
+      // onde chegam os toques, e converte para o layout pela escala
+      areaRef.current?.measureInWindow((x, y, w) => {
+        // measureInWindow é relativo à janela; os toques (pageX/pageY), à página
+        const win = (globalThis as { scrollX?: number; scrollY?: number });
+        const sx = win.scrollX ?? 0;
+        const sy = win.scrollY ?? 0;
+        origin.current = { x: x + sx, y: y + sy };
+        if (w > 0 && areaWidth.current > 0) scale.current = areaWidth.current / w;
+      });
+      return;
+    }
     areaRef.current?.measure((_x, _y, _w, _h, pageX, pageY) => {
       if (typeof pageX === 'number' && typeof pageY === 'number') origin.current = { x: pageX, y: pageY };
     });
@@ -588,7 +656,7 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
 
   const pointOf = (t: NativeTouchEvent) =>
     origin.current
-      ? { x: t.pageX - origin.current.x, y: t.pageY - origin.current.y }
+      ? { x: (t.pageX - origin.current.x) * scale.current, y: (t.pageY - origin.current.y) * scale.current }
       : { x: t.locationX, y: t.locationY };
 
   /** Digita a opção de acento sob o dedo e fecha as opções. */

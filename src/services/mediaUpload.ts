@@ -11,6 +11,7 @@ import { t } from '../i18n';
  */
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../config/supabase';
 import { supabase } from './supabase';
+import { DEMO_MODE } from '../config/demo';
 
 /** Mesmo limite do bucket e do teclado. */
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -79,6 +80,11 @@ export function publicUrl(storagePath: string): string {
  * Erros chegam como UploadError com mensagem pronta para o usuário.
  */
 export async function uploadMedia(media: LocalMedia, onProgress?: (fraction: number) => void): Promise<UploadedMedia> {
+  if (DEMO_MODE) {
+    // Demonstração (versão web): o arquivo fica só nesta aba do navegador, nada vai ao servidor
+    onProgress?.(1);
+    return { url: media.uri, storagePath: '' };
+  }
   if (media.size && media.size > MAX_UPLOAD_BYTES) {
     throw new UploadError(t('O arquivo passa de 50 MB. Escolha um menor ou mande o link.'));
   }

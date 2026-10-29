@@ -30,6 +30,7 @@ import { useLanguage } from '../i18n/useLanguage';
 import { applyProfileLanguages } from '../i18n/profile';
 import { getSegment } from '../segments/segments';
 import { makeStyles, radius, ThemeProvider } from './theme';
+import { DEMO_MODE } from '../config/demo';
 
 /** Tamanho do teclado (usado fora do componente pela tradução). */
 function setHeightModeNow(mode: HeightMode) {
@@ -335,6 +336,9 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
         if (result === 'copied') {
           // iPhone: o texto já entrou no campo; a foto vai copiada
           showToast(t('Texto inserido e foto copiada: toque e segure no campo e escolha Colar'), PASTE_HINT_MS);
+        } else if (DEMO_MODE) {
+          // Versão web: a conversa de teste já recebeu a foto com o texto
+          showToast(t('Foto e texto enviados na conversa'), 2000);
         } else showToast(t('Escolha a conversa: a foto vai com o texto, numa mensagem só'), 3500);
       } catch (e) {
         const reason = t(describeError(e));

@@ -21,3 +21,6 @@ xcuserdata/
 # Chave de envio da Google Play: guarde fora do repositório (só nos segredos do GitHub)
 *.jks
 keycon-upload*
+# Pacote para o HostGator (gerado a partir de landing/ e dist/)
+hostgator/
+keyconapp-public_html.zip

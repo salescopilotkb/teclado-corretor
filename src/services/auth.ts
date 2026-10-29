@@ -12,6 +12,7 @@ import { isMarketId } from '../i18n/markets';
 import { Repo } from '../storage/storage';
 import type { SellerProfile } from '../types';
 import { supabase } from './supabase';
+import { DEMO_MODE } from '../config/demo';
 
 export class AuthError extends Error {}
 
@@ -83,6 +84,7 @@ function claimDevice(userId: string, fresh: boolean) {
 
 /** Mantém o marcador de login (lido pelo teclado) igual à sessão do Supabase. */
 export function startAuthSync(): () => void {
+  if (DEMO_MODE) return () => {};
   const { data } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
   return () => data.subscription.unsubscribe();
 }
@@ -92,6 +94,7 @@ export function startAuthSync(): () => void {
  * (antes do Supabase) não têm sessão real e são desfeitos.
  */
 export async function restoreSession(): Promise<boolean> {
+  if (DEMO_MODE) return Repo.isLoggedIn();
   const { data, error } = await supabase.auth.getSession();
   // Erro (ex.: sem internet para renovar o token): mantém o estado atual
   // em vez de deslogar o usuário
@@ -137,6 +140,11 @@ export async function signUp(input: SignUpInput): Promise<'signed_in' | 'confirm
 }
 
 export async function signOut(): Promise<void> {
+  // Demonstração: sair recomeça a página com o usuário de exemplo
+  if (DEMO_MODE) {
+    (globalThis as { location?: { reload(): void } }).location?.reload();
+    return;
+  }
   // Mesmo sem internet o login local é desfeito
   try {
     await supabase.auth.signOut();
@@ -147,6 +155,7 @@ export async function signOut(): Promise<void> {
 
 /** Baixa o perfil (nome, negócio, telefone, ramo) para o app e o teclado. */
 export async function pullProfile(): Promise<SellerProfile | null> {
+  if (DEMO_MODE) return null;
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
   if (!userId) return null;
@@ -171,6 +180,7 @@ export async function pullProfile(): Promise<SellerProfile | null> {
 
 /** Salva o perfil na nuvem (e localmente, para o teclado). */
 export async function pushProfile(profile: SellerProfile): Promise<void> {
+  if (DEMO_MODE) return;
   Repo.setSeller(profile);
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
@@ -188,6 +198,7 @@ export async function pushProfile(profile: SellerProfile): Promise<void> {
 
 /** E-mail da conta logada (tela de Conta). */
 export async function currentEmail(): Promise<string | null> {
+  if (DEMO_MODE) return 'demo@keyconapp.com';
   const { data } = await supabase.auth.getSession();
   return data.session?.user.email ?? null;
 }

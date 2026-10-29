@@ -15,14 +15,15 @@ import type { Lang } from '../i18n';
 
 /** Dados de quem oferece o app (aparecem nos textos). */
 export const LEGAL_INFO = {
-  company: '[Razão social da empresa]',
-  document: '[CNPJ]',
-  email: '[e-mail de contato]',
-  city: '[cidade/UF do foro]',
+  company: '7STUDIO DIGITAL MARKETING CORP.',
+  // Florida Profit Corporation (EIN fica fora dos textos públicos)
+  address: '5256 International Drive, Apt 561, Orlando, FL 32819, United States',
+  email: 'contact@keyconapp.com',
+  city: 'Orange County, Florida',
 };
 
 /** Data da última atualização dos textos (AAAA-MM-DD). */
-export const LEGAL_UPDATED = '2026-10-27';
+export const LEGAL_UPDATED = '2026-10-29';
 
 export interface LegalSection {
   title: string;
@@ -36,9 +37,9 @@ export interface LegalDocument {
 
 type Docs = Record<Lang, LegalDocument>;
 
-/** Troca {company}, {document}, {email} e {city} pelos dados de LEGAL_INFO. */
+/** Troca {company}, {address}, {email} e {city} pelos dados de LEGAL_INFO. */
 export function fillLegal(text: string): string {
-  return text.replace(/\{(company|document|email|city)\}/g, (_, k: keyof typeof LEGAL_INFO) => LEGAL_INFO[k]);
+  return text.replace(/\{(company|address|email|city)\}/g, (_, k: keyof typeof LEGAL_INFO) => LEGAL_INFO[k]);
 }
 
 // ── Termos de Uso ───────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ export const TERMS: Docs = {
       {
         title: '1. Aceitação',
         paragraphs: [
-          'Estes Termos de Uso regem o uso do aplicativo KEYCON e do teclado KEYCON (juntos, o "KEYCON"), oferecidos por {company}, inscrita sob o nº {document}. Ao criar uma conta ou usar o KEYCON, você declara que leu e aceita estes Termos e a Política de Privacidade.',
+          'Estes Termos de Uso regem o uso do aplicativo KEYCON e do teclado KEYCON (juntos, o "KEYCON"), oferecidos por {company}, empresa registrada no estado da Flórida (EUA), com sede em {address}. Ao criar uma conta ou usar o KEYCON, você declara que leu e aceita estes Termos e a Política de Privacidade.',
           'Se você usa o KEYCON em nome de uma empresa, declara ter autorização para aceitar estes Termos por ela.',
         ],
       },
@@ -126,7 +127,7 @@ export const TERMS: Docs = {
       {
         title: '13. Lei aplicável e foro',
         paragraphs: [
-          'Estes Termos seguem as leis da República Federativa do Brasil. Fica eleito o foro da comarca de {city}, ressalvado o direito do consumidor de propor ação no foro do seu domicílio.',
+          'Estes Termos seguem as leis do Estado da Flórida (EUA), sem prejuízo das normas obrigatórias de proteção ao consumidor do seu país de residência, como o Código de Defesa do Consumidor no Brasil. Fica eleito o foro de {city}, ressalvado o direito do consumidor de propor ação no foro do seu domicílio.',
         ],
       },
       {
@@ -141,7 +142,7 @@ export const TERMS: Docs = {
       {
         title: '1. Acceptance',
         paragraphs: [
-          'These Terms of Use govern the use of the KEYCON app and the KEYCON keyboard (together, "KEYCON"), provided by {company}, registration no. {document}. By creating an account or using KEYCON, you confirm that you have read and accept these Terms and the Privacy Policy.',
+          'These Terms of Use govern the use of the KEYCON app and the KEYCON keyboard (together, "KEYCON"), provided by {company}, a Florida profit corporation located at {address}. By creating an account or using KEYCON, you confirm that you have read and accept these Terms and the Privacy Policy.',
           'If you use KEYCON on behalf of a company, you confirm that you are authorized to accept these Terms for it.',
         ],
       },
@@ -217,7 +218,7 @@ export const TERMS: Docs = {
       {
         title: '13. Governing law and jurisdiction',
         paragraphs: [
-          'These Terms are governed by the laws of the Federative Republic of Brazil, without prejudice to mandatory consumer protection laws of your country of residence. The courts of {city} have jurisdiction, without prejudice to your right as a consumer to bring a claim in the courts where you live.',
+          'These Terms are governed by the laws of the State of Florida, United States, without prejudice to mandatory consumer protection laws of your country of residence. The courts of {city} have jurisdiction, without prejudice to your right as a consumer to bring a claim in the courts where you live.',
         ],
       },
       {
@@ -232,7 +233,7 @@ export const TERMS: Docs = {
       {
         title: '1. Aceptación',
         paragraphs: [
-          'Estos Términos de Uso regulan el uso de la app KEYCON y del teclado KEYCON (juntos, "KEYCON"), ofrecidos por {company}, registro nº {document}. Al crear una cuenta o usar KEYCON, declaras que leíste y aceptas estos Términos y la Política de Privacidad.',
+          'Estos Términos de Uso regulan el uso de la app KEYCON y del teclado KEYCON (juntos, "KEYCON"), ofrecidos por {company}, sociedad registrada en el estado de Florida (EE. UU.), con domicilio en {address}. Al crear una cuenta o usar KEYCON, declaras que leíste y aceptas estos Términos y la Política de Privacidad.',
           'Si usas KEYCON en nombre de una empresa, declaras tener autorización para aceptar estos Términos en su nombre.',
         ],
       },
@@ -308,7 +309,7 @@ export const TERMS: Docs = {
       {
         title: '13. Ley aplicable y jurisdicción',
         paragraphs: [
-          'Estos Términos se rigen por las leyes de la República Federativa de Brasil, sin perjuicio de las normas obligatorias de protección al consumidor de tu país de residencia. Son competentes los tribunales de {city}, sin perjuicio de tu derecho como consumidor a presentar una demanda en los tribunales de tu domicilio.',
+          'Estos Términos se rigen por las leyes del Estado de Florida (EE. UU.), sin perjuicio de las normas obligatorias de protección al consumidor de tu país de residencia. Son competentes los tribunales de {city}, sin perjuicio de tu derecho como consumidor a presentar una demanda en los tribunales de tu domicilio.',
         ],
       },
       {
@@ -328,7 +329,7 @@ export const PRIVACY: Docs = {
       {
         title: '1. Quem somos',
         paragraphs: [
-          'Esta Política explica como {company} ("nós"), inscrita sob o nº {document}, trata os dados pessoais de quem usa o aplicativo e o teclado KEYCON, de acordo com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018) e, quando aplicável, com outras leis de proteção de dados, como o GDPR europeu e as leis de privacidade dos Estados Unidos.',
+          'Esta Política explica como {company} ("nós"), empresa registrada no estado da Flórida (EUA), com sede em {address}, trata os dados pessoais de quem usa o aplicativo e o teclado KEYCON, de acordo com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018) e, quando aplicável, com outras leis de proteção de dados, como o GDPR europeu e as leis de privacidade dos Estados Unidos.',
         ],
       },
       {
@@ -426,7 +427,7 @@ export const PRIVACY: Docs = {
       {
         title: '1. Who we are',
         paragraphs: [
-          'This Policy explains how {company} ("we"), registration no. {document}, handles the personal data of people who use the KEYCON app and keyboard, in accordance with Brazil\'s General Data Protection Law (LGPD) and, where applicable, other data protection laws such as the EU GDPR and U.S. state privacy laws.',
+          'This Policy explains how {company} ("we"), a Florida profit corporation located at {address}, handles the personal data of people who use the KEYCON app and keyboard, in accordance with Brazil\'s General Data Protection Law (LGPD) and, where applicable, other data protection laws such as the EU GDPR and U.S. state privacy laws.',
         ],
       },
       {
@@ -524,7 +525,7 @@ export const PRIVACY: Docs = {
       {
         title: '1. Quiénes somos',
         paragraphs: [
-          'Esta Política explica cómo {company} ("nosotros"), registro nº {document}, trata los datos personales de quienes usan la app y el teclado KEYCON, de acuerdo con la Ley General de Protección de Datos de Brasil (LGPD) y, cuando corresponda, con otras leyes de protección de datos, como el RGPD europeo y las leyes de privacidad de tu país.',
+          'Esta Política explica cómo {company} ("nosotros"), sociedad registrada en el estado de Florida (EE. UU.), con domicilio en {address}, trata los datos personales de quienes usan la app y el teclado KEYCON, de acuerdo con la Ley General de Protección de Datos de Brasil (LGPD) y, cuando corresponda, con otras leyes de protección de datos, como el RGPD europeo y las leyes de privacidad de tu país.',
         ],
       },
       {

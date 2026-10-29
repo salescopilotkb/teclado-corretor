@@ -28,8 +28,8 @@ export interface Market {
 }
 
 export const MARKETS: Market[] = [
-  { id: 'BR', country: 'Brasil', language: 'pt', currency: 'BRL', symbol: 'R$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 2, phoneExample: '(11) 98888-7777' },
   { id: 'US_EN', country: 'United States', language: 'en', currency: 'USD', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(305) 555-0123' },
+  { id: 'BR', country: 'Brasil', language: 'pt', currency: 'BRL', symbol: 'R$', symbolPosition: 'before', symbolSpace: true, thousands: '.', decimal: ',', decimals: 2, phoneExample: '(11) 98888-7777' },
   { id: 'US_ES', country: 'Estados Unidos', language: 'es', currency: 'USD', symbol: '$', symbolPosition: 'before', symbolSpace: false, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(305) 555-0123' },
   // Brasileiros que vendem nos EUA: mensagens em português, preços em dólar
   { id: 'US_PT', country: 'Estados Unidos', language: 'pt', currency: 'USD', symbol: 'US$', symbolPosition: 'before', symbolSpace: true, thousands: ',', decimal: '.', decimals: 2, phoneExample: '(305) 555-0123' },
@@ -79,7 +79,7 @@ export function defaultMarketFor(lang: Lang): MarketId {
   return lang === 'en' ? 'US_EN' : lang === 'es' ? 'US_ES' : 'BR';
 }
 
-let currentMarket: MarketId = 'BR';
+let currentMarket: MarketId = 'US_EN';
 
 /** Mercado do usuário logado (definido ao carregar o perfil, no app e no teclado). */
 export function setCurrentMarket(id: MarketId): void {

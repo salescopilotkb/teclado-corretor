@@ -8,6 +8,7 @@
 import type { LocalMedia } from '../services/mediaUpload';
 import { captureWithCamera, pickAudioFile, pickFromGallery, pickPhotoOrVideo } from './MediaPicker';
 import { IOS_SIMULATION } from './platformSim';
+import { t } from '../i18n';
 
 export interface KeyboardShowEvent {
   targetPackage: string | null;
@@ -43,6 +44,8 @@ export interface WebKeyboardTarget {
   enter(): void;
   /** Texto antes do cursor no campo de teste. */
   textBeforeCursor(): string;
+  /** Envia fotos/vídeos na conversa de teste (com legenda embaixo, como no WhatsApp). */
+  sendMedia?(urls: string[], caption?: string): void;
 }
 
 let target: WebKeyboardTarget | null = null;
@@ -93,7 +96,7 @@ export const WebKeyboardHost = {
 let picking = false;
 
 const unavailable = (what: string) =>
-  Promise.reject(new Error(`${what} funciona só no celular. Use "segurar" para enviar o link.`));
+  Promise.reject(new Error(t('{what} funciona só no celular. Use "segurar" para enviar o link.', { what: t(what) })));
 
 export const KeyboardBridge = {
   insertText: async (text: string) => {
@@ -142,14 +145,28 @@ export const KeyboardBridge = {
   // Na web o campo de teste só aceita texto: fotos caem no envio do link
   getContentMimeTypes: async (): Promise<string[]> => [],
   // Como no iPhone (?ios): o teclado copia o arquivo e a pessoa cola no campo
-  commitImage: async (_url: string, _description: string): Promise<CommitImageResult> =>
-    IOS_SIMULATION ? 'copied' : 'unsupported',
-  shareMedia: (_urls: string[]): Promise<ShareResult> =>
-    IOS_SIMULATION ? Promise.resolve('copied') : unavailable('O compartilhamento de arquivos'),
-  shareWithCaption: (_urls: string[], caption: string): Promise<ShareResult> => {
-    if (!IOS_SIMULATION) return unavailable('O envio de foto com texto');
-    target?.insert(caption);
-    return Promise.resolve('copied');
+  // Conversa de teste: a foto (ou vídeo) chega como mensagem, com a legenda embaixo, como no WhatsApp.
+  // No ?ios o teclado só copia o arquivo, como no iPhone.
+  commitImage: async (url: string, _description: string): Promise<CommitImageResult> => {
+    if (IOS_SIMULATION) return 'copied';
+    if (!target?.sendMedia) return 'unsupported';
+    target.sendMedia([url]);
+    return 'sent';
+  },
+  shareMedia: (urls: string[]): Promise<ShareResult> => {
+    if (IOS_SIMULATION) return Promise.resolve('copied');
+    if (!target?.sendMedia) return unavailable('O compartilhamento de arquivos');
+    target.sendMedia(urls);
+    return Promise.resolve('direct');
+  },
+  shareWithCaption: (urls: string[], caption: string): Promise<ShareResult> => {
+    if (IOS_SIMULATION) {
+      target?.insert(caption);
+      return Promise.resolve('copied');
+    }
+    if (!target?.sendMedia) return unavailable('O envio de foto com texto');
+    target.sendMedia(urls, caption);
+    return Promise.resolve('direct');
   },
   // Na web os arquivos não são guardados no aparelho
   prefetchMedia: async (_urls: string[]) => 0,

@@ -17,8 +17,9 @@ import { ES } from './es';
 export type Lang = 'pt' | 'en' | 'es';
 
 export const LANGUAGES: Array<{ id: Lang; label: string }> = [
-  { id: 'pt', label: 'Português' },
+  // Inglês primeiro: o lançamento é nos EUA; português e espanhol vêm em seguida
   { id: 'en', label: 'English' },
+  { id: 'pt', label: 'Português' },
   { id: 'es', label: 'Español' },
 ];
 
@@ -28,7 +29,8 @@ export function isLang(value: unknown): value is Lang {
 
 const DICTIONARIES: Record<Exclude<Lang, 'pt'>, Record<string, string>> = { en: EN, es: ES };
 
-let current: Lang = 'pt';
+// Idioma inicial do app: inglês (quem já tem perfil salvo volta ao idioma que escolheu)
+let current: Lang = 'en';
 const listeners = new Set<(lang: Lang) => void>();
 
 /**
@@ -62,7 +64,7 @@ function fill(text: string, vars?: Vars): string {
   return text.replace(/\{(\w+)\}/g, (match, key: string) => (key in vars ? String(vars[key]) : match));
 }
 
-let selling: Lang = 'pt';
+let selling: Lang = 'en';
 const sellingListeners = new Set<(lang: Lang) => void>();
 
 /** Idioma de venda: mensagens que vão para o cliente (ficha, retorno do CRM, IA). */

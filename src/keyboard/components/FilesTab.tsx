@@ -34,6 +34,7 @@ import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
+import { DEMO_MODE } from '../../config/demo';
 import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
 import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
@@ -464,7 +465,11 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
             </Pressable>
           ))}
         </View>
-        <Text style={styles.hint}>{t('A galeria abre por cima da conversa. O arquivo vai para a nuvem e aparece também no app.')}</Text>
+        <Text style={styles.hint}>
+          {DEMO_MODE
+            ? t('A galeria abre por cima da conversa. Nesta demonstração, o arquivo fica só neste navegador e some ao recarregar a página.')
+            : t('A galeria abre por cima da conversa. O arquivo vai para a nuvem e aparece também no app.')}
+        </Text>
         </>
         )}
       </View>

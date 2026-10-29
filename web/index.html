@@ -7,6 +7,23 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      // Demonstração: cada abertura começa do zero, já entrando com um usuário de exemplo.
+      // Só apaga os dados do app (não mexe no idioma da landing nem na lista de espera).
+      (function () {
+        try {
+          var P = 'corretor-keyboard\\';
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            var k = localStorage.key(i);
+            if (k && (k.indexOf(P) === 0 || k.indexOf('sb-') === 0)) localStorage.removeItem(k);
+          }
+          localStorage.setItem(P + 'auth.token', 'demo');
+          localStorage.setItem(P + 'auth.userId', 'demo-user');
+          localStorage.setItem(P + 'app.tutorialSeen', 'true');
+          localStorage.setItem(P + 'broker.profile', JSON.stringify({ name: 'Alex Morgan', business: 'KEYCON Demo', phone: '', segment: 'general', language: 'en', market: 'US_EN' }));
+        } catch (e) {}
+      })();
+    </script>
     <title>KEYCON — Versão de testes</title>
     <link rel="icon" type="image/png" href="./favicon.png" />
     <style>
@@ -23,8 +40,16 @@
       }
       * { box-sizing: border-box; }
       html, body, #root { height: 100%; margin: 0; }
+      #bg-lines { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+      #root { position: relative; z-index: 1; }
       body {
-        background: var(--bg);
+        /* O mesmo degradê da abertura da landing (keyconapp.com) */
+        background:
+          radial-gradient(70% 55% at 50% -5%, rgba(124, 147, 230, .30), transparent 65%),
+          radial-gradient(55% 45% at 88% 78%, rgba(241, 120, 96, .34), transparent 70%),
+          radial-gradient(50% 45% at 8% 70%, rgba(59, 74, 107, .70), transparent 70%),
+          linear-gradient(180deg, #1d2130 0%, #171a23 55%, #14161d 100%);
+        background-attachment: fixed;
         color: var(--text);
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
@@ -45,8 +70,30 @@
         gap: 12px;
         flex-wrap: wrap;
       }
-      .top h1 { font-size: 18px; margin: 0; }
-      .top p { font-size: 12px; margin: 2px 0 0; color: var(--muted); }
+      .top { flex-direction: column; justify-content: center; text-align: center; gap: 10px; }
+      .brand-logo { height: 30px; width: auto; display: block; margin: 0 auto; }
+      .top h1 { font-size: 20px; line-height: 1.2; margin: 6px 0 0; font-weight: 700; letter-spacing: -.02em; }
+      .top h1 span { color: #c9cdd6; }
+
+      /* QR Code para a plateia: leva à landing (endereço de produção) */
+      .qr-card {
+        position: fixed; left: 32px; bottom: 32px; z-index: 5; width: 212px;
+        padding: 18px 18px 16px; border-radius: 20px; text-align: center;
+        background: rgba(20, 22, 29, .82); backdrop-filter: blur(10px);
+        border: 1px solid rgba(241, 120, 96, .85);
+        box-shadow: 0 0 0 1px rgba(241, 120, 96, .25), 0 0 18px rgba(241, 120, 96, .55), 0 0 46px rgba(241, 120, 96, .25);
+        animation: qr-glow 3.2s ease-in-out infinite;
+      }
+      .qr-card b { display: block; font-size: 17px; line-height: 1.25; }
+      .qr-card small { display: block; margin: 4px 0 14px; font-size: 12.5px; color: #c9cdd6; }
+      .qr-card img { display: block; width: 100%; height: auto; border-radius: 10px; background: #fff; }
+      .qr-card .qr-url { margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--accent); }
+      @keyframes qr-glow {
+        50% { box-shadow: 0 0 0 1px rgba(241, 120, 96, .35), 0 0 26px rgba(241, 120, 96, .75), 0 0 64px rgba(241, 120, 96, .35); }
+      }
+      @media (prefers-reduced-motion: reduce) { .qr-card { animation: none; } }
+      /* Telas sem espaço ao lado do celular: o QR some (a apresentação é no telão) */
+      @media (max-width: 1000px), (max-height: 600px) { .qr-card { display: none; } }
       .top nav { display: flex; gap: 6px; }
       .top nav button {
         border: 1px solid var(--line);
@@ -65,7 +112,7 @@
         width: 390px;
         max-width: 100%;
         height: 800px;
-        max-height: calc(100vh - 140px);
+        max-height: calc(100vh - 190px);
         min-height: 560px;
         border: 1px solid var(--line);
         border-radius: 28px;
@@ -106,6 +153,12 @@
       }
       .bubble.client { align-self: flex-start; background: var(--bubble-in); }
       .bubble.seller { align-self: flex-end; background: var(--bubble-out); }
+      /* Mensagem com foto (como no WhatsApp): imagem em cima, legenda embaixo */
+      .bubble.photo { padding: 3px 3px 6px; width: 78%; max-width: 78%; }
+      .bubble.photo img, .bubble.photo video { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; background: #0b141a; }
+      .bubble.photo img + img, .bubble.photo img + video, .bubble.photo video + img { margin-top: 3px; }
+      .bubble.photo .cap { padding: 6px 6px 0; }
+      .bubble .cap { white-space: pre-wrap; }
       .bubble .time { display: block; text-align: right; font-size: 10px; color: #8696a0; margin-top: 2px; }
       .input-bar { display: flex; gap: 6px; padding: 6px 8px; background: #1f2c34; align-items: flex-end; }
       .input-bar textarea {
@@ -127,6 +180,48 @@
 
       .note { max-width: 420px; font-size: 11.5px; line-height: 1.5; color: var(--muted); text-align: center; margin: 0; }
 
+      /* iPhone 17 Pro Max: tela 440 x 956 (proporção), carcaça laranja cósmico com espessura */
+      .iphone {
+        /* Tamanho real: tela de 440 x 956 pontos + bordas. O main.tsx reduz o celular inteiro
+           (zoom) para caber na janela, sem mudar o layout de dentro, como no aparelho. */
+        --w: 466px;
+        position: relative; width: 466px; height: 982px; padding: 4px; flex-shrink: 0;
+        border-radius: calc(var(--w) * .165);
+        background: linear-gradient(135deg, #ffb08a 0%, #e8693a 18%, #b8461f 45%, #e2602f 70%, #ffa178 100%);
+        box-shadow: inset 1.5px 1.5px 0 rgba(255, 255, 255, .55), inset -1.5px -1.5px 0 rgba(80, 20, 5, .55),
+          26px 34px 60px rgba(0, 0, 0, .55), 8px 10px 22px rgba(0, 0, 0, .4);
+      }
+      /* Espessura da carcaça (o "3D"): a lateral aparece à direita e embaixo */
+      .iphone::before {
+        content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+        transform: translate(7px, 7px);
+        background: linear-gradient(160deg, #a03c19, #6e2810 60%, #4a1a0a);
+      }
+      .bezel { width: 100%; height: 100%; overflow: hidden; padding: 9px; border-radius: calc(var(--w) * .155); background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+      .iphone .phone {
+        width: 100%; height: 100%; max-height: none; min-height: 0; border: none;
+        border-radius: calc(var(--w) * .13); box-shadow: none;
+      }
+      /* Botões laterais: Ação e volume à esquerda; liga/desliga e Controle da Câmera à direita */
+      .iphone > i { position: absolute; width: 5px; border-radius: 3px; background: linear-gradient(90deg, #7a2c12, #e8693a 60%, #ffb08a); }
+      .iphone > .btn-action, .iphone > .btn-vol-up, .iphone > .btn-vol-down { left: -4px; }
+      .iphone > .btn-power, .iphone > .btn-camera { right: -4px; background: linear-gradient(90deg, #ffb08a, #e8693a 40%, #7a2c12); }
+      .btn-action { top: 17%; height: 4.5%; }
+      .btn-vol-up { top: 24%; height: 7.5%; }
+      .btn-vol-down { top: 33%; height: 7.5%; }
+      .btn-power { top: 27%; height: 11%; }
+      .btn-camera { top: 60%; height: 6.5%; }
+      /* Barra de status com a Dynamic Island */
+      .statusbar {
+        position: relative; flex-shrink: 0; height: 50px; display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 26px 0 34px; background: #1f2c34; color: #fff; font-size: 15px; font-weight: 600;
+      }
+      .island { position: absolute; left: 50%; top: 11px; width: 31%; height: 32px; transform: translateX(-50%); border-radius: 20px; background: #000; }
+      .sb-icons { display: flex; gap: 5px; align-items: center; }
+      .homebar { flex-shrink: 0; height: 26px; display: grid; place-items: center; background: #14161d; }
+      .homebar::after { content: ''; width: 36%; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .85); }
+      .sb-icons svg { height: 11px; width: auto; fill: currentColor; }
+
       /* No próprio celular: ocupa a tela toda, sem a moldura */
       @media (max-width: 480px) {
         /* A página ocupa a tela exata; o "celular" fica com todo o espaço que sobra */
@@ -144,11 +239,65 @@
         }
         .keyboard { height: 330px; }
         .note { display: none; }
+        .iphone { width: 100%; height: auto; min-height: 0; flex: 1; aspect-ratio: auto; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+        .iphone::before, .iphone > i, .statusbar, .homebar { display: none; }
+        .bezel { padding: 0; border-radius: 0; background: none; box-shadow: none; }
+        .iphone .phone { border-radius: 0; }
       }
     </style>
   </head>
   <body>
+    <!-- Linhas luminosas do fundo, as mesmas da abertura da landing -->
+    <canvas id="bg-lines" aria-hidden="true"></canvas>
     <div id="root"></div>
+    <script>
+      (function () {
+        var canvas = document.getElementById('bg-lines');
+        var ctx = canvas.getContext && canvas.getContext('2d');
+        if (!ctx) return;
+        var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var W = 0, H = 0, DPR = 1, t0 = performance.now();
+        var LINES = [
+          { hue: 'rgba(241, 120, 96, ', amp: .16, freq: 1.3, speed: .22, phase: 0, y: .62, w: 1.6, a: .55 },
+          { hue: 'rgba(124, 147, 230, ', amp: .14, freq: 1.1, speed: -.18, phase: 2.1, y: .6, w: 1.4, a: .5 },
+          { hue: 'rgba(255, 177, 153, ', amp: .1, freq: 1.8, speed: .3, phase: 4.2, y: .66, w: 1, a: .35 },
+          { hue: 'rgba(241, 120, 96, ', amp: .2, freq: .8, speed: -.12, phase: 1.3, y: .7, w: 1, a: .28 },
+          { hue: 'rgba(124, 147, 230, ', amp: .22, freq: .7, speed: .1, phase: 3.4, y: .52, w: 1, a: .25 },
+          { hue: 'rgba(255, 255, 255, ', amp: .12, freq: 1.5, speed: -.26, phase: 5.1, y: .58, w: .8, a: .14 },
+        ];
+        function size() {
+          DPR = Math.min(window.devicePixelRatio || 1, 2);
+          W = innerWidth; H = innerHeight;
+          canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+        }
+        function draw(t) {
+          ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+          ctx.clearRect(0, 0, W, H);
+          ctx.globalCompositeOperation = 'lighter';
+          LINES.forEach(function (L) {
+            var g = ctx.createLinearGradient(0, 0, W, 0);
+            g.addColorStop(0, L.hue + '0)'); g.addColorStop(.25, L.hue + L.a + ')');
+            g.addColorStop(.75, L.hue + L.a + ')'); g.addColorStop(1, L.hue + '0)');
+            ctx.strokeStyle = g; ctx.lineWidth = L.w; ctx.beginPath();
+            for (var x = 0; x <= W + 8; x += 8) {
+              var u = x / W;
+              var y = H * L.y + Math.sin(u * Math.PI * 2 * L.freq + t * L.speed + L.phase) * H * L.amp
+                    + Math.sin(u * Math.PI * 4.3 - t * L.speed * .7 + L.phase) * H * L.amp * .25;
+              if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          });
+          ctx.globalCompositeOperation = 'source-over';
+        }
+        function frame(now) {
+          if (!document.hidden) draw((now - t0) / 1000);
+          requestAnimationFrame(frame);
+        }
+        size();
+        addEventListener('resize', function () { size(); if (still) draw(0); });
+        if (still) draw(0); else requestAnimationFrame(frame);
+      })();
+    </script>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

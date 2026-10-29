@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import { t } from '../../i18n';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
@@ -81,6 +81,15 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
 
   const measureBar = useCallback((e?: LayoutChangeEvent) => {
     if (e) bar.current.width = e.nativeEvent.layout.width;
+    if (Platform.OS === 'web') {
+      // Na web a página pode reduzir o teclado (zoom do simulador): mede na tela,
+      // na mesma escala dos toques (posição e largura; a conta é proporcional)
+      barRef.current?.measureInWindow((x, _y, width) => {
+        const sx = (globalThis as { scrollX?: number }).scrollX ?? 0;
+        if (width > 0) bar.current = { x: x + sx, width };
+      });
+      return;
+    }
     barRef.current?.measure((_x, _y, width, _h, pageX) => {
       if (typeof pageX === 'number') bar.current = { x: pageX, width: width || bar.current.width };
     });
