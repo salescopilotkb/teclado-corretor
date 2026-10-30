@@ -84,6 +84,13 @@ Você vai continuar o desenvolvimento do **KEYCON**, um app de vendas com teclad
 - Cliente de exemplo, **Jessica Miller**: abre com 2 mensagens e responde 3 vezes, uma depois de cada mensagem do vendedor, com "typing…" no topo.
 - Pacote para o HostGator: monte `hostgator/` com o conteúdo de `landing/` (sem `three.min.js`) mais `dist/` dentro de `hostgator/app/`, e compacte em `keyconapp-public_html.zip` na raiz do projeto. As duas pastas estão no `.gitignore`. O usuário sobe o .zip em public_html e extrai.
 
+## Downgrade: sem Google, Apple e Meet (30/10/2026)
+- **O login é só por e-mail e senha.** Login com Google, login com a Apple e a integração com o Google Meet/Google Agenda foram retirados de propósito, para o app ficar estável o quanto antes. Não coloque de volta sem eu pedir.
+- Motivo: o login com Google abria o navegador passando pelo endereço do Supabase até accounts.google.com, e isso parecia um link malicioso.
+- Ficaram no projeto, sem uso, para religar depois: `src/agenda/googleMeet.ts`, `src/agenda/googleAccess.ts`, as funções do Google em `storage.ts` e a Edge Function `supabase/functions/google-refresh`.
+- A política de privacidade não fala mais de dados do Google. A versão longa da seção "Dados do usuário Google", feita para a verificação do Google, está em `docs/backup/politica-dados-google.patch`.
+- Para religar o Google: usar o login nativo (`@react-native-google-signin/google-signin` 13.3.1 + `supabase.auth.signInWithIdToken`), não o navegador. No iOS, o login com a Apple tem que voltar junto (diretriz 4.8 da App Store).
+
 ## Estado atual (29/10/2026)
 - **Há muitas alterações sem commit**: landing, páginas legais, modo demonstração, simulador iPhone, digitação pelo PC, envio de mídia na web, inglês como padrão no app e no site, `store/` e `excluir-conta.html`. Confira com `git status` e faça o commit quando eu pedir.
 - Inglês virou o padrão para quem é novo: `src/i18n/index.ts` (current e selling = 'en'), `markets.ts` (US_EN primeiro e como padrão) e `storage.ts` (perfil vazio en/US_EN).

@@ -1,0 +1,572 @@
+diff --git a/landing/privacidade.html b/landing/privacidade.html
+index 5b2633e..c4529a8 100644
+--- a/landing/privacidade.html
++++ b/landing/privacidade.html
+@@ -27,44 +27,52 @@
+       <p class="legal-date">Last updated: October 30, 2026</p>
+       <h2>1. Who we are</h2>
+       <p>This Policy explains how 7STUDIO DIGITAL MARKETING CORP. (&quot;we&quot;), a Florida profit corporation located at 5256 International Drive, Apt 561, Orlando, FL 32819, United States, handles the personal data of people who use the KEYCON app and keyboard, in accordance with Brazil's General Data Protection Law (LGPD) and, where applicable, other data protection laws such as the EU GDPR and U.S. state privacy laws.</p>
+-      <h2>2. Data we store in the cloud</h2>
++      <h2>2. Google user data (Sign in with Google and Google Calendar)</h2>
++      <p>This section explains how KEYCON accesses, uses, stores, protects, shares and deletes the data it receives from your Google account.</p>
++      <p>Data accessed. When you sign in with Google, we receive your name, email address and profile picture (basic profile). If you grant permission, we also receive access to the calendar.events scope, which lets KEYCON create events in your Google Calendar. We do not access your Gmail, contacts, Google Drive or any other data in your Google account, and we do not read the events already in your calendar.</p>
++      <p>How we use it. Your name, email address and profile picture are used only to create and identify your KEYCON account and to show your profile in the app. Calendar access is used only to create, when you ask, the appointments you schedule in KEYCON as events in your Google Calendar with a Google Meet link, and to show you that link. We use Google user data only to provide and improve these user-facing features.</p>
++      <p>Sharing. We do not sell Google user data. We do not share, transfer or disclose it to third parties, except: (a) to our infrastructure provider (Supabase, which hosts authentication and the database), which processes it on our behalf only to operate the service; (b) when required by law or court order; or (c) with your consent. We do not use or transfer this data for advertising (targeted, personalized, retargeted or interest-based), for data brokers or information resellers, for credit-worthiness or lending purposes, or to create databases.</p>
++      <p>Artificial intelligence. We do not use Google user data, including data obtained through Google Workspace APIs, to develop, improve or train generalized or non-personalized artificial intelligence or machine learning models. KEYCON’s AI reply feature does not receive Google user data.</p>
++      <p>Storage and protection. Your name, email address and profile picture are stored in your account in our database (Supabase), encrypted in transit (HTTPS/TLS) and at rest, with access restricted to your own account. Google access and refresh tokens are stored only on your device; to renew access, the refresh token is sent over an encrypted connection to a secure server function that exchanges it with Google and does not store it. Events are created directly in your Google Calendar; we do not keep a copy of your calendar.</p>
++      <p>Retention and deletion. We keep your name, email address and profile picture while your account exists. You can request deletion of your account and this data at keyconapp.com/excluir-conta.html or by email at contact@keyconapp.com; we complete it within 30 days. Google tokens are deleted from your device when you sign out or uninstall the app. You can remove KEYCON’s access to your Google account at any time at myaccount.google.com/permissions; after that we can no longer access your calendar. Events already created stay in your Google Calendar until you delete them.</p>
++      <p>Limited Use. KEYCON’s use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy (developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.</p>
++      <h2>3. Data we store in the cloud</h2>
+       <p>Account: email and password. The password is stored securely by our authentication provider; we do not have access to it.</p>
+       <p>Sign in with Google or Apple: if you sign in with one of them, we receive your name, email and profile photo (with Apple, you can hide your email and use an Apple relay address). We use this data only to create and identify your account.</p>
+-      <p>Google Calendar and Google Meet: if you sign in with Google, we ask for permission to create events in your calendar (calendar.events scope), only to create the appointments you schedule in KEYCON with a Google Meet link. We do not read, change or delete the other events in your calendar. The access token stays on your device; to renew it, the refresh token goes through a secure function on our server, which stores nothing. KEYCON’s use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements: this data is not sold, not used for advertising or to train artificial intelligence models, and not shared with third parties except as needed to provide this feature or when required by law. You can remove KEYCON’s access at any time at myaccount.google.com/permissions.</p>
+       <p>Profile: your name, business name, WhatsApp, line of business, language and the country where you sell. They appear in your ready-made messages and tailor the app to your business.</p>
+       <p>Files you upload: photos, videos and audios you choose to add to your catalog, shortcuts or the Files section. They are available through a public link so the keyboard can send them in your chats.</p>
+       <p>Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.</p>
+       <p>Website waitlist: if you sign up to be notified about the launch, we keep your email, the type of phone you chose (iPhone or Android) and the language of the page. We use this data only to tell you when KEYCON is available for your phone.</p>
+-      <h2>3. Data that stays only on your device</h2>
++      <h2>4. Data that stays only on your device</h2>
+       <p>Your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes), calendar appointments, the organization of your Files folders and your preferences are stored only on your phone and shared between the KEYCON app and keyboard. We do not receive this data.</p>
+-      <h2>4. The keyboard and what you type</h2>
++      <h2>5. The keyboard and what you type</h2>
+       <p>What you type with the KEYCON keyboard is processed only on your device, to correct words and suggest the next ones. We do not store, log or send the text you type. In password, email and link fields the keyboard turns off suggestions and autocorrect.</p>
+       <p>Clipboard: KEYCON only reads copied text when you tap the AI button to ask for a reply suggestion.</p>
+-      <h2>5. Phone permissions</h2>
++      <h2>6. Phone permissions</h2>
+       <p>Microphone: used only while you record an audio shortcut, after you allow it.</p>
+       <p>Photos, videos and camera: KEYCON uses the system's own file picker and camera; it only receives the file you choose or capture.</p>
+       <p>Internet and vibration: to send and receive data and for the vibration when you rearrange the keyboard menu.</p>
+-      <h2>6. Artificial intelligence</h2>
++      <h2>7. Artificial intelligence</h2>
+       <p>When you ask for a reply suggestion, the client message you copied, your business name and information about related products are sent to our server and to an artificial intelligence provider, only to generate the suggestions. We do not use this data for any other purpose. While the AI is in demo mode, nothing is sent.</p>
+-      <h2>7. How we use data and legal bases</h2>
++      <h2>8. How we use data and legal bases</h2>
+       <p>We use data to create and maintain your account, provide KEYCON's features, send your files in chats, offer support, keep the service secure and meet legal obligations. The legal bases are performance of our contract with you, compliance with legal obligations, our legitimate interest in keeping the service secure and, for the microphone, your consent.</p>
+-      <h2>8. Who we share data with</h2>
++      <h2>9. Who we share data with</h2>
+       <p>With providers that help us run the service: hosting, database, authentication and file storage (Supabase) and, when AI is active, the artificial intelligence provider. They may use the data only to provide those services. We may also share data when required by law or court order. We do not sell your data.</p>
+       <p>These providers may keep servers outside Brazil. In those cases we apply the safeguards required by the LGPD for international transfers.</p>
+-      <h2>9. How long we keep data</h2>
++      <h2>10. How long we keep data</h2>
+       <p>We keep account and profile data and uploaded files while your account exists. If you ask us to delete them, we delete this data within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.</p>
+       <p>Waitlist data is kept until the launch notice is sent. You can ask us to remove it before then by writing to contact@keyconapp.com.</p>
+-      <h2>10. Security</h2>
++      <h2>11. Security</h2>
+       <p>Data travels over encrypted connections and each account can only access its own data in the cloud. Remember that uploaded files can be opened by anyone who has the link. No system is 100% secure; if a significant incident occurs, we will notify you and the authorities as required by law.</p>
+-      <h2>11. Your rights</h2>
++      <h2>12. Your rights</h2>
+       <p>You can ask us to confirm that we process your data and request access, correction, anonymization, portability, deletion, information about sharing and withdrawal of consent, and you can object to processing. California residents may also request to know and delete personal information; we do not sell or share personal information for targeted advertising. Your name, business and WhatsApp can be corrected in the app under Account. For other requests, write to contact@keyconapp.com. You may also complain to Brazil's National Data Protection Authority (ANPD) or to the authority in your country.</p>
+-      <h2>12. Your clients' data</h2>
++      <h2>13. Your clients' data</h2>
+       <p>Your clients' data that you record in the CRM stays on your device and is your responsibility as controller. Use it only to serve those clients and with their permission.</p>
+-      <h2>13. Children</h2>
++      <h2>14. Children</h2>
+       <p>KEYCON is intended for people aged 18 and over and does not knowingly collect data from children or teenagers.</p>
+-      <h2>14. Changes to this Policy</h2>
++      <h2>15. Changes to this Policy</h2>
+       <p>We may update this Policy. If a change is significant, we will let you know in the app. The date of the last update appears at the top.</p>
+-      <h2>15. Contact and data protection officer</h2>
++      <h2>16. Contact and data protection officer</h2>
+       <p>To talk about privacy or reach our data protection officer: contact@keyconapp.com.</p>
+     </article>
+     <article class="legal-doc" lang="es" data-lang="es" hidden>
+@@ -72,44 +80,52 @@
+       <p class="legal-date">Última actualización: 30 de octubre de 2026</p>
+       <h2>1. Quiénes somos</h2>
+       <p>Esta Política explica cómo 7STUDIO DIGITAL MARKETING CORP. (&quot;nosotros&quot;), sociedad registrada en el estado de Florida (EE. UU.), con domicilio en 5256 International Drive, Apt 561, Orlando, FL 32819, United States, trata los datos personales de quienes usan la app y el teclado KEYCON, de acuerdo con la Ley General de Protección de Datos de Brasil (LGPD) y, cuando corresponda, con otras leyes de protección de datos, como el RGPD europeo y las leyes de privacidad de tu país.</p>
+-      <h2>2. Datos que guardamos en la nube</h2>
++      <h2>2. Datos de usuario de Google (inicio de sesión con Google y Google Calendar)</h2>
++      <p>Esta sección explica cómo KEYCON accede, usa, guarda, protege, comparte y elimina los datos que recibe de tu cuenta de Google.</p>
++      <p>Datos a los que accedemos. Al iniciar sesión con Google, recibimos tu nombre, tu correo electrónico y tu foto de perfil (perfil básico). Si lo permites, también recibimos acceso al alcance calendar.events, que permite a KEYCON crear eventos en tu Google Calendar. No accedemos a tu Gmail, tus contactos, tu Google Drive ni a otros datos de tu cuenta de Google, y no leemos los eventos que ya están en tu calendario.</p>
++      <p>Cómo los usamos. El nombre, el correo y la foto sirven solo para crear e identificar tu cuenta de KEYCON y mostrar tu perfil en la app. El acceso a Google Calendar sirve solo para crear, cuando lo pides, las citas que agendas en KEYCON como eventos en tu Google Calendar con enlace de Google Meet, y para mostrarte ese enlace. Usamos los datos de usuario de Google solo para ofrecer y mejorar estas funciones que usas en la app.</p>
++      <p>Compartir. No vendemos datos de usuario de Google. No los compartimos, transferimos ni divulgamos a terceros, salvo: (a) a nuestro proveedor de infraestructura (Supabase, que aloja la autenticación y la base de datos), que los procesa en nuestro nombre solo para operar el servicio; (b) cuando lo exija la ley o una orden judicial; o (c) con tu consentimiento. No usamos ni transferimos estos datos para publicidad (dirigida, personalizada, de remarketing o por intereses), para corredores o revendedores de datos, para evaluar crédito o préstamos, ni para crear bases de datos.</p>
++      <p>Inteligencia artificial. No usamos datos de usuario de Google, incluidos los obtenidos mediante las API de Google Workspace, para desarrollar, mejorar o entrenar modelos de inteligencia artificial o aprendizaje automático generalizados o no personalizados. La función de respuestas con IA de KEYCON no recibe datos de usuario de Google.</p>
++      <p>Almacenamiento y protección. El nombre, el correo y la foto se guardan en tu cuenta en nuestra base de datos (Supabase), cifrados en tránsito (HTTPS/TLS) y en reposo, con acceso restringido a tu propia cuenta. Los tokens de acceso y de renovación de Google se guardan solo en tu dispositivo; para renovar el acceso, el token de renovación se envía por una conexión cifrada a una función segura de nuestro servidor, que hace el intercambio con Google y no lo guarda. Los eventos se crean directamente en tu Google Calendar; no guardamos copia de tu calendario.</p>
++      <p>Conservación y eliminación. Guardamos el nombre, el correo y la foto mientras exista tu cuenta. Puedes pedir la eliminación de tu cuenta y de estos datos en keyconapp.com/excluir-conta.html o por correo a contact@keyconapp.com; la completamos en un plazo de 30 días. Los tokens de Google se borran del dispositivo cuando cierras sesión o desinstalas la app. Puedes quitar el acceso de KEYCON a tu cuenta de Google en cualquier momento en myaccount.google.com/permissions; después ya no accedemos a tu calendario. Los eventos ya creados siguen en tu Google Calendar hasta que los borres.</p>
++      <p>Uso Limitado. El uso y la transferencia a cualquier otra app de la información recibida de las API de Google por KEYCON cumplirán la Política de Datos del Usuario de los Servicios de API de Google (developers.google.com/terms/api-services-user-data-policy), incluidos los requisitos de Uso Limitado.</p>
++      <h2>3. Datos que guardamos en la nube</h2>
+       <p>Cuenta: correo y contraseña. La contraseña la guarda de forma protegida nuestro proveedor de autenticación; no tenemos acceso a ella.</p>
+       <p>Inicio de sesión con Google o con Apple: si entras con uno de ellos, recibimos tu nombre, correo y foto de perfil (con Apple, puedes ocultar tu correo y usar una dirección de reenvío de Apple). Usamos estos datos solo para crear e identificar tu cuenta.</p>
+-      <p>Google Calendar y Google Meet: si entras con Google, pedimos permiso para crear eventos en tu calendario (alcance calendar.events), solo para crear con enlace de Google Meet las citas que agendas en KEYCON. No leemos, no cambiamos ni borramos los demás eventos de tu calendario. El token de acceso queda en tu dispositivo; para renovarlo, el token de renovación pasa por una función segura en nuestro servidor, que no guarda nada. El uso y la transferencia de la información recibida de las API de Google cumplen la Política de Datos del Usuario de los Servicios de API de Google, incluidos los requisitos de Uso Limitado: estos datos no se venden, no se usan para publicidad ni para entrenar modelos de inteligencia artificial, y no se comparten con terceros, salvo cuando es necesario para ofrecer esta función o cuando la ley lo exige. Puedes quitar el acceso de KEYCON en cualquier momento en myaccount.google.com/permissions.</p>
+       <p>Perfil: tu nombre, nombre del negocio, WhatsApp, rubro, idioma y país donde vendes. Aparecen en tus mensajes listos y adaptan la app a tu negocio.</p>
+       <p>Archivos que subes: fotos, videos y audios que eliges agregar al catálogo, a los accesos rápidos o a la sección Archivos. Quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.</p>
+       <p>Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.</p>
+       <p>Lista de espera del sitio: si te inscribes para recibir el aviso del lanzamiento, guardamos tu correo, el tipo de celular que elegiste (iPhone o Android) y el idioma de la página. Usamos estos datos solo para avisarte cuando KEYCON esté disponible para tu celular.</p>
+-      <h2>3. Datos que quedan solo en tu dispositivo</h2>
++      <h2>4. Datos que quedan solo en tu dispositivo</h2>
+       <p>Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas), citas de la agenda, la organización de las carpetas de Archivos y tus preferencias se guardan solo en tu celular y se comparten entre la app y el teclado KEYCON. No recibimos estos datos.</p>
+-      <h2>4. El teclado y lo que escribes</h2>
++      <h2>5. El teclado y lo que escribes</h2>
+       <p>Lo que escribes con el teclado KEYCON se procesa solo en tu dispositivo, para corregir palabras y sugerir las siguientes. No guardamos, no registramos y no enviamos el texto que escribes. En campos de contraseña, correo y enlace el teclado desactiva las sugerencias y la corrección automática.</p>
+       <p>Portapapeles: KEYCON solo lee el texto copiado cuando tocas el botón de IA para pedir una sugerencia de respuesta.</p>
+-      <h2>5. Permisos del celular</h2>
++      <h2>6. Permisos del celular</h2>
+       <p>Micrófono: se usa solo mientras grabas un acceso rápido de audio, después de que lo autorices.</p>
+       <p>Fotos, videos y cámara: KEYCON usa el selector de archivos y la cámara del propio sistema; solo recibe el archivo que elijas o captures.</p>
+       <p>Internet y vibración: para enviar y recibir datos y para la vibración al reorganizar el menú del teclado.</p>
+-      <h2>6. Inteligencia artificial</h2>
++      <h2>7. Inteligencia artificial</h2>
+       <p>Cuando pides una sugerencia de respuesta, el mensaje del cliente que copiaste, el nombre de tu negocio e información de los productos relacionados se envían a nuestro servidor y a un proveedor de inteligencia artificial, solo para generar las sugerencias. No usamos estos datos para otros fines. Mientras la IA esté en modo de demostración, no se envía nada.</p>
+-      <h2>7. Para qué usamos los datos y bases legales</h2>
++      <h2>8. Para qué usamos los datos y bases legales</h2>
+       <p>Usamos los datos para crear y mantener tu cuenta, prestar las funciones de KEYCON, enviar tus archivos en las conversaciones, dar soporte, mantener la seguridad y cumplir obligaciones legales. Las bases legales son la ejecución del contrato contigo, el cumplimiento de obligaciones legales, nuestro interés legítimo en mantener el servicio seguro y, para el micrófono, tu consentimiento.</p>
+-      <h2>8. Con quién compartimos</h2>
++      <h2>9. Con quién compartimos</h2>
+       <p>Con proveedores que nos ayudan a prestar el servicio: alojamiento, base de datos, autenticación y almacenamiento de archivos (Supabase) y, cuando la IA esté activa, el proveedor de inteligencia artificial. Solo pueden usar los datos para prestar esos servicios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.</p>
+       <p>Estos proveedores pueden tener servidores fuera de Brasil. En esos casos, aplicamos las garantías que exige la LGPD para la transferencia internacional.</p>
+-      <h2>9. Cuánto tiempo guardamos los datos</h2>
++      <h2>10. Cuánto tiempo guardamos los datos</h2>
+       <p>Guardamos los datos de la cuenta, del perfil y los archivos subidos mientras exista tu cuenta. Si pides la eliminación, borramos estos datos en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.</p>
+       <p>Los datos de la lista de espera se guardan hasta enviar el aviso de lanzamiento. Puedes pedir que los borremos antes escribiendo a contact@keyconapp.com.</p>
+-      <h2>10. Seguridad</h2>
++      <h2>11. Seguridad</h2>
+       <p>Los datos viajan con conexión cifrada y cada cuenta solo accede a sus propios datos en la nube. Recuerda que los archivos subidos pueden abrirlos quienes tengan el enlace. Ningún sistema es 100% seguro; si ocurre un incidente relevante, te avisaremos a ti y a las autoridades, como exige la ley.</p>
+-      <h2>11. Tus derechos</h2>
++      <h2>12. Tus derechos</h2>
+       <p>Puedes pedir la confirmación de que tratamos tus datos, el acceso, la corrección, la anonimización, la portabilidad, la eliminación, información sobre el uso compartido y la revocación del consentimiento, además de oponerte a tratamientos. Tu nombre, negocio y WhatsApp pueden corregirse en la propia app, en Cuenta. Para los demás pedidos, escribe a contact@keyconapp.com. También puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos de Brasil (ANPD) o ante la autoridad de tu país.</p>
+-      <h2>12. Datos de tus clientes</h2>
++      <h2>13. Datos de tus clientes</h2>
+       <p>Los datos de tus clientes que registras en el CRM quedan en tu dispositivo y son tu responsabilidad como responsable del tratamiento. Úsalos solo para atender a esos clientes y con su autorización.</p>
+-      <h2>13. Menores de edad</h2>
++      <h2>14. Menores de edad</h2>
+       <p>KEYCON está destinado a mayores de 18 años y no recopila intencionalmente datos de niños o adolescentes.</p>
+-      <h2>14. Cambios en esta Política</h2>
++      <h2>15. Cambios en esta Política</h2>
+       <p>Podemos actualizar esta Política. Si el cambio es relevante, te avisaremos en la app. La fecha de la última actualización aparece arriba.</p>
+-      <h2>15. Contacto y delegado de protección de datos</h2>
++      <h2>16. Contacto y delegado de protección de datos</h2>
+       <p>Para hablar sobre privacidad o contactar a nuestro delegado de protección de datos: contact@keyconapp.com.</p>
+     </article>
+     <article class="legal-doc" lang="pt-BR" data-lang="pt" hidden>
+@@ -117,44 +133,52 @@
+       <p class="legal-date">Última atualização: 30 de outubro de 2026</p>
+       <h2>1. Quem somos</h2>
+       <p>Esta Política explica como 7STUDIO DIGITAL MARKETING CORP. (&quot;nós&quot;), empresa registrada no estado da Flórida (EUA), com sede em 5256 International Drive, Apt 561, Orlando, FL 32819, United States, trata os dados pessoais de quem usa o aplicativo e o teclado KEYCON, de acordo com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018) e, quando aplicável, com outras leis de proteção de dados, como o GDPR europeu e as leis de privacidade dos Estados Unidos.</p>
+-      <h2>2. Dados que guardamos na nuvem</h2>
++      <h2>2. Dados do usuário Google (Login com Google e Google Agenda)</h2>
++      <p>Esta seção explica como o KEYCON acessa, usa, armazena, protege, compartilha e apaga os dados que recebe da sua conta Google.</p>
++      <p>Dados acessados. Ao entrar com o Google, recebemos seu nome, seu endereço de e-mail e sua foto de perfil (perfil básico). Se você permitir, recebemos também o acesso do escopo calendar.events, que deixa o KEYCON criar eventos no seu Google Agenda. Não acessamos seu Gmail, seus contatos, seu Google Drive nem outros dados da sua conta Google, e não lemos os eventos que já estão na sua agenda.</p>
++      <p>Como usamos. Nome, e-mail e foto servem só para criar e identificar sua conta no KEYCON e mostrar seu perfil no app. O acesso ao Google Agenda serve só para criar, quando você pede, os compromissos que você agenda no KEYCON como eventos no seu Google Agenda com link do Google Meet, e para mostrar esse link a você. Usamos os dados do usuário Google apenas para oferecer e melhorar esses recursos que você usa no app.</p>
++      <p>Compartilhamento. Não vendemos dados do usuário Google. Não os compartilhamos, transferimos ou divulgamos a terceiros, exceto: (a) ao nosso provedor de infraestrutura (Supabase, que hospeda a autenticação e o banco de dados), que os processa em nosso nome apenas para operar o serviço; (b) quando a lei ou uma ordem judicial exigir; ou (c) com o seu consentimento. Não usamos nem transferimos esses dados para publicidade (direcionada, personalizada, de remarketing ou por interesses), para corretores ou revendedores de dados, para análise de crédito ou empréstimos, nem para criar bancos de dados.</p>
++      <p>Inteligência artificial. Não usamos dados do usuário Google, incluindo dados obtidos pelas APIs do Google Workspace, para desenvolver, melhorar ou treinar modelos de inteligência artificial ou aprendizado de máquina generalizados ou não personalizados. O recurso de respostas com IA do KEYCON não recebe dados do usuário Google.</p>
++      <p>Armazenamento e proteção. Nome, e-mail e foto ficam na sua conta no nosso banco de dados (Supabase), com criptografia em trânsito (HTTPS/TLS) e em repouso, e com acesso restrito à própria conta. Os tokens de acesso e de renovação do Google ficam guardados só no seu aparelho; para renovar o acesso, o token de renovação é enviado por conexão criptografada a uma função segura do nosso servidor, que faz a troca com o Google e não o guarda. Os eventos são criados direto no seu Google Agenda; não guardamos cópia da sua agenda.</p>
++      <p>Retenção e exclusão. Guardamos nome, e-mail e foto enquanto sua conta existir. Você pode pedir a exclusão da conta e desses dados em keyconapp.com/excluir-conta.html ou pelo e-mail contact@keyconapp.com; concluímos em até 30 dias. Os tokens do Google são apagados do aparelho quando você sai da conta ou desinstala o app. Você pode remover o acesso do KEYCON à sua conta Google a qualquer momento em myaccount.google.com/permissions; depois disso não acessamos mais sua agenda. Os eventos já criados continuam no seu Google Agenda até você apagá-los.</p>
++      <p>Uso Limitado. O uso e a transferência, para qualquer outro app, das informações recebidas das APIs do Google pelo KEYCON seguem a Política de Dados do Usuário dos Serviços de API do Google (developers.google.com/terms/api-services-user-data-policy), incluindo os requisitos de Uso Limitado.</p>
++      <h2>3. Dados que guardamos na nuvem</h2>
+       <p>Conta: e-mail e senha. A senha é guardada de forma protegida pelo nosso provedor de autenticação; nós não temos acesso a ela.</p>
+       <p>Login com Google ou com a Apple: se você entrar por um deles, recebemos seu nome, e-mail e foto do perfil (no caso da Apple, você pode esconder seu e-mail e usar um endereço de encaminhamento da Apple). Usamos esses dados só para criar e identificar sua conta.</p>
+-      <p>Google Agenda e Google Meet: se você entrar com o Google, pedimos permissão para criar eventos na sua agenda (escopo calendar.events), apenas para criar com link do Google Meet os compromissos que você agenda no KEYCON. Não lemos, não alteramos e não apagamos os outros eventos da sua agenda. O token de acesso fica no seu aparelho; para renová-lo, o token de renovação passa por uma função segura no nosso servidor, que não guarda nada. O uso e a transferência das informações recebidas das APIs do Google seguem a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado: esses dados não são vendidos, não são usados para anúncios nem para treinar modelos de inteligência artificial, e não são compartilhados com terceiros, exceto quando necessário para prestar esse recurso ou quando a lei exigir. Você pode remover o acesso do KEYCON a qualquer momento em myaccount.google.com/permissions.</p>
+       <p>Perfil: seu nome, nome do negócio, WhatsApp, ramo do negócio, idioma e país onde você vende. Eles aparecem nas suas mensagens prontas e ajustam o app ao seu negócio.</p>
+       <p>Arquivos que você envia: fotos, vídeos e áudios que você escolhe adicionar ao catálogo, aos atalhos ou à seção Arquivos. Eles ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.</p>
+       <p>Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.</p>
+       <p>Lista de espera do site: se você se inscrever para ser avisado do lançamento, guardamos seu e-mail, o tipo de celular que você escolheu (iPhone ou Android) e o idioma da página. Usamos esses dados só para avisar quando o KEYCON estiver disponível no seu celular.</p>
+-      <h2>3. Dados que ficam só no seu aparelho</h2>
++      <h2>4. Dados que ficam só no seu aparelho</h2>
+       <p>Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações), compromissos da agenda, a organização das pastas de Arquivos e as suas preferências ficam guardados apenas no seu celular, compartilhados entre o app e o teclado KEYCON. Nós não recebemos esses dados.</p>
+-      <h2>4. O teclado e o que você digita</h2>
++      <h2>5. O teclado e o que você digita</h2>
+       <p>O que você digita com o teclado KEYCON é processado somente no seu aparelho, para corrigir palavras e sugerir as próximas. Não guardamos, não registramos e não enviamos o texto que você digita. Em campos de senha, e-mail e link o teclado desliga as sugestões e a correção automática.</p>
+       <p>Área de transferência: o KEYCON só lê o texto copiado quando você toca no botão da IA para pedir uma sugestão de resposta.</p>
+-      <h2>5. Permissões do celular</h2>
++      <h2>6. Permissões do celular</h2>
+       <p>Microfone: usado apenas enquanto você grava um atalho de áudio, depois que você autoriza.</p>
+       <p>Fotos, vídeos e câmera: o KEYCON usa o seletor de arquivos e a câmera do próprio sistema; só recebe o arquivo que você escolher ou capturar.</p>
+       <p>Internet e vibração: para enviar e receber dados e para a vibração ao reorganizar o menu do teclado.</p>
+-      <h2>6. Inteligência artificial</h2>
++      <h2>7. Inteligência artificial</h2>
+       <p>Quando você pede uma sugestão de resposta, a mensagem do cliente que você copiou, o nome do seu negócio e informações dos produtos relacionados são enviados ao nosso servidor e a um provedor de inteligência artificial, apenas para gerar as sugestões. Não usamos esses dados para outras finalidades. Enquanto a IA estiver em modo de demonstração, nada é enviado.</p>
+-      <h2>7. Para que usamos os dados e bases legais</h2>
++      <h2>8. Para que usamos os dados e bases legais</h2>
+       <p>Usamos os dados para criar e manter sua conta, prestar os recursos do KEYCON, enviar seus arquivos nas conversas, dar suporte, garantir a segurança e cumprir obrigações legais. As bases legais são a execução do contrato com você, o cumprimento de obrigação legal, o nosso legítimo interesse em manter o serviço seguro e, para o microfone, o seu consentimento.</p>
+-      <h2>8. Com quem compartilhamos</h2>
++      <h2>9. Com quem compartilhamos</h2>
+       <p>Com provedores que nos ajudam a prestar o serviço: hospedagem, banco de dados, autenticação e armazenamento de arquivos (Supabase) e, quando a IA estiver ativa, o provedor de inteligência artificial. Eles só podem usar os dados para prestar esses serviços. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.</p>
+       <p>Esses provedores podem manter servidores fora do Brasil. Nesses casos, adotamos as garantias previstas na LGPD para a transferência internacional.</p>
+-      <h2>9. Por quanto tempo guardamos</h2>
++      <h2>10. Por quanto tempo guardamos</h2>
+       <p>Guardamos os dados da conta, do perfil e os arquivos enviados enquanto sua conta existir. Se você pedir a exclusão, apagamos esses dados em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.</p>
+       <p>Os dados da lista de espera ficam guardados até o aviso de lançamento ser enviado. Você pode pedir a remoção antes disso pelo e-mail contact@keyconapp.com.</p>
+-      <h2>10. Segurança</h2>
++      <h2>11. Segurança</h2>
+       <p>Os dados viajam com conexão criptografada e cada conta só acessa os próprios dados na nuvem. Lembre-se de que os arquivos enviados podem ser abertos por quem tiver o link. Nenhum sistema é 100% seguro; se ocorrer um incidente relevante, avisaremos você e as autoridades, como manda a lei.</p>
+-      <h2>11. Seus direitos</h2>
++      <h2>12. Seus direitos</h2>
+       <p>Você pode pedir a confirmação de que tratamos seus dados, o acesso, a correção, a anonimização, a portabilidade, a exclusão, informações sobre compartilhamento e a revogação do consentimento, além de se opor a tratamentos. Seu nome, negócio e WhatsApp podem ser corrigidos no próprio app, em Conta. Para os demais pedidos, escreva para contact@keyconapp.com. Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD) ou à autoridade do seu país.</p>
+-      <h2>12. Dados dos seus clientes</h2>
++      <h2>13. Dados dos seus clientes</h2>
+       <p>Os dados dos seus clientes que você registra no CRM ficam no seu aparelho e são de sua responsabilidade como controlador. Use-os apenas para atender esses clientes e com a autorização deles.</p>
+-      <h2>13. Crianças</h2>
++      <h2>14. Crianças</h2>
+       <p>O KEYCON é destinado a maiores de 18 anos e não coleta intencionalmente dados de crianças ou adolescentes.</p>
+-      <h2>14. Alterações desta Política</h2>
++      <h2>15. Alterações desta Política</h2>
+       <p>Podemos atualizar esta Política. Quando a mudança for relevante, avisaremos no app. A data da última atualização aparece no topo.</p>
+-      <h2>15. Contato e encarregado de dados</h2>
++      <h2>16. Contato e encarregado de dados</h2>
+       <p>Para falar sobre privacidade ou com o nosso encarregado pelo tratamento de dados pessoais: contact@keyconapp.com.</p>
+     </article>
+     <p class="legal-back"><a href="index.html" data-i18n="legal.back">Back to the website</a></p>
+diff --git a/src/legal/legal.ts b/src/legal/legal.ts
+index 459e088..38add5c 100644
+--- a/src/legal/legal.ts
++++ b/src/legal/legal.ts
+@@ -333,11 +333,23 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '2. Dados que guardamos na nuvem',
++        title: '2. Dados do usuário Google (Login com Google e Google Agenda)',
++        paragraphs: [
++          'Esta seção explica como o KEYCON acessa, usa, armazena, protege, compartilha e apaga os dados que recebe da sua conta Google.',
++          'Dados acessados. Ao entrar com o Google, recebemos seu nome, seu endereço de e-mail e sua foto de perfil (perfil básico). Se você permitir, recebemos também o acesso do escopo calendar.events, que deixa o KEYCON criar eventos no seu Google Agenda. Não acessamos seu Gmail, seus contatos, seu Google Drive nem outros dados da sua conta Google, e não lemos os eventos que já estão na sua agenda.',
++          'Como usamos. Nome, e-mail e foto servem só para criar e identificar sua conta no KEYCON e mostrar seu perfil no app. O acesso ao Google Agenda serve só para criar, quando você pede, os compromissos que você agenda no KEYCON como eventos no seu Google Agenda com link do Google Meet, e para mostrar esse link a você. Usamos os dados do usuário Google apenas para oferecer e melhorar esses recursos que você usa no app.',
++          'Compartilhamento. Não vendemos dados do usuário Google. Não os compartilhamos, transferimos ou divulgamos a terceiros, exceto: (a) ao nosso provedor de infraestrutura (Supabase, que hospeda a autenticação e o banco de dados), que os processa em nosso nome apenas para operar o serviço; (b) quando a lei ou uma ordem judicial exigir; ou (c) com o seu consentimento. Não usamos nem transferimos esses dados para publicidade (direcionada, personalizada, de remarketing ou por interesses), para corretores ou revendedores de dados, para análise de crédito ou empréstimos, nem para criar bancos de dados.',
++          'Inteligência artificial. Não usamos dados do usuário Google, incluindo dados obtidos pelas APIs do Google Workspace, para desenvolver, melhorar ou treinar modelos de inteligência artificial ou aprendizado de máquina generalizados ou não personalizados. O recurso de respostas com IA do KEYCON não recebe dados do usuário Google.',
++          'Armazenamento e proteção. Nome, e-mail e foto ficam na sua conta no nosso banco de dados (Supabase), com criptografia em trânsito (HTTPS/TLS) e em repouso, e com acesso restrito à própria conta. Os tokens de acesso e de renovação do Google ficam guardados só no seu aparelho; para renovar o acesso, o token de renovação é enviado por conexão criptografada a uma função segura do nosso servidor, que faz a troca com o Google e não o guarda. Os eventos são criados direto no seu Google Agenda; não guardamos cópia da sua agenda.',
++          'Retenção e exclusão. Guardamos nome, e-mail e foto enquanto sua conta existir. Você pode pedir a exclusão da conta e desses dados em keyconapp.com/excluir-conta.html ou pelo e-mail {email}; concluímos em até 30 dias. Os tokens do Google são apagados do aparelho quando você sai da conta ou desinstala o app. Você pode remover o acesso do KEYCON à sua conta Google a qualquer momento em myaccount.google.com/permissions; depois disso não acessamos mais sua agenda. Os eventos já criados continuam no seu Google Agenda até você apagá-los.',
++          'Uso Limitado. O uso e a transferência, para qualquer outro app, das informações recebidas das APIs do Google pelo KEYCON seguem a Política de Dados do Usuário dos Serviços de API do Google (developers.google.com/terms/api-services-user-data-policy), incluindo os requisitos de Uso Limitado.',
++        ],
++      },
++      {
++        title: '3. Dados que guardamos na nuvem',
+         paragraphs: [
+           'Conta: e-mail e senha. A senha é guardada de forma protegida pelo nosso provedor de autenticação; nós não temos acesso a ela.',
+           'Login com Google ou com a Apple: se você entrar por um deles, recebemos seu nome, e-mail e foto do perfil (no caso da Apple, você pode esconder seu e-mail e usar um endereço de encaminhamento da Apple). Usamos esses dados só para criar e identificar sua conta.',
+-          'Google Agenda e Google Meet: se você entrar com o Google, pedimos permissão para criar eventos na sua agenda (escopo calendar.events), apenas para criar com link do Google Meet os compromissos que você agenda no KEYCON. Não lemos, não alteramos e não apagamos os outros eventos da sua agenda. O token de acesso fica no seu aparelho; para renová-lo, o token de renovação passa por uma função segura no nosso servidor, que não guarda nada. O uso e a transferência das informações recebidas das APIs do Google seguem a Política de Dados do Usuário dos Serviços de API do Google, incluindo os requisitos de Uso Limitado: esses dados não são vendidos, não são usados para anúncios nem para treinar modelos de inteligência artificial, e não são compartilhados com terceiros, exceto quando necessário para prestar esse recurso ou quando a lei exigir. Você pode remover o acesso do KEYCON a qualquer momento em myaccount.google.com/permissions.',
+           'Perfil: seu nome, nome do negócio, WhatsApp, ramo do negócio, idioma e país onde você vende. Eles aparecem nas suas mensagens prontas e ajustam o app ao seu negócio.',
+           'Arquivos que você envia: fotos, vídeos e áudios que você escolhe adicionar ao catálogo, aos atalhos ou à seção Arquivos. Eles ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.',
+           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
+@@ -345,20 +357,20 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '3. Dados que ficam só no seu aparelho',
++        title: '4. Dados que ficam só no seu aparelho',
+         paragraphs: [
+           'Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações), compromissos da agenda, a organização das pastas de Arquivos e as suas preferências ficam guardados apenas no seu celular, compartilhados entre o app e o teclado KEYCON. Nós não recebemos esses dados.',
+         ],
+       },
+       {
+-        title: '4. O teclado e o que você digita',
++        title: '5. O teclado e o que você digita',
+         paragraphs: [
+           'O que você digita com o teclado KEYCON é processado somente no seu aparelho, para corrigir palavras e sugerir as próximas. Não guardamos, não registramos e não enviamos o texto que você digita. Em campos de senha, e-mail e link o teclado desliga as sugestões e a correção automática.',
+           'Área de transferência: o KEYCON só lê o texto copiado quando você toca no botão da IA para pedir uma sugestão de resposta.',
+         ],
+       },
+       {
+-        title: '5. Permissões do celular',
++        title: '6. Permissões do celular',
+         paragraphs: [
+           'Microfone: usado apenas enquanto você grava um atalho de áudio, depois que você autoriza.',
+           'Fotos, vídeos e câmera: o KEYCON usa o seletor de arquivos e a câmera do próprio sistema; só recebe o arquivo que você escolher ou capturar.',
+@@ -366,59 +378,59 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '6. Inteligência artificial',
++        title: '7. Inteligência artificial',
+         paragraphs: [
+           'Quando você pede uma sugestão de resposta, a mensagem do cliente que você copiou, o nome do seu negócio e informações dos produtos relacionados são enviados ao nosso servidor e a um provedor de inteligência artificial, apenas para gerar as sugestões. Não usamos esses dados para outras finalidades. Enquanto a IA estiver em modo de demonstração, nada é enviado.',
+         ],
+       },
+       {
+-        title: '7. Para que usamos os dados e bases legais',
++        title: '8. Para que usamos os dados e bases legais',
+         paragraphs: [
+           'Usamos os dados para criar e manter sua conta, prestar os recursos do KEYCON, enviar seus arquivos nas conversas, dar suporte, garantir a segurança e cumprir obrigações legais. As bases legais são a execução do contrato com você, o cumprimento de obrigação legal, o nosso legítimo interesse em manter o serviço seguro e, para o microfone, o seu consentimento.',
+         ],
+       },
+       {
+-        title: '8. Com quem compartilhamos',
++        title: '9. Com quem compartilhamos',
+         paragraphs: [
+           'Com provedores que nos ajudam a prestar o serviço: hospedagem, banco de dados, autenticação e armazenamento de arquivos (Supabase) e, quando a IA estiver ativa, o provedor de inteligência artificial. Eles só podem usar os dados para prestar esses serviços. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
+           'Esses provedores podem manter servidores fora do Brasil. Nesses casos, adotamos as garantias previstas na LGPD para a transferência internacional.',
+         ],
+       },
+       {
+-        title: '9. Por quanto tempo guardamos',
++        title: '10. Por quanto tempo guardamos',
+         paragraphs: [
+           'Guardamos os dados da conta, do perfil e os arquivos enviados enquanto sua conta existir. Se você pedir a exclusão, apagamos esses dados em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
+           'Os dados da lista de espera ficam guardados até o aviso de lançamento ser enviado. Você pode pedir a remoção antes disso pelo e-mail {email}.',
+         ],
+       },
+       {
+-        title: '10. Segurança',
++        title: '11. Segurança',
+         paragraphs: [
+           'Os dados viajam com conexão criptografada e cada conta só acessa os próprios dados na nuvem. Lembre-se de que os arquivos enviados podem ser abertos por quem tiver o link. Nenhum sistema é 100% seguro; se ocorrer um incidente relevante, avisaremos você e as autoridades, como manda a lei.',
+         ],
+       },
+       {
+-        title: '11. Seus direitos',
++        title: '12. Seus direitos',
+         paragraphs: [
+           'Você pode pedir a confirmação de que tratamos seus dados, o acesso, a correção, a anonimização, a portabilidade, a exclusão, informações sobre compartilhamento e a revogação do consentimento, além de se opor a tratamentos. Seu nome, negócio e WhatsApp podem ser corrigidos no próprio app, em Conta. Para os demais pedidos, escreva para {email}. Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD) ou à autoridade do seu país.',
+         ],
+       },
+       {
+-        title: '12. Dados dos seus clientes',
++        title: '13. Dados dos seus clientes',
+         paragraphs: [
+           'Os dados dos seus clientes que você registra no CRM ficam no seu aparelho e são de sua responsabilidade como controlador. Use-os apenas para atender esses clientes e com a autorização deles.',
+         ],
+       },
+       {
+-        title: '13. Crianças',
++        title: '14. Crianças',
+         paragraphs: ['O KEYCON é destinado a maiores de 18 anos e não coleta intencionalmente dados de crianças ou adolescentes.'],
+       },
+       {
+-        title: '14. Alterações desta Política',
++        title: '15. Alterações desta Política',
+         paragraphs: ['Podemos atualizar esta Política. Quando a mudança for relevante, avisaremos no app. A data da última atualização aparece no topo.'],
+       },
+       {
+-        title: '15. Contato e encarregado de dados',
++        title: '16. Contato e encarregado de dados',
+         paragraphs: ['Para falar sobre privacidade ou com o nosso encarregado pelo tratamento de dados pessoais: {email}.'],
+       },
+     ],
+@@ -433,11 +445,23 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '2. Data we store in the cloud',
++        title: '2. Google user data (Sign in with Google and Google Calendar)',
++        paragraphs: [
++          'This section explains how KEYCON accesses, uses, stores, protects, shares and deletes the data it receives from your Google account.',
++          'Data accessed. When you sign in with Google, we receive your name, email address and profile picture (basic profile). If you grant permission, we also receive access to the calendar.events scope, which lets KEYCON create events in your Google Calendar. We do not access your Gmail, contacts, Google Drive or any other data in your Google account, and we do not read the events already in your calendar.',
++          'How we use it. Your name, email address and profile picture are used only to create and identify your KEYCON account and to show your profile in the app. Calendar access is used only to create, when you ask, the appointments you schedule in KEYCON as events in your Google Calendar with a Google Meet link, and to show you that link. We use Google user data only to provide and improve these user-facing features.',
++          'Sharing. We do not sell Google user data. We do not share, transfer or disclose it to third parties, except: (a) to our infrastructure provider (Supabase, which hosts authentication and the database), which processes it on our behalf only to operate the service; (b) when required by law or court order; or (c) with your consent. We do not use or transfer this data for advertising (targeted, personalized, retargeted or interest-based), for data brokers or information resellers, for credit-worthiness or lending purposes, or to create databases.',
++          'Artificial intelligence. We do not use Google user data, including data obtained through Google Workspace APIs, to develop, improve or train generalized or non-personalized artificial intelligence or machine learning models. KEYCON’s AI reply feature does not receive Google user data.',
++          'Storage and protection. Your name, email address and profile picture are stored in your account in our database (Supabase), encrypted in transit (HTTPS/TLS) and at rest, with access restricted to your own account. Google access and refresh tokens are stored only on your device; to renew access, the refresh token is sent over an encrypted connection to a secure server function that exchanges it with Google and does not store it. Events are created directly in your Google Calendar; we do not keep a copy of your calendar.',
++          'Retention and deletion. We keep your name, email address and profile picture while your account exists. You can request deletion of your account and this data at keyconapp.com/excluir-conta.html or by email at {email}; we complete it within 30 days. Google tokens are deleted from your device when you sign out or uninstall the app. You can remove KEYCON’s access to your Google account at any time at myaccount.google.com/permissions; after that we can no longer access your calendar. Events already created stay in your Google Calendar until you delete them.',
++          'Limited Use. KEYCON’s use and transfer to any other app of information received from Google APIs will adhere to the Google API Services User Data Policy (developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.',
++        ],
++      },
++      {
++        title: '3. Data we store in the cloud',
+         paragraphs: [
+           'Account: email and password. The password is stored securely by our authentication provider; we do not have access to it.',
+           'Sign in with Google or Apple: if you sign in with one of them, we receive your name, email and profile photo (with Apple, you can hide your email and use an Apple relay address). We use this data only to create and identify your account.',
+-          'Google Calendar and Google Meet: if you sign in with Google, we ask for permission to create events in your calendar (calendar.events scope), only to create the appointments you schedule in KEYCON with a Google Meet link. We do not read, change or delete the other events in your calendar. The access token stays on your device; to renew it, the refresh token goes through a secure function on our server, which stores nothing. KEYCON’s use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements: this data is not sold, not used for advertising or to train artificial intelligence models, and not shared with third parties except as needed to provide this feature or when required by law. You can remove KEYCON’s access at any time at myaccount.google.com/permissions.',
+           'Profile: your name, business name, WhatsApp, line of business, language and the country where you sell. They appear in your ready-made messages and tailor the app to your business.',
+           'Files you upload: photos, videos and audios you choose to add to your catalog, shortcuts or the Files section. They are available through a public link so the keyboard can send them in your chats.',
+           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
+@@ -445,20 +469,20 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '3. Data that stays only on your device',
++        title: '4. Data that stays only on your device',
+         paragraphs: [
+           'Your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes), calendar appointments, the organization of your Files folders and your preferences are stored only on your phone and shared between the KEYCON app and keyboard. We do not receive this data.',
+         ],
+       },
+       {
+-        title: '4. The keyboard and what you type',
++        title: '5. The keyboard and what you type',
+         paragraphs: [
+           'What you type with the KEYCON keyboard is processed only on your device, to correct words and suggest the next ones. We do not store, log or send the text you type. In password, email and link fields the keyboard turns off suggestions and autocorrect.',
+           'Clipboard: KEYCON only reads copied text when you tap the AI button to ask for a reply suggestion.',
+         ],
+       },
+       {
+-        title: '5. Phone permissions',
++        title: '6. Phone permissions',
+         paragraphs: [
+           'Microphone: used only while you record an audio shortcut, after you allow it.',
+           'Photos, videos and camera: KEYCON uses the system\'s own file picker and camera; it only receives the file you choose or capture.',
+@@ -466,59 +490,59 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '6. Artificial intelligence',
++        title: '7. Artificial intelligence',
+         paragraphs: [
+           'When you ask for a reply suggestion, the client message you copied, your business name and information about related products are sent to our server and to an artificial intelligence provider, only to generate the suggestions. We do not use this data for any other purpose. While the AI is in demo mode, nothing is sent.',
+         ],
+       },
+       {
+-        title: '7. How we use data and legal bases',
++        title: '8. How we use data and legal bases',
+         paragraphs: [
+           'We use data to create and maintain your account, provide KEYCON\'s features, send your files in chats, offer support, keep the service secure and meet legal obligations. The legal bases are performance of our contract with you, compliance with legal obligations, our legitimate interest in keeping the service secure and, for the microphone, your consent.',
+         ],
+       },
+       {
+-        title: '8. Who we share data with',
++        title: '9. Who we share data with',
+         paragraphs: [
+           'With providers that help us run the service: hosting, database, authentication and file storage (Supabase) and, when AI is active, the artificial intelligence provider. They may use the data only to provide those services. We may also share data when required by law or court order. We do not sell your data.',
+           'These providers may keep servers outside Brazil. In those cases we apply the safeguards required by the LGPD for international transfers.',
+         ],
+       },
+       {
+-        title: '9. How long we keep data',
++        title: '10. How long we keep data',
+         paragraphs: [
+           'We keep account and profile data and uploaded files while your account exists. If you ask us to delete them, we delete this data within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.',
+           'Waitlist data is kept until the launch notice is sent. You can ask us to remove it before then by writing to {email}.',
+         ],
+       },
+       {
+-        title: '10. Security',
++        title: '11. Security',
+         paragraphs: [
+           'Data travels over encrypted connections and each account can only access its own data in the cloud. Remember that uploaded files can be opened by anyone who has the link. No system is 100% secure; if a significant incident occurs, we will notify you and the authorities as required by law.',
+         ],
+       },
+       {
+-        title: '11. Your rights',
++        title: '12. Your rights',
+         paragraphs: [
+           'You can ask us to confirm that we process your data and request access, correction, anonymization, portability, deletion, information about sharing and withdrawal of consent, and you can object to processing. California residents may also request to know and delete personal information; we do not sell or share personal information for targeted advertising. Your name, business and WhatsApp can be corrected in the app under Account. For other requests, write to {email}. You may also complain to Brazil\'s National Data Protection Authority (ANPD) or to the authority in your country.',
+         ],
+       },
+       {
+-        title: '12. Your clients\' data',
++        title: '13. Your clients\' data',
+         paragraphs: [
+           'Your clients\' data that you record in the CRM stays on your device and is your responsibility as controller. Use it only to serve those clients and with their permission.',
+         ],
+       },
+       {
+-        title: '13. Children',
++        title: '14. Children',
+         paragraphs: ['KEYCON is intended for people aged 18 and over and does not knowingly collect data from children or teenagers.'],
+       },
+       {
+-        title: '14. Changes to this Policy',
++        title: '15. Changes to this Policy',
+         paragraphs: ['We may update this Policy. If a change is significant, we will let you know in the app. The date of the last update appears at the top.'],
+       },
+       {
+-        title: '15. Contact and data protection officer',
++        title: '16. Contact and data protection officer',
+         paragraphs: ['To talk about privacy or reach our data protection officer: {email}.'],
+       },
+     ],
+@@ -533,11 +557,23 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '2. Datos que guardamos en la nube',
++        title: '2. Datos de usuario de Google (inicio de sesión con Google y Google Calendar)',
++        paragraphs: [
++          'Esta sección explica cómo KEYCON accede, usa, guarda, protege, comparte y elimina los datos que recibe de tu cuenta de Google.',
++          'Datos a los que accedemos. Al iniciar sesión con Google, recibimos tu nombre, tu correo electrónico y tu foto de perfil (perfil básico). Si lo permites, también recibimos acceso al alcance calendar.events, que permite a KEYCON crear eventos en tu Google Calendar. No accedemos a tu Gmail, tus contactos, tu Google Drive ni a otros datos de tu cuenta de Google, y no leemos los eventos que ya están en tu calendario.',
++          'Cómo los usamos. El nombre, el correo y la foto sirven solo para crear e identificar tu cuenta de KEYCON y mostrar tu perfil en la app. El acceso a Google Calendar sirve solo para crear, cuando lo pides, las citas que agendas en KEYCON como eventos en tu Google Calendar con enlace de Google Meet, y para mostrarte ese enlace. Usamos los datos de usuario de Google solo para ofrecer y mejorar estas funciones que usas en la app.',
++          'Compartir. No vendemos datos de usuario de Google. No los compartimos, transferimos ni divulgamos a terceros, salvo: (a) a nuestro proveedor de infraestructura (Supabase, que aloja la autenticación y la base de datos), que los procesa en nuestro nombre solo para operar el servicio; (b) cuando lo exija la ley o una orden judicial; o (c) con tu consentimiento. No usamos ni transferimos estos datos para publicidad (dirigida, personalizada, de remarketing o por intereses), para corredores o revendedores de datos, para evaluar crédito o préstamos, ni para crear bases de datos.',
++          'Inteligencia artificial. No usamos datos de usuario de Google, incluidos los obtenidos mediante las API de Google Workspace, para desarrollar, mejorar o entrenar modelos de inteligencia artificial o aprendizaje automático generalizados o no personalizados. La función de respuestas con IA de KEYCON no recibe datos de usuario de Google.',
++          'Almacenamiento y protección. El nombre, el correo y la foto se guardan en tu cuenta en nuestra base de datos (Supabase), cifrados en tránsito (HTTPS/TLS) y en reposo, con acceso restringido a tu propia cuenta. Los tokens de acceso y de renovación de Google se guardan solo en tu dispositivo; para renovar el acceso, el token de renovación se envía por una conexión cifrada a una función segura de nuestro servidor, que hace el intercambio con Google y no lo guarda. Los eventos se crean directamente en tu Google Calendar; no guardamos copia de tu calendario.',
++          'Conservación y eliminación. Guardamos el nombre, el correo y la foto mientras exista tu cuenta. Puedes pedir la eliminación de tu cuenta y de estos datos en keyconapp.com/excluir-conta.html o por correo a {email}; la completamos en un plazo de 30 días. Los tokens de Google se borran del dispositivo cuando cierras sesión o desinstalas la app. Puedes quitar el acceso de KEYCON a tu cuenta de Google en cualquier momento en myaccount.google.com/permissions; después ya no accedemos a tu calendario. Los eventos ya creados siguen en tu Google Calendar hasta que los borres.',
++          'Uso Limitado. El uso y la transferencia a cualquier otra app de la información recibida de las API de Google por KEYCON cumplirán la Política de Datos del Usuario de los Servicios de API de Google (developers.google.com/terms/api-services-user-data-policy), incluidos los requisitos de Uso Limitado.',
++        ],
++      },
++      {
++        title: '3. Datos que guardamos en la nube',
+         paragraphs: [
+           'Cuenta: correo y contraseña. La contraseña la guarda de forma protegida nuestro proveedor de autenticación; no tenemos acceso a ella.',
+           'Inicio de sesión con Google o con Apple: si entras con uno de ellos, recibimos tu nombre, correo y foto de perfil (con Apple, puedes ocultar tu correo y usar una dirección de reenvío de Apple). Usamos estos datos solo para crear e identificar tu cuenta.',
+-          'Google Calendar y Google Meet: si entras con Google, pedimos permiso para crear eventos en tu calendario (alcance calendar.events), solo para crear con enlace de Google Meet las citas que agendas en KEYCON. No leemos, no cambiamos ni borramos los demás eventos de tu calendario. El token de acceso queda en tu dispositivo; para renovarlo, el token de renovación pasa por una función segura en nuestro servidor, que no guarda nada. El uso y la transferencia de la información recibida de las API de Google cumplen la Política de Datos del Usuario de los Servicios de API de Google, incluidos los requisitos de Uso Limitado: estos datos no se venden, no se usan para publicidad ni para entrenar modelos de inteligencia artificial, y no se comparten con terceros, salvo cuando es necesario para ofrecer esta función o cuando la ley lo exige. Puedes quitar el acceso de KEYCON en cualquier momento en myaccount.google.com/permissions.',
+           'Perfil: tu nombre, nombre del negocio, WhatsApp, rubro, idioma y país donde vendes. Aparecen en tus mensajes listos y adaptan la app a tu negocio.',
+           'Archivos que subes: fotos, videos y audios que eliges agregar al catálogo, a los accesos rápidos o a la sección Archivos. Quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.',
+           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',
+@@ -545,20 +581,20 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '3. Datos que quedan solo en tu dispositivo',
++        title: '4. Datos que quedan solo en tu dispositivo',
+         paragraphs: [
+           'Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas), citas de la agenda, la organización de las carpetas de Archivos y tus preferencias se guardan solo en tu celular y se comparten entre la app y el teclado KEYCON. No recibimos estos datos.',
+         ],
+       },
+       {
+-        title: '4. El teclado y lo que escribes',
++        title: '5. El teclado y lo que escribes',
+         paragraphs: [
+           'Lo que escribes con el teclado KEYCON se procesa solo en tu dispositivo, para corregir palabras y sugerir las siguientes. No guardamos, no registramos y no enviamos el texto que escribes. En campos de contraseña, correo y enlace el teclado desactiva las sugerencias y la corrección automática.',
+           'Portapapeles: KEYCON solo lee el texto copiado cuando tocas el botón de IA para pedir una sugerencia de respuesta.',
+         ],
+       },
+       {
+-        title: '5. Permisos del celular',
++        title: '6. Permisos del celular',
+         paragraphs: [
+           'Micrófono: se usa solo mientras grabas un acceso rápido de audio, después de que lo autorices.',
+           'Fotos, videos y cámara: KEYCON usa el selector de archivos y la cámara del propio sistema; solo recibe el archivo que elijas o captures.',
+@@ -566,59 +602,59 @@ export const PRIVACY: Docs = {
+         ],
+       },
+       {
+-        title: '6. Inteligencia artificial',
++        title: '7. Inteligencia artificial',
+         paragraphs: [
+           'Cuando pides una sugerencia de respuesta, el mensaje del cliente que copiaste, el nombre de tu negocio e información de los productos relacionados se envían a nuestro servidor y a un proveedor de inteligencia artificial, solo para generar las sugerencias. No usamos estos datos para otros fines. Mientras la IA esté en modo de demostración, no se envía nada.',
+         ],
+       },
+       {
+-        title: '7. Para qué usamos los datos y bases legales',
++        title: '8. Para qué usamos los datos y bases legales',
+         paragraphs: [
+           'Usamos los datos para crear y mantener tu cuenta, prestar las funciones de KEYCON, enviar tus archivos en las conversaciones, dar soporte, mantener la seguridad y cumplir obligaciones legales. Las bases legales son la ejecución del contrato contigo, el cumplimiento de obligaciones legales, nuestro interés legítimo en mantener el servicio seguro y, para el micrófono, tu consentimiento.',
+         ],
+       },
+       {
+-        title: '8. Con quién compartimos',
++        title: '9. Con quién compartimos',
+         paragraphs: [
+           'Con proveedores que nos ayudan a prestar el servicio: alojamiento, base de datos, autenticación y almacenamiento de archivos (Supabase) y, cuando la IA esté activa, el proveedor de inteligencia artificial. Solo pueden usar los datos para prestar esos servicios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
+           'Estos proveedores pueden tener servidores fuera de Brasil. En esos casos, aplicamos las garantías que exige la LGPD para la transferencia internacional.',
+         ],
+       },
+       {
+-        title: '9. Cuánto tiempo guardamos los datos',
++        title: '10. Cuánto tiempo guardamos los datos',
+         paragraphs: [
+           'Guardamos los datos de la cuenta, del perfil y los archivos subidos mientras exista tu cuenta. Si pides la eliminación, borramos estos datos en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
+           'Los datos de la lista de espera se guardan hasta enviar el aviso de lanzamiento. Puedes pedir que los borremos antes escribiendo a {email}.',
+         ],
+       },
+       {
+-        title: '10. Seguridad',
++        title: '11. Seguridad',
+         paragraphs: [
+           'Los datos viajan con conexión cifrada y cada cuenta solo accede a sus propios datos en la nube. Recuerda que los archivos subidos pueden abrirlos quienes tengan el enlace. Ningún sistema es 100% seguro; si ocurre un incidente relevante, te avisaremos a ti y a las autoridades, como exige la ley.',
+         ],
+       },
+       {
+-        title: '11. Tus derechos',
++        title: '12. Tus derechos',
+         paragraphs: [
+           'Puedes pedir la confirmación de que tratamos tus datos, el acceso, la corrección, la anonimización, la portabilidad, la eliminación, información sobre el uso compartido y la revocación del consentimiento, además de oponerte a tratamientos. Tu nombre, negocio y WhatsApp pueden corregirse en la propia app, en Cuenta. Para los demás pedidos, escribe a {email}. También puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos de Brasil (ANPD) o ante la autoridad de tu país.',
+         ],
+       },
+       {
+-        title: '12. Datos de tus clientes',
++        title: '13. Datos de tus clientes',
+         paragraphs: [
+           'Los datos de tus clientes que registras en el CRM quedan en tu dispositivo y son tu responsabilidad como responsable del tratamiento. Úsalos solo para atender a esos clientes y con su autorización.',
+         ],
+       },
+       {
+-        title: '13. Menores de edad',
++        title: '14. Menores de edad',
+         paragraphs: ['KEYCON está destinado a mayores de 18 años y no recopila intencionalmente datos de niños o adolescentes.'],
+       },
+       {
+-        title: '14. Cambios en esta Política',
++        title: '15. Cambios en esta Política',
+         paragraphs: ['Podemos actualizar esta Política. Si el cambio es relevante, te avisaremos en la app. La fecha de la última actualización aparece arriba.'],
+       },
+       {
+-        title: '15. Contacto y delegado de protección de datos',
++        title: '16. Contacto y delegado de protección de datos',
+         paragraphs: ['Para hablar sobre privacidad o contactar a nuestro delegado de protección de datos: {email}.'],
+       },
+     ],
