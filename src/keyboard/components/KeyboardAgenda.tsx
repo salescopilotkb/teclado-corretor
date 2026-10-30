@@ -4,7 +4,7 @@ import { t } from '../../i18n';
  * cadastro de reunião ou tarefa. Grava no mesmo lugar que a Agenda do app.
  */
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import {
   TIME_SLOTS,
   addDays,
@@ -15,8 +15,6 @@ import {
   newAgendaId,
   todayISO,
 } from '../../agenda/agenda';
-import { GOOGLE_MEET_NEW_URL, normalizeMeetUrl } from '../../agenda/googleMeet';
-import { createMeetWithGoogle } from '../../agenda/googleAccess';
 import { whatsappLink } from '../../crm/crm';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import { Repo } from '../../storage/storage';
@@ -162,18 +160,8 @@ function AgendaCalendar({
                 {item.time ? ` · ${item.time}` : t(' · dia todo')}
                 {item.clientName ? ` · ${item.clientName}` : ''}
                 {item.clientPhone ? ` · ${item.clientPhone}` : ''}
-                {item.meetUrl ? ' · Meet' : ''}
               </Text>
             </Pressable>
-            {item.meetUrl && (
-              <Pressable
-                accessibilityLabel={t('Entrar no Google Meet')}
-                style={styles.meetBadge}
-                onPress={() => KeyboardBridge.openUrl(item.meetUrl!)}>
-                <Icon name="respostas" size={12} color={colors.primaryText} />
-                <Text style={styles.meetBadgeText}>Meet</Text>
-              </Pressable>
-            )}
             {item.kind === 'meeting' && !item.done && (
               <Pressable accessibilityLabel={t('Enviar confirmação')} style={styles.send} onPress={() => confirmMeeting(item)}>
                 <Icon name="respostas" size={16} color={colors.primaryText} />
@@ -190,7 +178,6 @@ function AgendaCalendar({
 const AGENDA_FIELDS: FormFieldSpec[] = [
   { key: 'title', label: 'Título', placeholder: 'Ex.: Reunião de apresentação' },
   { key: 'clientPhone', label: 'WhatsApp', placeholder: 'Ex.: +55 11 99999-9999', kind: 'phone' },
-  { key: 'meetUrl', label: 'Google Meet', placeholder: 'meet.google.com/xxx-yyyy-zzz' },
   { key: 'notes', label: 'Assunto', placeholder: 'Opcional' },
 ];
 
@@ -221,35 +208,9 @@ function AgendaForm({
   const form = useKeyboardForm(AGENDA_FIELDS, {
     title: item?.title ?? (presetClient ? t('Reunião com {clientName}', { clientName: presetClient.clientName }) : ''),
     clientPhone: item?.clientPhone ?? presetClient?.phone ?? '',
-    meetUrl: item?.meetUrl ?? '',
     notes: item?.notes ?? '',
   });
   const title = form.values.title.trim();
-  const [creatingMeet, setCreatingMeet] = useState(false);
-  const hasGoogleAccess = Repo.hasGoogleMeetAccess();
-
-  const handleCreateMeet = async () => {
-    if (!Repo.hasGoogleMeetAccess()) {
-      KeyboardBridge.openUrl(GOOGLE_MEET_NEW_URL);
-      return;
-    }
-    setCreatingMeet(true);
-    try {
-      const res = await createMeetWithGoogle(
-        {
-          title: title || t('Reunião com cliente'),
-          date,
-          time: time || undefined,
-          description: form.values.notes.trim() || undefined,
-        },
-      );
-      form.setValue('meetUrl', res.meetUrl);
-    } catch (_e) {
-      KeyboardBridge.openUrl(GOOGLE_MEET_NEW_URL);
-    } finally {
-      setCreatingMeet(false);
-    }
-  };
 
   const save = () => {
     if (!title) return;
@@ -263,13 +224,12 @@ function AgendaForm({
       clientId: client?.id,
       clientName: client?.clientName,
       clientPhone: form.values.clientPhone?.trim() || client?.phone || undefined,
-      meetUrl: hasGoogleAccess ? (normalizeMeetUrl(form.values.meetUrl) || undefined) : undefined,
+      // Google Meet desligado por enquanto: só preserva o link de compromissos antigos
+      meetUrl: item?.meetUrl,
       notes: form.values.notes.trim() || undefined,
       done: item?.done ?? false,
     });
   };
-
-  const visibleFields = AGENDA_FIELDS.filter(f => f.key !== 'meetUrl' || hasGoogleAccess);
 
   return (
     <View style={styles.flex}>
@@ -283,35 +243,9 @@ function AgendaForm({
           value={kind}
           onChange={setKind}
         />
-        {visibleFields.map(f => (
+        {AGENDA_FIELDS.map(f => (
           <KeyboardFormField key={f.key} spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
         ))}
-
-        {kind === 'meeting' && (
-          hasGoogleAccess ? (
-            <Pressable
-              accessibilityLabel={t('Criar sala no Google Meet')}
-              style={styles.meetHelperBtn}
-              disabled={creatingMeet}
-              onPress={handleCreateMeet}>
-              {creatingMeet ? (
-                <ActivityIndicator size="small" color={colors.primaryText} />
-              ) : (
-                <>
-                  <Icon name="respostas" size={14} color={colors.primaryText} />
-                  <Text style={styles.meetHelperBtnText}>{t('Criar sala no Google Meet')}</Text>
-                </>
-              )}
-            </Pressable>
-          ) : (
-            <View style={styles.meetLockedNotice}>
-              <Icon name="info" size={14} color={colors.textMuted} />
-              <Text style={styles.meetLockedNoticeText}>
-                {t('Links de reunião: liberados no login com conta Google')}
-              </Text>
-            </View>
-          )
-        )}
 
         {/* Dia: setas para trocar sem abrir outro calendário */}
         <View style={styles.dateRow}>
@@ -395,27 +329,6 @@ const useStyles = makeStyles(colors => ({
   itemTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   itemTitleDone: { textDecorationLine: 'line-through' },
   itemMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  meetBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    minHeight: 28,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
-  },
-  meetBadgeText: { fontSize: 11, fontWeight: '600', color: colors.primaryText },
-  meetHelperBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
-  },
-  meetHelperBtnText: { fontSize: 13, fontWeight: '600', color: colors.primaryText },
   send: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -442,19 +355,4 @@ const useStyles = makeStyles(colors => ({
   dateText: { fontSize: 15, fontWeight: '600', color: colors.text },
   deleteBtn: { alignSelf: 'center', padding: spacing.md },
   deleteText: { fontSize: 14, fontWeight: '600', color: colors.danger },
-  meetLockedNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
-    marginTop: 2,
-  },
-  meetLockedNoticeText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    flex: 1,
-  },
 }));

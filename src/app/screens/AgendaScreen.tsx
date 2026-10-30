@@ -3,12 +3,9 @@
  * Tela principal: calendário + compromissos do dia; cadastro em submenu.
  */
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { TIME_SLOTS, addDays, busyDays, confirmationMessage, formatDayLong, itemsOn, newAgendaId, todayISO } from '../../agenda/agenda';
-import { GOOGLE_MEET_NEW_URL, normalizeMeetUrl } from '../../agenda/googleMeet';
-import { createMeetWithGoogle } from '../../agenda/googleAccess';
 import { whatsappLink } from '../../crm/crm';
-import { signInWithGoogle } from '../../services/auth';
 import { Repo } from '../../storage/storage';
 import type { AgendaKind, CRMLead, ScheduleItem } from '../../types';
 import { Icon } from '../../keyboard/components/Icon';
@@ -133,18 +130,8 @@ function AgendaRow({
           {item.time ? ` · ${item.time}` : t(' · dia todo')}
           {item.clientName ? ` · ${item.clientName}` : ''}
           {item.clientPhone ? ` · ${item.clientPhone}` : ''}
-          {item.meetUrl ? ' · Meet' : ''}
         </Text>
       </Pressable>
-      {item.meetUrl && (
-        <Pressable
-          accessibilityLabel={t('Entrar no Google Meet')}
-          style={styles.meetBadge}
-          onPress={() => Linking.openURL(item.meetUrl!)}>
-          <Icon name="respostas" size={12} color={colors.primaryText} />
-          <Text style={styles.meetBadgeText}>Meet</Text>
-        </Pressable>
-      )}
       {item.kind === 'meeting' && !item.done && (
         <Pressable accessibilityLabel={t('Enviar confirmação')} style={styles.send} onPress={handleConfirm}>
           <Icon name="respostas" size={16} color={colors.primaryText} />
@@ -179,49 +166,10 @@ function AgendaForm({
   const [kind, setKind] = useState<AgendaKind>(item?.kind ?? 'meeting');
   const [title, setTitle] = useState(item?.title ?? (preset ? `Reunião com ${preset.clientName}` : ''));
   const [clientPhone, setClientPhone] = useState(item?.clientPhone ?? preset?.phone ?? '');
-  const [meetUrl, setMeetUrl] = useState(item?.meetUrl ?? '');
-  const [creatingMeet, setCreatingMeet] = useState(false);
-  const [connectingGoogle, setConnectingGoogle] = useState(false);
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState(item?.time ?? '');
   const [clientId, setClientId] = useState(item?.clientId ?? preset?.id ?? '');
-  const hasGoogleAccess = Repo.hasGoogleMeetAccess();
-
-  const handleConnectGoogle = async () => {
-    setConnectingGoogle(true);
-    try {
-      await signInWithGoogle();
-    } catch (e) {
-      Alert.alert(t('Não foi possível conectar o Google'), String(e));
-    } finally {
-      setConnectingGoogle(false);
-    }
-  };
-
-  const handleCreateMeet = async () => {
-    if (!Repo.hasGoogleMeetAccess()) {
-      Linking.openURL(GOOGLE_MEET_NEW_URL);
-      return;
-    }
-    setCreatingMeet(true);
-    try {
-      const res = await createMeetWithGoogle(
-        {
-          title: title.trim() || t('Reunião com cliente'),
-          date,
-          time: time || undefined,
-          description: notes.trim() || undefined,
-        },
-      );
-      setMeetUrl(res.meetUrl);
-      Alert.alert(t('Google Meet'), t('Sala do Google Meet criada automaticamente!'));
-    } catch (_e) {
-      Linking.openURL(GOOGLE_MEET_NEW_URL);
-    } finally {
-      setCreatingMeet(false);
-    }
-  };
 
   const save = () => {
     if (!title.trim()) {
@@ -238,7 +186,8 @@ function AgendaForm({
       clientId: client?.id,
       clientName: client?.clientName,
       clientPhone: clientPhone.trim() || client?.phone || undefined,
-      meetUrl: hasGoogleAccess ? (normalizeMeetUrl(meetUrl) || undefined) : undefined,
+      // Google Meet desligado por enquanto: só preserva o link de compromissos antigos
+      meetUrl: item?.meetUrl,
       notes: notes.trim() || undefined,
       done: item?.done ?? false,
     });
@@ -266,58 +215,6 @@ function AgendaForm({
           placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"
         />
-        {kind === 'meeting' && (
-          hasGoogleAccess ? (
-            <View style={styles.meetInputRow}>
-              <TextInput
-                style={[styles.input, styles.flex]}
-                value={meetUrl}
-                onChangeText={setMeetUrl}
-                placeholder={t('Link do Google Meet (opcional)')}
-                placeholderTextColor={colors.textMuted}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Pressable
-                accessibilityLabel={t('Abrir Google Meet para criar sala')}
-                style={styles.meetBtn}
-                disabled={creatingMeet}
-                onPress={handleCreateMeet}>
-                {creatingMeet ? (
-                  <ActivityIndicator size="small" color={colors.primaryText} />
-                ) : (
-                  <>
-                    <Icon name="respostas" size={14} color={colors.primaryText} />
-                    <Text style={styles.meetBtnText}>{t('Criar sala')}</Text>
-                  </>
-                )}
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.meetLockedCard}>
-              <View style={styles.meetLockedHead}>
-                <Icon name="calendario" size={16} color={colors.primaryText} />
-                <Text style={styles.meetLockedTitle}>{t('Links de Reunião no Google Meet')}</Text>
-                <View style={styles.lockedBadge}>
-                  <Text style={styles.lockedBadgeText}>{t('Login Google')}</Text>
-                </View>
-              </View>
-              <Text style={styles.meetLockedDesc}>
-                {t('O envio automático de links de reunião do Google Meet é liberado com a autenticação do Google.')}
-              </Text>
-              <Pressable
-                style={styles.connectGoogleBtn}
-                disabled={connectingGoogle}
-                onPress={handleConnectGoogle}>
-                {connectingGoogle ? (
-                  <ActivityIndicator size="small" color={colors.primaryText} />
-                ) : (
-                  <Text style={styles.connectGoogleBtnText}>{t('Liberar com conta Google')}</Text>
-                )}
-              </Pressable>
-            </View>
-          )
-        )}
         <TextInput
           style={[styles.input, styles.textArea]}
           value={notes}
@@ -433,78 +330,4 @@ const useStyles = makeStyles(colors => ({
     backgroundColor: colors.primarySoft,
   },
   sendText: { fontSize: 12, fontWeight: '600', color: colors.primaryText },
-  meetInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  meetBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    minHeight: touchTarget + 4,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceAlt,
-  },
-  meetBtnText: { fontSize: 13, fontWeight: '600', color: colors.primaryText },
-  meetBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    minHeight: 28,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceAlt,
-  },
-  meetBadgeText: { fontSize: 11, fontWeight: '600', color: colors.primaryText },
-  meetLockedCard: {
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.xs + 2,
-    marginTop: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  meetLockedHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs + 2,
-  },
-  meetLockedTitle: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  lockedBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
-  },
-  lockedBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.primaryText,
-  },
-  meetLockedDesc: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: colors.textMuted,
-  },
-  connectGoogleBtn: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.sm,
-    paddingVertical: 8,
-    paddingHorizontal: spacing.md,
-    alignSelf: 'flex-start',
-    marginTop: 2,
-  },
-  connectGoogleBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primaryText,
-  },
 }));

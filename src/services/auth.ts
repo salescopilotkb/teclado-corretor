@@ -4,7 +4,7 @@
  * O marcador de login usado pelo teclado (Repo auth token) acompanha a sessão
  * do Supabase: é gravado ao entrar / renovar o token e apagado ao sair.
  */
-import { Linking, Platform } from 'react-native';
+import { Linking } from 'react-native';
 import { t } from '../i18n';
 import type { Session } from '@supabase/supabase-js';
 import { isSegmentId } from '../segments/segments';
@@ -71,23 +71,7 @@ function fail(error: { message: string }): never {
 function applySession(session: Session | null) {
   if (session) {
     Repo.setAuthToken(session.access_token);
-    // Só o login com Google traz acesso ao Google Agenda (o da Apple não)
-    if (session.user?.app_metadata?.provider === 'google') {
-      if (session.provider_token) Repo.setGoogleAccessToken(session.provider_token);
-      if (session.provider_refresh_token) Repo.setGoogleRefreshToken(session.provider_refresh_token);
-    }
-    if (session.user) {
-      claimDevice(session.user.id, false);
-      const meta = session.user.user_metadata;
-      const current = Repo.getSeller();
-      const googleName = meta?.full_name || meta?.name;
-      if (googleName && (!current.name || current.name.trim() === '')) {
-        Repo.setSeller({
-          ...current,
-          name: String(googleName),
-        });
-      }
-    }
+    if (session.user) claimDevice(session.user.id, false);
   } else {
     Repo.clearAuth();
   }
@@ -110,16 +94,8 @@ export function handleAuthUrl(url: string): void {
   const params = new URLSearchParams(hash);
   const access_token = params.get('access_token');
   const refresh_token = params.get('refresh_token');
-  const provider_token = params.get('provider_token');
-  const provider_refresh_token = params.get('provider_refresh_token');
   if (access_token && refresh_token) {
-    supabase.auth.setSession({ access_token, refresh_token }).then(({ data }) => {
-      if (data.session?.user?.app_metadata?.provider === 'google') {
-        if (provider_token) Repo.setGoogleAccessToken(provider_token);
-        if (provider_refresh_token) Repo.setGoogleRefreshToken(provider_refresh_token);
-      }
-      applySession(data.session);
-    });
+    supabase.auth.setSession({ access_token, refresh_token }).then(({ data }) => applySession(data.session));
   }
 }
 
@@ -149,65 +125,6 @@ export async function restoreSession(): Promise<boolean> {
   if (error) return Repo.isLoggedIn();
   applySession(data.session);
   return !!data.session;
-}
-
-type OAuthProvider = 'google' | 'apple';
-
-/** Página web atual (só na versão web) para o Supabase devolver o login. */
-function webReturnUrl(): string | null {
-  const loc = (globalThis as { location?: { origin: string; pathname: string } }).location;
-  return Platform.OS === 'web' && loc ? loc.origin + loc.pathname : null;
-}
-
-/**
- * Login por um provedor (OAuth pelo Supabase). O navegador abre a tela do
- * provedor e volta ao app em keycon://auth-callback (ver handleAuthUrl).
- */
-async function signInWithProvider(provider: OAuthProvider): Promise<void> {
-  const redirectTo = webReturnUrl() ?? 'keycon://auth-callback';
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options:
-      provider === 'google'
-        ? {
-            redirectTo,
-            // Google Agenda/Meet: criar o evento com link do Meet (escopo sensível, exige verificação do Google)
-            scopes: 'email profile https://www.googleapis.com/auth/calendar.events',
-            // offline + consent: o Google devolve o token de renovação (o acesso dura ~1 h)
-            queryParams: { access_type: 'offline', prompt: 'consent' },
-          }
-        : { redirectTo, scopes: 'name email' },
-  });
-  if (error) fail(error);
-  if (!data?.url) return;
-  const loc = (globalThis as { location?: { assign(url: string): void } }).location;
-  if (Platform.OS === 'web' && loc) loc.assign(data.url);
-  else await Linking.openURL(data.url);
-}
-
-/**
- * Login com Google: 1 toque, sem senha. Pede também o acesso ao Google
- * Agenda, para criar reuniões com link do Google Meet.
- */
-export async function signInWithGoogle(): Promise<void> {
-  if (DEMO_MODE) {
-    Repo.setAuthToken('demo-google-token');
-    Repo.setGoogleAccessToken('demo-google-access-token');
-    return;
-  }
-  return signInWithProvider('google');
-}
-
-/**
- * Login com a Apple (obrigatório na App Store quando há login com Google,
- * diretriz 4.8). A pessoa pode esconder o e-mail; o nome só vem no 1º login.
- */
-export async function signInWithApple(): Promise<void> {
-  if (DEMO_MODE) {
-    Repo.setAuthToken('demo-apple-token');
-    return;
-  }
-  return signInWithProvider('apple');
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

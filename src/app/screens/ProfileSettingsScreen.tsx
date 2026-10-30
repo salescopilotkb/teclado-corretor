@@ -15,7 +15,7 @@ import { getSegment } from '../../segments/segments';
 import { makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { Icon } from '../../keyboard/components/Icon';
 import { AI_CONFIG } from '../../services/aiService';
-import { AuthError, currentEmail, pushProfile, signInWithGoogle } from '../../services/auth';
+import { AuthError, currentEmail, pushProfile } from '../../services/auth';
 import { SegmentPicker } from '../components/SegmentPicker';
 import { BUILD_INFO } from '../../config/buildInfo';
 import { fillLegal, LEGAL_UPDATED, PRIVACY, TERMS } from '../../legal/legal';
@@ -317,29 +317,8 @@ function ThemeSection({ theme, onBack, onSelect }: { theme: ThemePreference; onB
 }
 
 function StatusSection({ email, onBack }: { email: string | null; onBack: () => void }) {
-  const [connecting, setConnecting] = useState(false);
-  const hasGoogle = Repo.hasGoogleMeetAccess();
-
-  const handleConnectGoogle = async () => {
-    setConnecting(true);
-    try {
-      await signInWithGoogle();
-    } catch (e) {
-      Alert.alert(t('Não foi possível conectar o Google'), String(e));
-    } finally {
-      setConnecting(false);
-    }
-  };
-
   const rows: Array<{ done: boolean; title: string; text: string }> = [
     { done: !!email, title: t('Conta'), text: email ? t('Conectada: {email}', { email }) : t('Verificando conexão...') },
-    {
-      done: hasGoogle,
-      title: t('Reuniões no Google Meet'),
-      text: hasGoogle
-        ? t('Liberado: links e salas do Google Meet gerados automaticamente.')
-        : t('Pendente: conecte sua conta Google para liberar links de reunião automáticos.'),
-    },
     { done: true, title: t('Teclado'), text: t('Login e dados compartilhados com o teclado neste aparelho.') },
     { done: false, title: t('Itens e atalhos'), text: t('Salvos neste aparelho. Sincronização com a nuvem em breve.') },
     { done: false, title: t('Fotos e vídeos'), text: t('Enviados como links externos por enquanto.') },
@@ -359,15 +338,6 @@ function StatusSection({ email, onBack }: { email: string | null; onBack: () => 
           <CardText>{r.text}</CardText>
         </Card>
       ))}
-      {!hasGoogle && (
-        <Button
-          label={t('Liberar com conta Google')}
-          variant="secondary"
-          icon="respostas"
-          disabled={connecting}
-          onPress={handleConnectGoogle}
-        />
-      )}
     </Page>
   );
 }
