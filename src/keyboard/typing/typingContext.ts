@@ -110,6 +110,24 @@ export class TypingContext {
     return words.slice(-n);
   }
 
+  /**
+   * Palavras já escritas no campo, também nas frases anteriores (até n, sem
+   * repetir, as mais recentes): nome do cliente, produto, assunto da conversa.
+   * As sugestões dão preferência a elas.
+   */
+  recentWords(n: number): string[] {
+    const head = this.before.slice(0, this.before.length - this.currentWord().length);
+    const words = head.toLowerCase().match(/[a-zà-öø-ÿ]{3,}(?:-[a-zà-öø-ÿ]+)*/g) ?? [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (let i = words.length - 1; i >= 0 && out.length < n; i--) {
+      if (seen.has(words[i])) continue;
+      seen.add(words[i]);
+      out.push(words[i]);
+    }
+    return out;
+  }
+
   /** A palavra atual começa a frase (maiúscula ali é só a automática, não um nome). */
   wordStartsSentence(): boolean {
     return this.previousWord() === '^';

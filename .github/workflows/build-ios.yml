@@ -14,7 +14,9 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-14
+    # macos-15: no macos-14 o GitHub não achava máquina livre e cancelava a compilação
+    # sem rodar (o passo "Selecionar Xcode" continua escolhendo o 16.2, que o RN 0.74 aceita)
+    runs-on: macos-15
     # Fila longa quando faltam máquinas Mac no GitHub: desiste depois de 1 h
     timeout-minutes: 60
 

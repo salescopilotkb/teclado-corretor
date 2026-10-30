@@ -16,6 +16,10 @@ export interface SuggestionItem {
   text: string;
   /** true = manter o que foi digitado (só adiciona o espaço). */
   literal: boolean;
+  /** A digitada está certa (dicionário ou palavra aprendida): aparece sem aspas. */
+  correct?: boolean;
+  /** A que fica em destaque (a que entra com o espaço). */
+  best?: boolean;
 }
 
 export interface SuggestionBarHandle {
@@ -57,8 +61,9 @@ export const SuggestionBar = memo(
       return () => KeyboardBridge.setAutofillArea(null);
     }, [autofill]);
 
-    // A primeira sugestão de verdade (não a palavra literal) fica em destaque
-    const highlighted = items.findIndex(i => !i.literal);
+    // Em destaque: a marcada (a que entra com o espaço) ou a primeira sugestão de verdade
+    const marked = items.findIndex(i => i.best);
+    const highlighted = marked >= 0 ? marked : items.findIndex(i => !i.literal);
 
     return (
       <View ref={barRef} style={styles.bar} testID="suggestion-bar" onLayout={reportArea}>
@@ -74,8 +79,8 @@ export const SuggestionBar = memo(
               style={({ pressed }) => [styles.cell, pressed && styles.cellPressed]}>
               <Text
                 numberOfLines={1}
-                style={[styles.text, i === highlighted && styles.textBest, item.literal && styles.textLiteral]}>
-                {item.literal ? `“${item.text}”` : item.text}
+                style={[styles.text, i === highlighted && styles.textBest, item.literal && !item.correct && styles.textLiteral]}>
+                {item.literal && !item.correct ? `“${item.text}”` : item.text}
               </Text>
             </Pressable>
           </React.Fragment>

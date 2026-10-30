@@ -4,7 +4,10 @@ import type { GestureResponderEvent, LayoutChangeEvent, NativeTouchEvent } from 
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { InputContext } from '../../native/KeyboardBridge';
 import { makeStyles, onCoralText, radius, useColors } from '../theme';
-import { buildLexicon, needsFullSuggest, predictNext, suggest } from '../typing/lexicon';
+import { buildLexicon, isKnownWord, needsFullSuggest, predictNext, suggest } from '../typing/lexicon';
+import type { Suggestions } from '../typing/lexicon';
+import { flushUserWords, learnWord, setUserWordsStore } from '../typing/userWords';
+import { storage } from '../../storage/storage';
 import { resolveLetter } from '../typing/keyResolver';
 import type { KeyRect } from '../typing/keyResolver';
 import { TypingContext } from '../typing/typingContext';
@@ -137,6 +140,43 @@ const isLetter = (c: string) => /^[a-zà-ÿç]$/i.test(c);
 
 /** Segurar o espaço por este tempo troca o idioma de digitação. */
 const LANGUAGE_HOLD_MS = 500;
+
+/** Palavras da frase que o corretor lê para entender o contexto (antes eram 5). */
+const CONTEXT_WORDS = 12;
+/** Palavras já escritas na conversa que ganham preferência (nome do cliente, produto). */
+const RECENT_WORDS = 40;
+/** Desfazer a correção ou escolher a palavra "entre aspas": aprende na hora (ver userWords). */
+const LEARN_EXPLICIT = 2;
+
+// O que o teclado aprende fica no aparelho, no mesmo armazenamento do app e do teclado
+setUserWordsStore({
+  load: lang => storage.getString(`typing.userWords.${lang}`),
+  save: (lang, json) => storage.set(`typing.userWords.${lang}`, json),
+});
+
+/**
+ * As 3 casas da barra:
+ *  - palavra certa: [opção] [a digitada, em destaque] [opção];
+ *  - com correção automática: [a digitada] [a correção, em destaque] [opção];
+ *  - desconhecida sem correção: [“a digitada”] [sugestões].
+ * A separação de palavras coladas ("para da") vai sempre à esquerda, e a
+ * digitada continua na barra para ser mantida.
+ */
+function barItems(word: string, known: boolean, r: Suggestions): SuggestionItem[] {
+  const typed: SuggestionItem = { text: word, literal: true, correct: known };
+  const others = r.words.filter(w => w !== r.autocorrect).map(text => ({ text, literal: false }));
+  const split: SuggestionItem | null = r.split ? { text: r.split, literal: false } : null;
+  let items: Array<SuggestionItem | null | undefined>;
+  if (r.autocorrect) {
+    const fix = { text: r.autocorrect, literal: false, best: true };
+    items = split ? [split, fix, typed] : [typed, fix, others[0]];
+  } else if (known) {
+    items = [split ?? others[0], { ...typed, best: true }, split ? others[0] : others[1]];
+  } else {
+    items = split ? [split, typed, others[0]] : [r.words.length ? typed : null, ...others];
+  }
+  return items.filter((i): i is SuggestionItem => !!i).slice(0, 3);
+}
 
 function buildRows(mode: Mode, shift: ShiftState, typingLang: Lang): KeyDef[][] {
   const upper = mode === 'alpha' && shift !== 'off';
@@ -297,31 +337,33 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     }
     const word = context.currentWord();
     const prev = context.previousWord();
-    const contextWords = context.previousWords(5);
+    const contextWords = context.previousWords(CONTEXT_WORDS);
+    const recent = context.recentWords(RECENT_WORDS);
     if (!word) {
       // Logo depois do espaço (ou no começo): as próximas palavras prováveis
       const last = context.lastChar();
       const atGap = last === '' || /\s/.test(last);
-      const next = atGap && prev ? predictNext(prev, 3, contextWords) : [];
+      const next = atGap && prev ? predictNext(prev, 3, contextWords, recent) : [];
       const cased = (w: string) => (sentenceStart ? w.charAt(0).toUpperCase() + w.slice(1) : w);
       suggestionBar.current?.show(next.map(text => ({ text: cased(text), literal: false })));
       return;
     }
-    const show = (r: { unknown: boolean; words: string[] }) => {
-      const items: SuggestionItem[] = r.words.map(text => ({ text, literal: false }));
-      if (r.unknown) items.unshift({ text: word, literal: true });
-      suggestionBar.current?.show(items.slice(0, 3));
-    };
+    const show = (r: Suggestions) => suggestionBar.current?.show(barItems(word, isKnownWord(word), r));
     // Barra na hora (erros simples); a busca ampla (erros de várias letras)
     // completa logo depois, sem segurar a próxima tecla
-    show(suggest(word, 3, prev, true, contextWords));
+    show(suggest(word, 3, prev, true, contextWords, recent));
     if (fullTimer.current) clearTimeout(fullTimer.current);
     if (needsFullSuggest(word, prev, contextWords)) {
       fullTimer.current = setTimeout(() => {
         fullTimer.current = null;
-        if (context.currentWord() === word) show(suggest(word, 3, prev, false, contextWords));
+        if (context.currentWord() === word) show(suggest(word, 3, prev, false, contextWords, recent));
       }, 0);
     }
+  };
+
+  /** A pessoa terminou a palavra: o teclado aprende o jeito dela escrever (ver userWords). */
+  const learn = (word: string, prev: string | undefined, weight = 1) => {
+    if (context.allowsSuggestions()) learnWord(getTypingLanguage(), word, prev, weight);
   };
 
   /**
@@ -331,14 +373,23 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
   const applyAutocorrect = (trail: string): boolean => {
     if (!context.allowsSuggestions() || modeRef.current !== 'alpha') return false;
     const word = context.currentWord();
-    if (!word || keepAsTyped.current.has(word.toLowerCase())) return false;
-    if (word[0] !== word[0].toLowerCase() && !context.wordStartsSentence()) return false;
-    const contextWords = context.previousWords(5);
-    const { autocorrect } = suggest(word, 3, context.previousWord(), false, contextWords);
-    if (!autocorrect || autocorrect === word) return false;
+    if (!word) return false;
+    const prev = context.previousWord();
+    // Mantida pela pessoa, ou com maiúscula no meio da frase (nome, apelido): fica como está
+    if (keepAsTyped.current.has(word.toLowerCase()) || (word[0] !== word[0].toLowerCase() && !context.wordStartsSentence())) {
+      learn(word, prev);
+      return false;
+    }
+    const contextWords = context.previousWords(CONTEXT_WORDS);
+    const { autocorrect } = suggest(word, 3, prev, false, contextWords, context.recentWords(RECENT_WORDS));
+    if (!autocorrect || autocorrect === word) {
+      learn(word, prev);
+      return false;
+    }
     out.current.replaceTextBeforeCursor(word.length, autocorrect + trail);
     context.replace(word.length, autocorrect + trail);
     lastFix.current = { original: word, fixed: autocorrect, trail };
+    learn(autocorrect, prev);
     return true;
   };
 
@@ -351,8 +402,19 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     out.current.replaceTextBeforeCursor(count, fix.original);
     context.replace(count, fix.original);
     keepAsTyped.current.add(fix.original.toLowerCase());
+    // Desfez a correção: a pessoa quer essa palavra assim ("Lindeusa", gíria) — aprende na hora
+    learn(fix.original, context.previousWord(), LEARN_EXPLICIT);
     return true;
   };
+
+  // O que aprendeu vai para o aparelho ao fechar o teclado (e ao sair desta tela)
+  useEffect(() => {
+    const off = KeyboardBridge.onKeyboardHide(flushUserWords);
+    return () => {
+      off();
+      flushUserWords();
+    };
+  }, []);
 
   // Dicionário montado logo depois de abrir (fora do caminho do 1º toque)
   useEffect(() => {
@@ -596,17 +658,24 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
   const pickSuggestion = useCallback(
     (item: SuggestionItem) => {
       const word = context.currentWord();
+      const prev = context.previousWord();
       lastFix.current = null;
       if (!word && !item.literal) {
         // Próxima palavra prevista
+        learn(item.text, prev);
         out.current.insertText(`${item.text} `);
         context.insert(`${item.text} `);
       } else if (item.literal || !word) {
-        // Manter o que foi digitado (e não corrigir mais essa palavra)
-        if (word) keepAsTyped.current.add(word.toLowerCase());
+        // Manter o que foi digitado (e não corrigir mais essa palavra). Escolher
+        // a palavra "entre aspas" é um pedido claro: aprende na hora
+        if (word) {
+          keepAsTyped.current.add(word.toLowerCase());
+          learn(word, prev, item.correct ? 1 : LEARN_EXPLICIT);
+        }
         out.current.insertText(' ');
         context.insert(' ');
       } else {
+        learn(item.text, prev);
         out.current.replaceTextBeforeCursor(word.length, `${item.text} `);
         context.replace(word.length, `${item.text} `);
       }

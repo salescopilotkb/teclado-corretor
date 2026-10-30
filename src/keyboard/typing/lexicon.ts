@@ -11,8 +11,13 @@
  *    que deixa a "área invisível" da tecla provável maior (ver keyResolver).
  *
  * Suporta:
- *  - Detecção e separação de palavras coladas sem espaço ("bomdia" → "bom dia",
- *    "comovai" → "como vai", "deusabencoe" → "Deus abençoe", "chavepix" → "chave Pix");
+ *  - Palavras da própria pessoa (userWords): gírias e apelidos usados com
+ *    frequência viram corretos e passam a ser sugeridos ("Lindeusa");
+ *  - Acento pelo contexto em palavras que existem com e sem acento ("o pao" → "pão",
+ *    "onde esta" → "está");
+ *  - Palavras coladas: as frases conhecidas são corrigidas sozinhas ("bomdia" →
+ *    "bom dia"); as outras separações ("parada" → "para da") só aparecem como
+ *    opção, sem trocar a palavra;
  *  - Tolerância estendida a palavras muito erradas (busca fonética e teclado);
  *  - Nomes próprios de pessoas brasileiras populares e marcas famosas;
  *  - Capitalização estrita da palavra "Deus" sempre com 'D' maiúsculo.
@@ -37,6 +42,7 @@ import {
   getCollocationBoost,
   getContextualNextPredictions,
 } from './properNouns';
+import { isLearned, learnedForm, learnedWords, nextFromPairs, pairCount, userCount } from './userWords';
 
 const ACCENT_MAP: Record<string, string> = {
   á: 'a', à: 'a', â: 'a', ã: 'a', ä: 'a',
@@ -295,7 +301,11 @@ const displayForm = (word: string): string => {
     const proper = getProperDisplayForm(word);
     if (proper) return proper;
   }
-  return DISPLAY_FORMS[currentLexiconLang]?.[word] ?? word;
+  const fixed = DISPLAY_FORMS[currentLexiconLang]?.[word];
+  if (fixed) return fixed;
+  // Palavra aprendida que a pessoa escreve com maiúscula (apelido, nome): "Lindeusa"
+  const learned = learnedForm(currentLexiconLang, word);
+  return learned && learned.toLowerCase() === word.toLowerCase() && learned !== learned.toLowerCase() ? learned : word;
 };
 
 /** Chave da tabela de seguintes: "don't" está lá como "dont". */
@@ -434,7 +444,9 @@ function lowerBound(sorted: Entry[], key: string): number {
 
 /** Faixa [início, fim) das palavras que começam com `prefix` (chave). */
 function prefixRange(lex: Lexicon, prefix: string): [number, number] {
-  return [lowerBound(lex.sorted, prefix), lowerBound(lex.sorted, prefix + '')];
+  // '￿' escrito como escape: o caractere invisível já se perdeu uma vez ao salvar
+  // o arquivo, e aí nenhuma palavra "começava com" o digitado (sem completar nem tecla provável)
+  return [lowerBound(lex.sorted, prefix), lowerBound(lex.sorted, prefix + '￿')];
 }
 
 function rangeWeight(lex: Lexicon, [start, end]: [number, number]): number {
@@ -459,7 +471,13 @@ export function nextLetterLogProb(prefix: string, letter: string): number | null
 /** Palavra conhecida do jeito que foi digitada (ignorando maiúsculas)? */
 export function isKnownWord(word: string): boolean {
   const lex = ensureLexicon();
-  return !!lex && (lex.words.has(word.toLowerCase()) || lex.words.has(word));
+  return !!lex && isKnown(lex, word);
+}
+
+/** No dicionário, ou uma palavra que a pessoa já usou o bastante (gíria, apelido, nome de produto). */
+function isKnown(lex: Lexicon, word: string): boolean {
+  const lower = word.toLowerCase();
+  return lex.words.has(lower) || lex.words.has(word) || isLearned(currentLexiconLang, lower);
 }
 
 /** Mantém o jeito que a pessoa escreveu, preservando marcas e nomes próprios. */
@@ -470,6 +488,10 @@ function matchCase(typed: string, suggestion: string): string {
   if (ALWAYS_CAPITALIZED[suggestion.toLowerCase()]) return ALWAYS_CAPITALIZED[suggestion.toLowerCase()];
   if (BRAND_NAMES[suggestion.toLowerCase()]) return BRAND_NAMES[suggestion.toLowerCase()];
   if (PEOPLE_NAMES[suggestion.toLowerCase()]) return PEOPLE_NAMES[suggestion.toLowerCase()];
+
+  // Aprendida com maiúscula ("Lindeusa"): sempre como a pessoa escreve
+  const learned = learnedForm(currentLexiconLang, suggestion);
+  if (learned && learned.toLowerCase() === suggestion.toLowerCase() && learned !== learned.toLowerCase()) return learned;
 
   if (typed.length > 1 && typed === typed.toUpperCase() && typed !== typed.toLowerCase()) {
     return suggestion.toUpperCase();
@@ -509,6 +531,12 @@ export interface Suggestions {
    * `words`), ou null quando não há certeza suficiente.
    */
   autocorrect: string | null;
+  /**
+   * A palavra parece duas coladas ("parada" → "para da"): vai à esquerda da barra
+   * como opção, e a digitada continua sendo a certa. Nunca entra sozinha (só as
+   * frases conhecidas, como "bomdia", que vêm em `autocorrect`).
+   */
+  split: string | null;
 }
 
 type Kind = 'abbr' | 'accent' | 'complete' | 'fix' | 'fuzzy';
@@ -564,6 +592,34 @@ function contextStrength(prev: string | undefined, word: string): number {
   return loadBigrams().get(prev)?.get(word) ?? 0;
 }
 
+/** Peso da palavra de duas posições atrás ("vou *ao* mercado": "vou" também pede "mercado"). */
+const SKIP_CONTEXT_WEIGHT = 0.25;
+/** Cada uso da pessoa vale isto (em log): as palavras dela sobem nas sugestões. */
+const USER_FREQ_WEIGHT = 0.6;
+/** A palavra já apareceu na conversa (nome do cliente, produto): sobe um pouco. */
+const RECENT_BOOST = 1.0;
+
+/**
+ * Contexto da frase para uma candidata: a palavra anterior (dicionário + o jeito
+ * da pessoa escrever), a de duas posições atrás e o que já foi escrito na conversa.
+ */
+function phraseContext(
+  word: string,
+  prev: string | undefined,
+  contextWords: string[] | undefined,
+  recent: Set<string> | undefined,
+): { context: number; bonus: number } {
+  const lang = currentLexiconLang;
+  const userPairs = Math.min(9, pairCount(lang, prev, word) * 2);
+  const context = contextStrength(prev, word) + userPairs;
+  const n = contextWords?.length ?? 0;
+  const prev2 = n >= 2 ? bigramKey(contextWords![n - 2]) : undefined;
+  let bonus = SKIP_CONTEXT_WEIGHT * contextStrength(prev2, word);
+  bonus += USER_FREQ_WEIGHT * Math.log1p(userCount(lang, word));
+  if (recent?.has(word)) bonus += RECENT_BOOST;
+  return { context, bonus };
+}
+
 /**
  * Detecta quando duas palavras foram digitadas coladas sem espaço
  * ("bomdia" → "bom dia", "bndia" → "bom dia", "comovai" → "como vai",
@@ -573,7 +629,9 @@ function findSplitWordCandidate(
   lex: Lexicon,
   typed: string,
   prev?: string,
-  contextWords?: string[]
+  contextWords?: string[],
+  /** Só as duas partes exatas, sem procurar erro de digitação nelas (palavra que já existe). */
+  exact = false,
 ): { text: string; score: number } | null {
   if (typed.length < 5) return null;
   const key = toKey(typed);
@@ -601,7 +659,7 @@ function findSplitWordCandidate(
     // Busca correspondência para a primeira palavra
     let w1Entries = lex.byKey.get(p1Key);
     let p1Cost = 0;
-    if (!w1Entries && p1Key.length >= 3) {
+    if (!w1Entries && !exact && p1Key.length >= 3) {
       for (const [cand, cost] of editsOf(p1Key)) {
         const e = lex.byKey.get(cand);
         if (e && e[0].rank <= 3000) {
@@ -616,7 +674,7 @@ function findSplitWordCandidate(
     // Busca correspondência para a segunda palavra
     let w2Entries = lex.byKey.get(p2Key);
     let p2Cost = 0;
-    if (!w2Entries && p2Key.length >= 3) {
+    if (!w2Entries && !exact && p2Key.length >= 3) {
       for (const [cand, cost] of editsOf(p2Key)) {
         const e = lex.byKey.get(cand);
         if (e && e[0].rank <= 3000) {
@@ -659,37 +717,65 @@ function findSplitWordCandidate(
   return null;
 }
 
+/** Palavra aprendida vale como uma do dicionário: mais usada = mais comum. */
+const learnedFreq = (count: number) => Math.log(weightOf(Math.max(30, 4000 / count)));
+
+/**
+ * Palavras coladas: a separação vai à esquerda da barra, sem trocar a palavra
+ * sozinha. Se a digitada já é uma palavra ("parada", "sutilmente"), só mostra a
+ * separação quando ela é bem provável (placar mais alto).
+ */
+function splitSuggestion(
+  lex: Lexicon,
+  typed: string,
+  known: boolean,
+  prev?: string,
+  contextWords?: string[],
+): string | null {
+  if (currentLexiconLang !== 'pt' || toKey(typed).length < 5 || isLearned(currentLexiconLang, typed)) return null;
+  const curated = COMMON_SPLIT_PHRASES[toKey(typed)];
+  if (curated) return curated;
+  const cand = findSplitWordCandidate(lex, typed, prev, contextWords, known);
+  if (!cand || cand.score < (known ? KNOWN_SPLIT_MIN_SCORE : 5)) return null;
+  return matchCase(typed, cand.text);
+}
+
+/** Placar mínimo para sugerir separar uma palavra que já existe. */
+const KNOWN_SPLIT_MIN_SCORE = 9;
+
 /** Todas as candidatas para `typed`, com placar, origem e contexto expandido. */
 function candidatesFor(
   lex: Lexicon,
   typed: string,
   prev?: string,
   fuzzy = true,
-  contextWords?: string[]
+  contextWords?: string[],
+  recent?: Set<string>,
 ): Candidate[] {
   const lowerTyped = typed.toLowerCase();
   const key = toKey(typed);
-  const known = lex.words.has(lowerTyped);
+  const known = isKnown(lex, typed);
   const found = new Map<string, Candidate>();
   const neverSuggest = NEVER_SUGGEST_BY_LANG[currentLexiconLang] ?? NEVER_SUGGEST_BY_LANG.pt;
   const abbreviations = ABBREVIATIONS_BY_LANG[currentLexiconLang] ?? ABBREVIATIONS_BY_LANG.pt;
 
   const offer = (word: string, base: number, kind: Kind) => {
     if (word === lowerTyped || neverSuggest.has(word)) return;
-    const context = contextStrength(prev, word);
+    const { context, bonus } = phraseContext(word, prev, contextWords, recent);
     const colloc = contextWords && currentLexiconLang === 'pt' ? getCollocationBoost(contextWords, word) : 0;
-    const score = base + CONTEXT_WEIGHT * context + colloc;
+    const score = base + CONTEXT_WEIGHT * context + colloc + bonus;
     const old = found.get(word);
     if (!old || score > old.score) found.set(word, { word, score, kind, context });
   };
+  const learned = learnedWords(currentLexiconLang);
   const freq = (e: Entry) => Math.log(weightOf(e.rank));
 
   // 0) Abreviação de conversa (só na barra, nunca sozinha)
   const expanded = abbreviations[lowerTyped];
   if (expanded) offer(expanded, 100, 'abbr');
 
-  // 0.5) Verificação de expressões coladas pré-definidas (ex.: "bomdia" → "bom dia")
-  if (currentLexiconLang === 'pt') {
+  // 0.5) Expressões coladas conhecidas ("bomdia" → "bom dia"): só quando a digitada não é uma palavra
+  if (currentLexiconLang === 'pt' && !known) {
     const commonSplit = COMMON_SPLIT_PHRASES[key];
     if (commonSplit) {
       found.set(commonSplit, {
@@ -728,33 +814,33 @@ function candidatesFor(
   }
   for (const e of best) offer(e.word, freq(e) - 0.15 * (e.key.length - key.length), 'complete');
 
+  // 2.5) Palavras da pessoa (gírias, apelidos, produtos) que começam assim
+  for (const l of learned) {
+    const lk = toKey(l.key);
+    if (lk.length > key.length && lk.startsWith(key)) offer(l.key, learnedFreq(l.count) - 0.15 * (lk.length - key.length), 'complete');
+  }
+
   // 3) Corrigir erro de digitação (só se a palavra não existe)
   if (!known && key.length >= 2) {
     for (const [candidate, cost] of editsOf(key)) {
       const forms = lex.byKey.get(candidate);
       if (forms) for (const e of forms) offer(e.word, freq(e) - cost + 1, 'fix');
     }
-  }
-
-  // 3.5) Identificar palavras coladas sem espaço (split words dinâmico)
-  if (currentLexiconLang === 'pt' && !known && key.length >= 5 && !found.has(COMMON_SPLIT_PHRASES[key] ?? '')) {
-    const splitCand = findSplitWordCandidate(lex, typed, prev, contextWords);
-    if (splitCand) {
-      const old = found.get(splitCand.text);
-      if (!old || splitCand.score > old.score) {
-        found.set(splitCand.text, {
-          word: splitCand.text,
-          score: splitCand.score,
-          kind: 'fix',
-          context: 0,
-        });
+    // Também perto de uma palavra da pessoa ("Lindeisa" → "Lindeusa")
+    if (key.length >= 3) {
+      const limit = fuzzyLimit(key.length);
+      for (const l of learned) {
+        const lk = toKey(l.key);
+        if (lk === key || Math.abs(lk.length - key.length) > 2) continue;
+        const distance = keyboardDistance(key, lk, limit);
+        if (distance <= limit) offer(l.key, learnedFreq(l.count) - FUZZY_DISTANCE_WEIGHT * distance + 4, 'fuzzy');
       }
     }
   }
 
   // 4) Erro de várias letras ou muito errada ("wetrndo" → "querendo", "geito" → "jeito"):
   // busca ampla pelo teclado e fonética
-  const hasFix = [...found.values()].some(c => c.kind === 'fix' || c.kind === 'accent');
+  const hasFix = [...found.values()].some(c => (c.kind === 'fix' && !c.word.includes(' ')) || c.kind === 'accent');
   if (fuzzy && !known && !hasFix && key.length >= FUZZY_MIN_LENGTH) {
     for (const { e, distance } of fuzzyMatches(lex, key)) {
       offer(e.word, FUZZY_FREQ_WEIGHT * freq(e) - FUZZY_DISTANCE_WEIGHT * distance + 4, 'fuzzy');
@@ -765,41 +851,36 @@ function candidatesFor(
 
 /**
  * Sugestões para a palavra que está sendo digitada.
- * `prev`: palavra anterior da frase.
- * `contextWords`: lista das últimas palavras da oração para concordância e contexto estendido.
+ * `prevWord`: palavra anterior da frase ("^" no começo da frase).
+ * `contextWords`: as últimas palavras da oração (até 12), para concordância e contexto.
+ * `recentWords`: palavras já escritas na conversa (nomes, produtos), que sobem um pouco.
  */
 export function suggest(
   typed: string,
   limit = 3,
   prevWord?: string,
   fast = false,
-  contextWords?: string[]
+  contextWords?: string[],
+  recentWords?: string[],
 ): Suggestions {
   const lex = ensureLexicon();
   const prev = prevWord && bigramKey(prevWord);
-  if (!lex || !typed) return { unknown: false, words: [], autocorrect: null };
+  if (!lex || !typed) return { unknown: false, words: [], autocorrect: null, split: null };
 
   const lowerTyped = typed.toLowerCase();
 
   // Regra absoluta para "deus" em português: SEMPRE "Deus" com D maiúsculo
   if (currentLexiconLang === 'pt' && lowerTyped === 'deus') {
-    return {
-      unknown: false,
-      words: ['Deus'],
-      autocorrect: 'Deus',
-    };
+    return { unknown: false, words: ['Deus'], autocorrect: 'Deus', split: null };
   }
   if (currentLexiconLang === 'pt' && lowerTyped === 'deuses') {
-    return {
-      unknown: false,
-      words: ['Deuses'],
-      autocorrect: 'Deuses',
-    };
+    return { unknown: false, words: ['Deuses'], autocorrect: 'Deuses', split: null };
   }
 
-  const known = lex.words.has(lowerTyped);
-  const all = candidatesFor(lex, typed, prev, !fast, contextWords);
-  const fix = pickAutocorrect(lex, typed, known, all);
+  const recent = recentWords?.length ? new Set(recentWords) : undefined;
+  const known = isKnown(lex, typed);
+  const all = candidatesFor(lex, typed, prev, !fast, contextWords, recent);
+  const fix = pickAutocorrect(lex, typed, known, all, prev, contextWords);
 
   // A correção automática vai na frente (é a que aparece em destaque)
   const ordered = fix ? [fix, ...all.filter(c => c !== fix)] : all;
@@ -813,28 +894,85 @@ export function suggest(
     ? matchCase(typed, form)
     : null;
 
+  // Separação de palavras coladas: opção à esquerda, nunca no lugar da palavra.
+  // Se a palavra só precisava de acento ou de uma letra ("amanha" → "amanhã"), não há o que separar
+  const splitText = !fix || fix.word.includes(' ') ? splitSuggestion(lex, typed, known, prev, contextWords) : null;
+  const split = splitText && splitText !== autocorrect ? splitText : null;
+
   const shown = ordered.map(c => matchCase(typed, displayForm(c.word)));
-  const words = [...new Set(autocorrect ? [autocorrect, ...shown] : shown)].filter(w => w !== typed).slice(0, limit);
+  const words = [...new Set(autocorrect ? [autocorrect, ...shown] : shown)]
+    .filter(w => w !== typed && w !== split)
+    .slice(0, limit);
   return {
     unknown: !known && words.length > 0,
     words,
     autocorrect,
+    split,
   };
 }
 
+/** Usos para a pessoa "costumar" escrever de um jeito (ver userWords). */
+const LEARNED_MIN = 2;
+
 /**
- * Correção automática: quando a palavra digitada não existe (ou é colada),
- * não é abreviação e a melhor correção ganha com folga das outras.
+ * Acento pelo contexto numa palavra que existe com e sem acento ("pao/pão",
+ * "esta/está", "e/é"): só troca quando a frase pede claramente a acentuada ou
+ * quando ela é muito mais comum, e nunca se a pessoa costuma escrever sem acento.
  */
-function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candidate[]): Candidate | null {
-  if (known || typed.length < 2 || !ONLY_LETTERS.test(typed)) return null;
+function contextualAccent(lex: Lexicon, typed: string, prev?: string, contextWords?: string[]): Candidate | null {
+  const lower = typed.toLowerCase();
+  const key = toKey(typed);
+  if (key !== lower) return null; // já tem acento
+  const forms = lex.byKey.get(key);
+  if (!forms || forms.length < 2) return null;
+  const typedRank = forms.find(f => f.word === lower)?.rank ?? Infinity;
+  const lang = currentLexiconLang;
+  const typedUse = userCount(lang, lower);
+  let best: Candidate | null = null;
+  for (const f of forms) {
+    if (f.word === lower || toKey(f.word) !== key) continue;
+    if (typedUse >= LEARNED_MIN && typedUse > userCount(lang, f.word)) return null;
+    const ctxA = phraseContext(f.word, prev, contextWords, undefined).context;
+    const ctxT = phraseContext(lower, prev, contextWords, undefined).context;
+    // As duas formas muito usadas (esta/está, nos/nós): só pelo contexto da frase.
+    // "e/é" pede contexto bem forte ("isso é"): "ele e ela" é comum demais
+    const bothCommon = f.rank < 600 && typedRank < 600;
+    const byContext = ctxA - ctxT >= (key.length === 1 ? 4 : 2);
+    const byFrequency = !bothCommon && ctxA >= ctxT && typedRank >= f.rank * 8;
+    if (!byContext && !byFrequency) continue;
+    const score = ctxA - ctxT + Math.log(typedRank / f.rank);
+    if (!best || score > best.score) best = { word: f.word, score, kind: 'accent', context: ctxA };
+  }
+  return best;
+}
+
+/**
+ * Correção automática: quando a palavra digitada não existe, não é abreviação
+ * e a melhor correção ganha com folga das outras. Palavra que existe só ganha
+ * acento pelo contexto. A separação de palavras coladas nunca entra sozinha
+ * (só as frases conhecidas, como "bomdia").
+ */
+function pickAutocorrect(
+  lex: Lexicon,
+  typed: string,
+  known: boolean,
+  all: Candidate[],
+  prev?: string,
+  contextWords?: string[],
+): Candidate | null {
+  if (!typed || !ONLY_LETTERS.test(typed)) return null;
+  if (known) return isLearned(currentLexiconLang, typed) ? null : contextualAccent(lex, typed, prev, contextWords);
+  if (typed.length < 2) return null;
   const abbreviations = ABBREVIATIONS_BY_LANG[currentLexiconLang] ?? ABBREVIATIONS_BY_LANG.pt;
   if (abbreviations[typed.toLowerCase()]) return null;
   const typedLength = toKey(typed).length;
   loadBigrams();
+  const curatedSplit = COMMON_SPLIT_PHRASES[toKey(typed)];
   const fixes = all.filter(c => {
-    // Palavras divididas (split words) com bom placar podem ser autocorrigidas
-    if (c.word.includes(' ')) return true;
+    // Só as frases coladas conhecidas ("bom dia") entram sozinhas
+    if (c.word.includes(' ')) return c.word === curatedSplit;
+    // Palavra da pessoa bem perto do digitado ("Lindeisa" → "Lindeusa")
+    if (isLearned(currentLexiconLang, c.word)) return c.kind === 'fuzzy' || c.kind === 'fix';
     const rank = lex.byKey.get(toKey(c.word))?.find(e => e.word === c.word)?.rank ?? Infinity;
     if (rank > COMMON_RANK && !seenInSentences?.has(c.word)) return false;
     if (c.kind === 'accent' || c.kind === 'fix' || c.kind === 'fuzzy') return true;
@@ -843,7 +981,7 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
   });
   const best = fixes[0];
   if (!best) return null;
-  // Acento ou split direto é certeiro
+  // Acento ou frase colada conhecida é certeiro
   if (best.kind === 'accent' || best.word.includes(' ')) return best;
   // Rival que só muda a última letra não trava: vale a mais comum
   const stem = (w: string) => toKey(w).slice(0, -1);
@@ -859,46 +997,51 @@ function pickAutocorrect(lex: Lexicon, typed: string, known: boolean, all: Candi
  */
 export function needsFullSuggest(typed: string, prevWord?: string, contextWords?: string[]): boolean {
   const lex = ensureLexicon();
-  if (!lex || typed.length < FUZZY_MIN_LENGTH || lex.words.has(typed.toLowerCase())) return false;
+  if (!lex || typed.length < FUZZY_MIN_LENGTH || isKnown(lex, typed)) return false;
   const prev = prevWord && bigramKey(prevWord);
-  return !candidatesFor(lex, typed, prev, false, contextWords).some(c => c.kind === 'fix' || c.kind === 'accent');
+  return !candidatesFor(lex, typed, prev, false, contextWords).some(
+    c => (c.kind === 'fix' && !c.word.includes(' ')) || c.kind === 'accent',
+  );
 }
 
 /**
- * Próximas palavras prováveis depois de `prev` e do histórico recente da oração (após o espaço).
+ * Próximas palavras prováveis depois de `prev` (após o espaço): o jeito da
+ * pessoa escrever primeiro, depois as frases conhecidas e as combinações da
+ * língua, pesando também a palavra de duas posições atrás e a conversa.
  */
-export function predictNext(prev: string, limit = 3, contextWords?: string[]): string[] {
+export function predictNext(prev: string, limit = 3, contextWords?: string[], recentWords?: string[]): string[] {
   const lex = ensureLexicon();
   if (!lex) return [];
   const results: string[] = [];
   const seen = new Set<string>();
+  const neverSuggest = NEVER_SUGGEST_BY_LANG[currentLexiconLang] ?? NEVER_SUGGEST_BY_LANG.pt;
+  const push = (w: string) => {
+    if (neverSuggest.has(w.toLowerCase())) return;
+    const form = displayForm(w);
+    if (seen.has(form.toLowerCase())) return;
+    seen.add(form.toLowerCase());
+    results.push(form);
+  };
 
-  // 1. Predições contextuais avançadas pelo histórico da oração
+  // 1. O que a pessoa costuma escrever depois desta palavra
+  if (prev !== '^') for (const w of nextFromPairs(currentLexiconLang, bigramKey(prev)).slice(0, 2)) push(w);
+
+  // 2. Predições contextuais avançadas pelo histórico da oração
   if (currentLexiconLang === 'pt' && contextWords && contextWords.length > 0) {
-    const contextual = getContextualNextPredictions(contextWords);
-    for (const w of contextual) {
-      const form = displayForm(w);
-      if (!seen.has(form.toLowerCase())) {
-        seen.add(form.toLowerCase());
-        results.push(form);
-      }
-    }
+    for (const w of getContextualNextPredictions(contextWords)) push(w);
   }
 
-  // 2. Bigramas estatísticos da língua
+  // 3. Combinações da língua, com a palavra de duas posições atrás e a conversa
   const next = loadBigrams().get(bigramKey(prev));
-  if (next) {
-    const neverSuggest = NEVER_SUGGEST_BY_LANG[currentLexiconLang] ?? NEVER_SUGGEST_BY_LANG.pt;
-    const sorted = [...next.entries()]
-      .filter(([w]) => !neverSuggest.has(w))
-      .sort((a, b) => b[1] - a[1]);
-
-    for (const [w] of sorted) {
-      const form = displayForm(w);
-      if (!seen.has(form.toLowerCase())) {
-        seen.add(form.toLowerCase());
-        results.push(form);
-      }
+  if (next && results.length < limit) {
+    const recent = recentWords?.length ? new Set(recentWords) : undefined;
+    const scored = [...next.entries()].map(([w, strength]) => {
+      const { bonus } = phraseContext(w, undefined, contextWords, recent);
+      return [w, strength + bonus] as const;
+    });
+    scored.sort((a, b) => b[1] - a[1]);
+    for (const [w] of scored) {
+      push(w);
       if (results.length >= limit) break;
     }
   }
