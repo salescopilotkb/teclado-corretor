@@ -47,6 +47,10 @@ target 'CorretorKeyboard' do
         if build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 15.5
           build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
         end
+        # Xcode 16.3+: a fmt do RN 0.74 não compila em C++20 (erro de consteval); em C++17 compila
+        if target.name == 'fmt'
+          build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        end
       end
     end
   end

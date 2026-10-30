@@ -27,7 +27,7 @@ KEYCON: Sales Keyboard
 Send products, photos and ready replies from your keyboard, in any chat app.
 ```
 
-**Full description** (1,823)
+**Full description** (1,638)
 
 ```
 KEYCON is the smart keyboard for people who sell. Your products, ready-made replies and customers live inside your phone keyboard, so you can answer and send everything without leaving the chat — on WhatsApp, Instagram, Messenger, email or any app where you type.
@@ -43,15 +43,14 @@ WHAT YOU GET
 • Files: photos, videos and audio organized in folders, ready to send.
 • Customers (CRM): every customer at a stage of the sale, with notes and tags.
 • Calendar: visits, meetings and follow-ups without leaving the keyboard.
-• AI replies: copy a customer's message and get reply suggestions in your business's tone.
 • Translation: write in your language and send it translated. Translation runs on your phone.
 • An everyday keyboard: spell check and word suggestions in English, Spanish and Portuguese.
 
 MADE FOR YOUR INDUSTRY
-Pick your industry — retail, real estate, insurance, restaurants, beauty, vehicles, law firms or any other business — and KEYCON adapts product fields, sales stages and the AI tone.
+Pick your industry — retail, real estate, insurance, restaurants, beauty, vehicles, law firms or any other business — and KEYCON adapts product fields and sales stages.
 
 YOUR TYPING STAYS ON YOUR PHONE
-What you type is processed only on your phone to correct words and suggest the next ones. It is never stored or sent. Your products, shortcuts, customers and calendar are stored on the device. Only the customer message you copy and ask the AI to answer goes to our servers. We never sell your data.
+What you type is processed only on your phone to correct words and suggest the next ones. It is never stored or sent. Your products, shortcuts, customers and calendar are stored on the device. We never sell your data.
 
 Available in English, Spanish and Portuguese.
 
@@ -74,7 +73,7 @@ KEYCON: Teclado de Ventas
 Envía productos, fotos y respuestas listas desde el teclado, en cualquier chat.
 ```
 
-**Descripción completa** (1.944)
+**Descripción completa** (1.723)
 
 ```
 KEYCON es el teclado inteligente para quienes venden. Tus productos, respuestas listas y clientes están dentro del teclado de tu celular, para que respondas y envíes todo sin salir de la conversación — en WhatsApp, Instagram, Messenger, correo o cualquier app donde escribas.
@@ -90,15 +89,14 @@ LO QUE OBTIENES
 • Archivos: fotos, videos y audios organizados en carpetas, listos para enviar.
 • Clientes (CRM): cada cliente en una etapa de la venta, con notas y etiquetas.
 • Agenda: visitas, reuniones y seguimientos sin salir del teclado.
-• Respuestas con IA: copia el mensaje del cliente y recibe sugerencias de respuesta con el tono de tu negocio.
 • Traducción: escribe en tu idioma y envíalo traducido. La traducción funciona en el propio celular.
 • Un teclado para todo el día: corrector ortográfico y sugerencias de palabras en español, inglés y portugués.
 
 A LA MEDIDA DE TU RUBRO
-Elige tu rubro — tienda, inmobiliaria, seguros, restaurante, belleza, vehículos, abogados o cualquier otro negocio — y KEYCON ajusta los campos de los productos, las etapas de la venta y el tono de la IA.
+Elige tu rubro — tienda, inmobiliaria, seguros, restaurante, belleza, vehículos, abogados o cualquier otro negocio — y KEYCON ajusta los campos de los productos y las etapas de la venta.
 
 LO QUE ESCRIBES SE QUEDA EN TU CELULAR
-Lo que escribes se procesa solo en el celular, para corregir palabras y sugerir las siguientes. Nunca se guarda ni se envía. Tus productos, atajos, clientes y agenda se guardan en el dispositivo. Solo el mensaje del cliente que copias y pides que la IA responda va a nuestros servidores. Nunca vendemos tus datos.
+Lo que escribes se procesa solo en el celular, para corregir palabras y sugerir las siguientes. Nunca se guarda ni se envía. Tus productos, atajos, clientes y agenda se guardan en el dispositivo. Nunca vendemos tus datos.
 
 Disponible en español, inglés y portugués.
 
@@ -121,7 +119,7 @@ KEYCON: Teclado de Vendas
 Envie produtos, fotos e respostas prontas pelo teclado, em qualquer conversa.
 ```
 
-**Descrição completa** (1.882)
+**Descrição completa** (1.669)
 
 ```
 O KEYCON é o teclado inteligente para quem vende. Seus produtos, respostas prontas e clientes ficam dentro do teclado do celular, para você responder e enviar tudo sem sair da conversa — no WhatsApp, Instagram, Messenger, e-mail ou em qualquer app em que você digita.
@@ -137,15 +135,14 @@ O QUE VOCÊ TEM
 • Arquivos: fotos, vídeos e áudios organizados em pastas, prontos para enviar.
 • Clientes (CRM): cada cliente numa etapa da venda, com anotações e etiquetas.
 • Agenda: visitas, reuniões e retornos sem sair do teclado.
-• Respostas com IA: copie a mensagem do cliente e receba sugestões de resposta no tom do seu negócio.
 • Tradução: escreva no seu idioma e envie traduzido. A tradução roda no próprio celular.
 • Um teclado para o dia todo: corretor ortográfico e sugestões de palavras em português, inglês e espanhol.
 
 DO JEITO DO SEU RAMO
-Escolha seu ramo — loja, imobiliária, seguros, restaurante, beleza, veículos, advocacia ou qualquer outro negócio — e o KEYCON ajusta os campos dos produtos, as etapas da venda e o tom da IA.
+Escolha seu ramo — loja, imobiliária, seguros, restaurante, beleza, veículos, advocacia ou qualquer outro negócio — e o KEYCON ajusta os campos dos produtos e as etapas da venda.
 
 O QUE VOCÊ DIGITA FICA NO SEU CELULAR
-O que você digita é processado só no celular, para corrigir palavras e sugerir as próximas. Nunca é guardado nem enviado. Seus produtos, atalhos, clientes e agenda ficam guardados no aparelho. Só a mensagem do cliente que você copia e pede para a IA responder vai para os nossos servidores. Nós nunca vendemos seus dados.
+O que você digita é processado só no celular, para corrigir palavras e sugerir as próximas. Nunca é guardado nem enviado. Seus produtos, atalhos, clientes e agenda ficam guardados no aparelho. Nós nunca vendemos seus dados.
 
 Disponível em português, inglês e espanhol.
 
@@ -163,7 +160,6 @@ Welcome to KEYCON, the smart keyboard for selling.
 • Send products with photos, prices and details in one tap
 • Ready-made replies: text, audio and links
 • Customers (CRM) and calendar right in the keyboard
-• AI reply suggestions for your customers' messages
 • Translation that runs on your phone
 • Spell check and word suggestions in English, Spanish and Portuguese
 
@@ -175,7 +171,6 @@ Te damos la bienvenida a KEYCON, el teclado inteligente para vender.
 • Envía productos con fotos, precios y detalles con un toque
 • Respuestas listas: texto, audio y enlaces
 • Clientes (CRM) y agenda dentro del teclado
-• Sugerencias de respuesta con IA para los mensajes de tus clientes
 • Traducción que funciona en tu celular
 • Corrector y sugerencias de palabras en español, inglés y portugués
 
@@ -187,7 +182,6 @@ Boas-vindas ao KEYCON, o teclado inteligente para vender.
 • Envie produtos com fotos, preços e detalhes com um toque
 • Respostas prontas: texto, áudio e link
 • Clientes (CRM) e agenda dentro do teclado
-• Sugestões de resposta com IA para as mensagens dos seus clientes
 • Tradução que roda no seu celular
 • Corretor e sugestões de palavras em português, inglês e espanhol
 

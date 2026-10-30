@@ -28,6 +28,7 @@ import type { CRMLead, ScheduleItem } from '../../types';
 import { formatFollowUp } from '../../utils/formatters';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, useColors } from '../theme';
 import { CoralSheen } from './Glass';
+import { ResizeHandle } from './ResizeHandle';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { ActionButton, UseButton } from './KeyboardButtons';
@@ -47,11 +48,13 @@ interface Props {
   onChanged: () => void;
   /** Abre a agenda com um compromisso novo para o cliente. */
   onSchedule: (lead: CRMLead) => void;
+  /** A barrinha de puxar passou da altura mínima: volta ao teclado de letras. */
+  onCollapse?: () => void;
 }
 
 type View_ = { name: 'list' } | { name: 'search' } | { name: 'detail'; id: string } | { name: 'form'; id: string | null };
 
-export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClose, onChanged, onSchedule }: Props) {
+export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClose, onChanged, onSchedule, onCollapse }: Props) {
   const [view, setView] = useState<View_>({ name: 'list' });
   const safeLeads = leads || [];
   const safeAgenda = agenda || [];
@@ -140,7 +143,10 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
     }
   }
 
+  // Lista de clientes: a barrinha no topo puxa o teclado para a altura que a pessoa quiser
   return (
+    <View style={{ flex: 1 }}>
+      {onCollapse && <ResizeHandle id="crm" onCollapse={onCollapse} />}
     <LeadList
       segment={segment}
       leads={safeLeads}
@@ -150,6 +156,7 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
       onSearch={() => setView({ name: 'search' })}
       onTalk={talk}
     />
+    </View>
   );
 }
 

@@ -8,7 +8,7 @@
  * Os dados ficam salvos no navegador (localStorage), separados do celular.
  */
 import './alertPolyfill';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { View } from 'react-native';
 import App from '../src/app/App';
@@ -105,6 +105,21 @@ function Chat({ visible }: { visible: boolean }) {
   /** Tamanho do teclado pedido pelo KEYCON: normal, intermediário (Atalhos) ou tela grande. */
   const [heightMode, setHeightMode] = useState<'normal' | 'tall' | 'expanded' | 'translate'>('normal');
   useEffect(() => WebKeyboardHost.onExpandedChange(setHeightMode), []);
+  /** Altura exata pedida pelo teclado (barrinha de puxar, tradução que cresce); 0 = a do modo. */
+  const [customHeight, setCustomHeight] = useState(0);
+  const keyboardRef = useRef<HTMLDivElement>(null);
+  /** Como no celular: no mínimo o teclado normal (o CSS: 330 px em tela estreita), no máximo a tela grande. */
+  const keyboardHeights = useCallback(() => {
+    const normal = window.matchMedia('(max-width: 480px)').matches ? 330 : 350;
+    const screenHeight = keyboardRef.current?.parentElement?.clientHeight ?? 800;
+    return { normal, max: Math.max(normal, screenHeight * 0.97 - 128) };
+  }, []);
+  useEffect(() => WebKeyboardHost.onCustomHeight(setCustomHeight, keyboardHeights), [keyboardHeights]);
+  const customStyle = useMemo(() => {
+    if (!customHeight) return undefined;
+    const { normal, max } = keyboardHeights();
+    return { height: Math.min(Math.max(customHeight, normal), max) };
+  }, [customHeight, keyboardHeights]);
   const draftRef = useRef('');
   const caret = useRef(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -219,7 +234,7 @@ function Chat({ visible }: { visible: boolean }) {
         </button>
       </div>
 
-      <div className={heightMode === 'normal' ? 'keyboard' : `keyboard ${heightMode}`}>
+      <div ref={keyboardRef} className={heightMode === 'normal' ? 'keyboard' : `keyboard ${heightMode}`} style={customStyle}>
         <View style={{ flex: 1 }}>
           <CorretorKeyboard />
         </View>

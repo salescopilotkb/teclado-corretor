@@ -15,8 +15,7 @@ on:
 jobs:
   build-ios:
     # Mac Intel: nas máquinas Mac arm64 (macos-14 e macos-15) o GitHub ficava sem
-    # máquina livre e cancelava a compilação sem rodar. O passo "Selecionar Xcode"
-    # continua escolhendo o 16.2, que o RN 0.74 aceita
+    # máquina livre e cancelava a compilação sem rodar
     runs-on: macos-15-intel
     # Fila longa quando faltam máquinas Mac no GitHub: desiste depois de 1 h
     timeout-minutes: 60
@@ -41,9 +40,12 @@ jobs:
         run: node scripts/write_build_info.js --github-env
 
       # React Native 0.74 compila no Xcode 15.4 e no 16 até o 16.2 (o 16.3 quebra o fmt)
+      # 16.4 primeiro: o catálogo de imagens exige o simulador da mesma versão do SDK,
+      # e a máquina Intel só tem os do iOS 18.5+ (o 16.2 pedia o 18.2 e falhava).
+      # O RN 0.74 compila no 16.3+ com a fmt em C++17 (ver ios/Podfile)
       - name: Selecionar Xcode
         run: |
-          for v in 15.4 16.2 16.1 16.0; do
+          for v in 16.4 16.3 16.2 16.1 16.0 15.4; do
             if [ -d "/Applications/Xcode_$v.app" ]; then
               sudo xcode-select -s "/Applications/Xcode_$v.app"
               break

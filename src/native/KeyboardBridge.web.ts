@@ -21,6 +21,10 @@ export type CommitImageResult = 'sent' | 'unsupported' | 'failed' | 'copied';
 export type ShareResult = 'direct' | 'chooser' | 'copied';
 
 export type HeightMode = 'normal' | 'tall' | 'expanded' | 'translate';
+export interface KeyboardHeights {
+  normal: number;
+  max: number;
+}
 
 export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
 
@@ -51,6 +55,8 @@ export interface WebKeyboardTarget {
 let target: WebKeyboardTarget | null = null;
 let openAppHandler: (() => void) | null = null;
 let expandHandler: ((mode: HeightMode) => void) | null = null;
+let customHeightHandler: ((px: number) => void) | null = null;
+let heightsProvider: (() => KeyboardHeights) | null = null;
 const showListeners = new Set<(e: KeyboardShowEvent) => void>();
 const hideListeners = new Set<() => void>();
 const selectionListeners = new Set<(e: SelectionChangeEvent) => void>();
@@ -95,6 +101,11 @@ export const WebKeyboardHost = {
   onExpandedChange(handler: (mode: HeightMode) => void) {
     expandHandler = handler;
   },
+  /** Altura exata pedida pelo teclado (px; 0 = a do modo) e de onde ler o normal e o máximo. */
+  onCustomHeight(handler: (px: number) => void, heights: () => KeyboardHeights) {
+    customHeightHandler = handler;
+    heightsProvider = heights;
+  },
 };
 
 /** Seletor de arquivos aberto pelo teclado (mesma API do KeyboardBridge.ts). */
@@ -137,6 +148,11 @@ export const KeyboardBridge = {
     expandHandler?.(mode);
     return !!expandHandler;
   },
+  setKeyboardHeight: async (dp: number) => {
+    customHeightHandler?.(dp > 0 ? Math.round(dp) : 0);
+    return !!customHeightHandler;
+  },
+  getKeyboardHeights: async (): Promise<KeyboardHeights> => heightsProvider?.() ?? { normal: 350, max: 700 },
   /** No navegador do celular, a vibração da página (no computador não faz nada). */
   hapticLongPress: () => {
     (globalThis as { navigator?: { vibrate?: (ms: number) => boolean } }).navigator?.vibrate?.(30);

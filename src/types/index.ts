@@ -107,7 +107,7 @@ export type CurrencyId = 'USD' | 'BRL' | 'EUR' | 'GBP' | 'CAD' | 'MXN' | 'ARS' |
 
 export type TargetAudienceId = 'brasileiros' | 'americanos' | 'mexicanos' | 'europeus';
 
-/** Perfil de quem vende (usado nas mensagens prontas e na IA). */
+/** Perfil de quem vende (usado nas mensagens prontas). */
 export interface SellerProfile {
   name: string;
   /** Nome do negócio / loja / empresa. */
@@ -211,7 +211,7 @@ export type MenuTab = 'files' | 'products' | 'shortcuts' | 'agenda' | 'crm' | 'm
 /** Botões do menu + o teclado de letras (ícone fixo no topo). */
 export type MainSystemTab = MenuTab | 'keyboard';
 
-export type MoreSubMenu = 'copilot' | 'settings' | null;
+export type MoreSubMenu = 'settings' | null;
 
 export interface KeyboardData {
   seller: SellerProfile;

@@ -255,6 +255,22 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
     // Envio de arquivos (fotos, vídeos e áudios)
     // -----------------------------------------------------------------------
 
+    /** Altura exata do teclado em dp (barrinha de puxar, tradução que cresce); 0 = a do modo. */
+    @ReactMethod
+    fun setKeyboardHeight(dp: Double, promise: Promise) =
+        withService(promise) { it.setCustomHeight(dp.toFloat()) }
+
+    /** { normal, max } em dp: a altura do teclado de letras e a maior possível. */
+    @ReactMethod
+    fun getKeyboardHeights(promise: Promise) =
+        withService(promise) {
+            val (normal, max) = it.heightsDp()
+            Arguments.createMap().apply {
+                putDouble("normal", normal.toDouble())
+                putDouble("max", max.toDouble())
+            }
+        }
+
     /**
      * Onde fica a faixa do corretor (em dp, relativo ao teclado) e a cor dela: as
      * sugestões do preenchimento automático aparecem ali. width 0 = sem faixa na tela.

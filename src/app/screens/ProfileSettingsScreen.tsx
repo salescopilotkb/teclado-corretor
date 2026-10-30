@@ -14,7 +14,6 @@ import type { CountryId, CurrencyId, SegmentId, SellerProfile, TargetAudienceId,
 import { getSegment } from '../../segments/segments';
 import { makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { Icon } from '../../keyboard/components/Icon';
-import { AI_CONFIG } from '../../services/aiService';
 import { AuthError, currentEmail, pushProfile } from '../../services/auth';
 import { SegmentPicker } from '../components/SegmentPicker';
 import { BUILD_INFO } from '../../config/buildInfo';
@@ -278,7 +277,7 @@ function SegmentSection({ current, onBack, onSave }: { current: SegmentId; onBac
     <Page>
       <SubHeader title={t('Ramo do negócio')} onBack={onBack} />
       <Card>
-        <CardText>{t('Muda os nomes, os campos dos itens, o funil de clientes e a IA. Nada do que você cadastrou é apagado.')}</CardText>
+        <CardText>{t('Muda os nomes, os campos dos itens e o funil de clientes. Nada do que você cadastrou é apagado.')}</CardText>
         <SegmentPicker value={segment} onChange={setSegment} />
       </Card>
       <Button label={t('Salvar')} disabled={segment === current} onPress={() => onSave(segment)} />
@@ -322,11 +321,6 @@ function StatusSection({ email, onBack }: { email: string | null; onBack: () => 
     { done: true, title: t('Teclado'), text: t('Login e dados compartilhados com o teclado neste aparelho.') },
     { done: false, title: t('Itens e atalhos'), text: t('Salvos neste aparelho. Sincronização com a nuvem em breve.') },
     { done: false, title: t('Fotos e vídeos'), text: t('Enviados como links externos por enquanto.') },
-    {
-      done: !AI_CONFIG.useMock,
-      title: t('IA'),
-      text: AI_CONFIG.useMock ? t('Modo demonstração (servidor não configurado).') : t('Conectada ao servidor.'),
-    },
   ];
   return (
     <Page>
@@ -526,7 +520,7 @@ function MarketSection({
           <View style={styles.modelingRow}>
             <Text style={styles.modelingLabel}>{t('Mensagens para clientes')}</Text>
             <Text style={styles.modelingValue}>
-              {selectedAudience.languageLabel} ({selectedAudience.label})
+              {selectedAudience.languageLabel} ({t(selectedAudience.label)})
             </Text>
           </View>
           <View style={styles.modelingRow}>
@@ -542,7 +536,7 @@ function MarketSection({
           <View style={styles.modelingRow}>
             <Text style={styles.modelingLabel}>{t('WhatsApp internacional')}</Text>
             <Text style={styles.modelingValue}>
-              +{selectedCountry.phoneCode} ({selectedCountry.name})
+              +{selectedCountry.phoneCode} ({t(selectedCountry.name)})
             </Text>
           </View>
         </View>

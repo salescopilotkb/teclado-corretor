@@ -17,6 +17,8 @@ interface KeyboardBridgeNative {
   switchKeyboard(): Promise<boolean>;
   setExpanded?(expanded: boolean): Promise<boolean>;
   setHeightMode?(mode: HeightMode): Promise<boolean>;
+  setKeyboardHeight?(dp: number): Promise<boolean>;
+  getKeyboardHeights?(): Promise<KeyboardHeights>;
   hapticLongPress?(): Promise<boolean>;
   getTargetApp(): Promise<string | null>;
   isKeyboardContext(): Promise<boolean>;
@@ -46,6 +48,12 @@ interface KeyboardBridgeNative {
 /** De onde o teclado pega o arquivo da seção Arquivos. */
 /** Tamanho do teclado: normal, intermediário (Atalhos), tela grande ou tradução (normal + a faixa). */
 export type HeightMode = 'normal' | 'tall' | 'expanded' | 'translate';
+
+/** Altura do teclado de letras (o mínimo) e a maior possível, em dp. */
+export interface KeyboardHeights {
+  normal: number;
+  max: number;
+}
 
 export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
 
@@ -97,6 +105,8 @@ let picking = false;
 let pickingUntil = 0;
 let activeUploads = 0;
 
+const DEFAULT_HEIGHTS: KeyboardHeights = { normal: 350, max: 700 };
+
 export const KeyboardBridge = {
   /** Injeta texto no campo ativo (InputConnection.commitText / insertText). */
   insertText: (text: string) => (Native ? Native.insertText(text) : noop()),
@@ -115,6 +125,15 @@ export const KeyboardBridge = {
   /** Normal, intermediário (um pouco mais alto, Atalhos) ou tela grande. */
   setHeightMode: (mode: HeightMode) =>
     Native?.setHeightMode ? Native.setHeightMode(mode) : Native?.setExpanded ? Native.setExpanded(mode === 'expanded') : noop(),
+  /**
+   * Altura exata do teclado em dp (barrinha de puxar das abas, tradução que cresce
+   * com o texto); 0 = volta à do modo. Fica entre a normal e a máxima. Volta a 0
+   * sozinha quando o teclado fecha: quem usa pede de novo ao reabrir.
+   */
+  setKeyboardHeight: (dp: number) => (Native?.setKeyboardHeight ? Native.setKeyboardHeight(Math.round(dp)) : noop()),
+  /** Altura do teclado de letras e a máxima (em dp). Sem o recurso nativo: valores do Android em pé. */
+  getKeyboardHeights: (): Promise<KeyboardHeights> =>
+    Native?.getKeyboardHeights ? Native.getKeyboardHeights().catch(() => DEFAULT_HEIGHTS) : Promise.resolve(DEFAULT_HEIGHTS),
   /** Vibração curta de "pegou o item" (segurar para arrastar). Nunca falha. */
   hapticLongPress: () => {
     Native?.hapticLongPress?.().catch(() => {});

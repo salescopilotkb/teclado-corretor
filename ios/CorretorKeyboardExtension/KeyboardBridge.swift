@@ -88,6 +88,17 @@ final class KeyboardBridge: RCTEventEmitter {
         onMain(resolve, reject) { $0.setHeightMode(KeyboardViewController.HeightMode(rawValue: mode) ?? .normal); return true }
     }
 
+    @objc func setKeyboardHeight(_ dp: NSNumber,
+                                 resolver resolve: @escaping RCTPromiseResolveBlock,
+                                 rejecter reject: @escaping RCTPromiseRejectBlock) {
+        onMain(resolve, reject) { $0.setCustomHeight(CGFloat(truncating: dp)); return true }
+    }
+
+    @objc func getKeyboardHeights(_ resolve: @escaping RCTPromiseResolveBlock,
+                                  rejecter reject: @escaping RCTPromiseRejectBlock) {
+        onMain(resolve, reject) { $0.heights() }
+    }
+
     @objc func hapticLongPress(_ resolve: @escaping RCTPromiseResolveBlock,
                                rejecter reject: @escaping RCTPromiseRejectBlock) {
         onMain(resolve, reject) { $0.hapticLongPress(); return true }

@@ -84,6 +84,9 @@ Você vai continuar o desenvolvimento do **KEYCON**, um app de vendas com teclad
 - Cliente de exemplo, **Jessica Miller**: abre com 2 mensagens e responde 3 vezes, uma depois de cada mensagem do vendedor, com "typing…" no topo.
 - Pacote para o HostGator: monte `hostgator/` com o conteúdo de `landing/` (sem `three.min.js`) mais `dist/` dentro de `hostgator/app/`, e compacte em `keyconapp-public_html.zip` na raiz do projeto. As duas pastas estão no `.gitignore`. O usuário sobe o .zip em public_html e extrai.
 
+## Implementações futuras (30/10/2026)
+- **A IA (sugestões de resposta) saiu do app, do site, da política e da loja**, junto com o login com Google/Apple e o Google Meet. Tudo o que saiu, o código guardado e como religar está em `IMPLEMENTACOES-FUTURAS.md`. Não religue sem eu pedir.
+
 ## Downgrade: sem Google, Apple e Meet (30/10/2026)
 - **O login é só por e-mail e senha.** Login com Google, login com a Apple e a integração com o Google Meet/Google Agenda foram retirados de propósito, para o app ficar estável o quanto antes. Não coloque de volta sem eu pedir.
 - Motivo: o login com Google abria o navegador passando pelo endereço do Supabase até accounts.google.com, e isso parecia um link malicioso.

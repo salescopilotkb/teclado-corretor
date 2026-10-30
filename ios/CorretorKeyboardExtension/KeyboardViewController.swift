@@ -29,11 +29,22 @@ final class KeyboardViewController: UIInputViewController {
         case normal, tall, expanded, translate
     }
     private var heightMode: HeightMode = .normal
-    /// Fração da tela no modo expandido: deixa uma faixa do app visível em cima.
-    private let expandedScreenFraction: CGFloat = 0.8
+    /// Fração da tela no modo expandido e o máximo da barrinha de puxar: deixa uma
+    /// faixa do app visível em cima, com o contato do cliente à vista (era 0.8).
+    private let expandedScreenFraction: CGFloat = 0.77
+
+    /// Altura exata pedida pelo JS (barrinha de puxar das abas, tradução que cresce
+    /// com o texto). 0 = a do heightMode. Fica entre a do teclado normal e a máxima.
+    private var customHeight: CGFloat = 0
+
+    /// O maior que o teclado pode ficar (deixa uma faixa do app visível em cima).
+    private var maxHeight: CGFloat {
+        max(normalHeight, UIScreen.main.bounds.height * expandedScreenFraction)
+    }
 
     private var keyboardHeight: CGFloat {
         let screen = UIScreen.main.bounds.height
+        if customHeight > 0 { return min(max(customHeight, normalHeight), maxHeight) }
         switch heightMode {
         case .normal: return normalHeight
         case .tall: return max(screen * 0.5, normalHeight + 90)
@@ -100,8 +111,9 @@ final class KeyboardViewController: UIInputViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        // Ao reabrir, o teclado volta no tamanho normal
-        if heightMode != .normal { setHeightMode(.normal) }
+        // Ao reabrir, o teclado volta no tamanho normal (o JS pede de novo o da tela aberta)
+        customHeight = 0
+        if heightMode != .normal { setHeightMode(.normal) } else { heightConstraint?.constant = keyboardHeight }
         KeyboardBridge.emit("onKeyboardHide", body: [:])
     }
 
@@ -123,6 +135,19 @@ final class KeyboardViewController: UIInputViewController {
         heightConstraint?.constant = keyboardHeight
         view.setNeedsLayout()
         view.layoutIfNeeded()
+    }
+
+    /// Altura exata em pontos (dp); 0 = volta à do heightMode.
+    func setCustomHeight(_ value: CGFloat) {
+        customHeight = value > 0 ? value : 0
+        heightConstraint?.constant = keyboardHeight
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+    }
+
+    /// Altura do teclado de letras e a maior possível, para o JS limitar a barrinha.
+    func heights() -> [String: CGFloat] {
+        ["normal": normalHeight, "max": maxHeight]
     }
 
     func hapticLongPress() {

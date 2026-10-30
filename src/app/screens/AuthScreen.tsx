@@ -221,7 +221,7 @@ export function AuthScreen({ onSuccess }: Props) {
 
               <Text style={styles.label}>{t('Qual é o seu ramo?')}</Text>
               <Text style={styles.hint}>
-                {t('O app se adapta ao seu negócio: nomes, campos dos produtos, funil de clientes e a IA. Dá para trocar depois na tela Conta.')}</Text>
+                {t('O app se adapta ao seu negócio: nomes, campos dos produtos e funil de clientes. Dá para trocar depois na tela Conta.')}</Text>
               <SegmentPicker value={segment} onChange={setSegment} />
             </>
           )}

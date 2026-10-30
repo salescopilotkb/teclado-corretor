@@ -50,7 +50,7 @@ export function CountryPicker({ value, onChange }: { value: CountryId; onChange:
         <Chip
           key={c.id}
           testID={`country-${c.id}`}
-          label={`${c.flag} ${c.name}`}
+          label={`${c.flag} ${t(c.name)}`}
           selected={c.id === value}
           onPress={() => onChange(c.id)}
         />
@@ -69,7 +69,7 @@ export function CurrencyPicker({ value, onChange }: { value: CurrencyId; onChang
           key={c.id}
           testID={`currency-${c.id}`}
           label={`${c.id} (${c.symbol})`}
-          detail={c.label}
+          detail={t(c.label)}
           selected={c.id === value}
           onPress={() => onChange(c.id)}
         />
@@ -96,11 +96,11 @@ export function AudiencePicker({ value, onChange }: { value: TargetAudienceId; o
             <View style={styles.audienceHead}>
               <Text style={styles.audienceFlag}>{a.flag}</Text>
               <View style={styles.audienceInfo}>
-                <Text style={[styles.audienceTitle, selected && styles.audienceTitleSelected]}>{a.label}</Text>
+                <Text style={[styles.audienceTitle, selected && styles.audienceTitleSelected]}>{t(a.label)}</Text>
                 <Text style={styles.audienceLang}>{a.languageLabel}</Text>
               </View>
             </View>
-            <Text style={styles.audienceDesc}>{a.description}</Text>
+            <Text style={styles.audienceDesc}>{t(a.description)}</Text>
           </Pressable>
         );
       })}
@@ -138,12 +138,12 @@ export function marketSummary(sellerOrId: SellerProfile | MarketId | string | nu
     const audienceId = sellerOrId.targetAudience ?? deduced.targetAudience;
     const c = COUNTRIES.find(x => x.id === countryId) ?? COUNTRIES[0];
     const aud = TARGET_AUDIENCES.find(x => x.id === audienceId) ?? TARGET_AUDIENCES[0];
-    return `${c.name} · ${currencyId} · ${aud.label}`;
+    return `${t(c.name)} · ${currencyId} · ${t(aud.label)}`;
   }
   const deduced = deduceFromMarketId(sellerOrId as MarketId);
   const c = COUNTRIES.find(x => x.id === deduced.country) ?? COUNTRIES[0];
   const aud = TARGET_AUDIENCES.find(x => x.id === deduced.targetAudience) ?? TARGET_AUDIENCES[0];
-  return `${c.name} · ${deduced.currency} · ${aud.label}`;
+  return `${t(c.name)} · ${deduced.currency} · ${t(aud.label)}`;
 }
 
 const useStyles = makeStyles(colors => ({

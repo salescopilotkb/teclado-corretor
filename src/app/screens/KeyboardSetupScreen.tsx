@@ -156,7 +156,7 @@ export function KeyboardSetupScreen({ onBack }: { onBack: () => void }) {
       ) : (
         <Card>
           <Step n={1} title={t('Adicionar')} text={t('Ajustes › Geral › Teclado › Teclados › Adicionar Novo Teclado › KEYCON.')} />
-          <Step n={2} title={t('Acesso Total')} text={t('Toque em KEYCON e ative Permitir Acesso Total (fotos e IA precisam).')} />
+          <Step n={2} title={t('Acesso Total')} text={t('Toque em KEYCON e ative Permitir Acesso Total (as fotos precisam).')} />
           <Step n={3} title={t('No dia a dia')} text={t('Toque e segure o globo 🌐 no teclado e escolha o KEYCON.')} />
           <Button label={t('Abrir Ajustes')} onPress={openKeyboardSettings} />
         </Card>

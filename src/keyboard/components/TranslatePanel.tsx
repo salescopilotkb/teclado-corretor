@@ -17,7 +17,7 @@ import { getSellingLanguage, getTypingLanguage, setTypingLanguage, t } from '../
 import { useKeyboardBack } from '../../navigation/back';
 import type { Lang } from '../../i18n';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
-import type { InputContext } from '../../native/KeyboardBridge';
+import type { InputContext, KeyboardHeights } from '../../native/KeyboardBridge';
 import { isTranslatorReady, translate, TRANSLATE_LANGUAGES } from '../../native/Translator';
 import type { TranslateLang } from '../../native/Translator';
 import { storage } from '../../storage/storage';
@@ -34,11 +34,15 @@ const DEBOUNCE_MS = 350;
 /** O campo da conversa devolve no máximo ~200 caracteres antes do cursor. */
 const CHECK_TAIL = 150;
 
-/** Altura da faixa (idiomas, texto e prévia): o teclado cresce só isso (heightMode 'translate'). */
-const STRIP_HEIGHT = 104;
-/** Caracteres do fim do texto que cabem numa linha da faixa. */
-const FIELD_TAIL = 42;
-const PREVIEW_TAIL = 52;
+/**
+ * Altura mínima da faixa (idiomas + campo de uma linha). A faixa cresce com o texto
+ * e com o aviso de download, e o teclado cresce junto (normal + faixa): as teclas
+ * ficam sempre do mesmo tamanho.
+ */
+const STRIP_MIN_HEIGHT = 80;
+/** Linhas do campo antes de ele passar a rolar por dentro. */
+const FIELD_MAX_LINES = 5;
+const FIELD_LINE_HEIGHT = 20;
 /** De quanto em quanto tempo confere se a mensagem já foi enviada. */
 const SENT_CHECK_MS = 700;
 
@@ -88,7 +92,8 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
   useKeyboardBack(onClose);
   const [pair, setPair] = useState(initialPair);
   const [picking, setPicking] = useState<'source' | 'target' | null>(null);
-  const [translated, setTranslated] = useState('');
+  // A tradução vai direto para o campo da conversa (não aparece no painel)
+  const [, setTranslated] = useState('');
   const [status, setStatus] = useState<'idle' | 'working' | 'downloading' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [text, setText] = useState('');
@@ -107,7 +112,29 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
   caretRef.current = caretPos;
 
   const scrollRef = useRef<ScrollView>(null);
-  const spanLayouts = useRef<Map<number, number>>(new Map());
+
+  // O teclado fica com a altura normal + a da faixa: quando o texto quebra linha (ou
+  // aparece o aviso de download), a faixa cresce para baixo e as teclas continuam iguais
+  const heights = useRef<KeyboardHeights | null>(null);
+  const stripHeight = useRef(0);
+  const applyHeight = useCallback(() => {
+    const h = heights.current;
+    if (h && stripHeight.current) KeyboardBridge.setKeyboardHeight(h.normal + stripHeight.current).catch(() => {});
+  }, []);
+  useEffect(() => {
+    KeyboardBridge.getKeyboardHeights()
+      .then(h => {
+        heights.current = h;
+        applyHeight();
+      })
+      .catch(() => {});
+    // Fechou e reabriu: o teclado voltou ao normal, pede de novo
+    const off = KeyboardBridge.onKeyboardShow(() => setTimeout(applyHeight, 0));
+    return () => {
+      off();
+      KeyboardBridge.setKeyboardHeight(0).catch(() => {});
+    };
+  }, [applyHeight]);
 
   // Cursor pisca a cada 530ms (só quando focado no tradutor)
   useEffect(() => {
@@ -131,10 +158,6 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
     caretRef.current = clamped;
     setCaretPos(clamped);
     setCaretVisible(true);
-    const x = spanLayouts.current.get(clamped);
-    if (typeof x === 'number') {
-      scrollRef.current?.scrollTo({ x: Math.max(0, x - 60), animated: true });
-    }
   }, []);
 
   /** O que o painel escreveu por último no campo da conversa. */
@@ -383,7 +406,14 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
   return (
     <View style={styles.root} testID="translate-panel">
       {/* Faixa leve entre o menu e as teclas: a conversa e o campo dela continuam à vista */}
-      <View style={styles.strip}>
+      <View
+        style={styles.strip}
+        onLayout={e => {
+          const h = Math.ceil(e.nativeEvent.layout.height);
+          if (h === stripHeight.current) return;
+          stripHeight.current = h;
+          applyHeight();
+        }}>
         <View style={styles.head}>
           <LangChip
             testID="translate-source"
@@ -403,24 +433,6 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
             onPress={() => setPicking(p => (p === 'target' ? null : 'target'))}
           />
           <View style={styles.flex} />
-
-          {/* Alternador de foco: tradutor vs conversa do dispositivo */}
-          <Pressable
-            testID="translate-focus-toggle"
-            accessibilityRole="button"
-            accessibilityLabel={focusTarget === 'translator' ? t('Digitar na conversa') : t('Voltar à tradução')}
-            hitSlop={6}
-            style={[styles.focusPill, focusTarget === 'device' && styles.focusPillActive]}
-            onPress={() => setFocusTarget(f => (f === 'translator' ? 'device' : 'translator'))}>
-            <Icon
-              name={focusTarget === 'translator' ? 'respostas' : 'traduzir'}
-              size={12}
-              color={focusTarget === 'device' ? colors.primary : colors.textSecondary}
-            />
-            <Text style={[styles.focusPillText, focusTarget === 'device' && styles.focusPillTextActive]}>
-              {focusTarget === 'device' ? t('Na conversa') : t('Traduzir')}
-            </Text>
-          </Pressable>
 
           <Pressable testID="translate-close" accessibilityRole="button" accessibilityLabel={t('Fechar tradução')} hitSlop={8} style={styles.iconBtn} onPress={onClose}>
             <Icon name="fechar" size={18} color={colors.textMuted} />
@@ -466,53 +478,29 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
                 </View>
               ) : text ? (
                 <>
+                  {/* O texto num bloco só (espaçamento normal da fonte), quebrando linha e
+                      crescendo para baixo até FIELD_MAX_LINES; passando disso, rola por dentro.
+                      Tocar numa letra põe o cursor depois dela; no espaço vazio, no fim */}
                   <ScrollView
                     ref={scrollRef}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
                     style={styles.fieldScroll}
                     contentContainerStyle={styles.fieldScrollContent}
-                    keyboardShouldPersistTaps="always">
-                    <Pressable
-                      hitSlop={{ top: 6, bottom: 6, left: 4, right: 2 }}
-                      onPress={() => setCaret(0)}
-                      style={styles.touchEdge}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('Início')}>
-                      {caretPos === 0 && <View style={[styles.caret, styles.caretStart, !caretVisible && styles.caretHidden]} />}
-                    </Pressable>
-
-                    <View style={styles.charsWrap}>
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="always"
+                    onContentSizeChange={() => {
+                      if (caretRef.current >= textRef.current.length) scrollRef.current?.scrollToEnd({ animated: false });
+                    }}>
+                    <Text style={styles.fieldText} onPress={() => setCaret(text.length)} suppressHighlighting>
+                      {caretPos === 0 && <View style={[styles.caret, !caretVisible && styles.caretHidden]} />}
                       {spans.map((s, idx) => (
                         <React.Fragment key={`${s.start}-${idx}`}>
-                          <Pressable
-                            hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
-                            onLayout={e => {
-                              spanLayouts.current.set(s.end, e.nativeEvent.layout.x + e.nativeEvent.layout.width);
-                              if (s.start === 0) spanLayouts.current.set(0, e.nativeEvent.layout.x);
-                            }}
-                            onPress={e => {
-                              const x = e.nativeEvent?.locationX ?? 10;
-                              if (x < 6) {
-                                setCaret(s.start);
-                              } else {
-                                setCaret(s.end);
-                              }
-                            }}
-                            style={styles.charTouch}>
-                            <Text style={styles.charText}>{s.char === '\n' ? '↵' : s.char}</Text>
-                          </Pressable>
+                          <Text onPress={() => setCaret(s.end)} suppressHighlighting>
+                            {s.char}
+                          </Text>
                           {caretPos === s.end && <View style={[styles.caret, !caretVisible && styles.caretHidden]} />}
                         </React.Fragment>
                       ))}
-                    </View>
-
-                    <Pressable
-                      onPress={() => setCaret(text.length)}
-                      style={styles.touchFill}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('Fim')}
-                    />
+                    </Text>
                   </ScrollView>
 
                   <View style={styles.cursorControls}>
@@ -546,31 +534,32 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
                 </>
               ) : (
                 <Pressable style={styles.fieldEmptyTouch} onPress={() => setCaret(0)}>
-                  <View style={[styles.caret, styles.caretStart, !caretVisible && styles.caretHidden]} />
+                  <View style={[styles.caret, styles.caretEmpty, !caretVisible && styles.caretHidden]} />
                   <Text style={styles.placeholder} numberOfLines={1}>
                     {t(FIELD.placeholder)}
                   </Text>
                 </Pressable>
               )}
             </Pressable>
-            <View style={styles.previewRow}>
-              {/* Baixando o idioma: loader pequeno ao lado do aviso */}
-              {focusTarget !== 'device' && status === 'downloading' && (
-                <ActivityIndicator size="small" color={colors.primaryText} style={styles.previewSpinner} />
-              )}
-              <Text
-                testID="translate-result"
-                style={[styles.preview, status === 'error' && styles.previewError]}
-                numberOfLines={1}
-                // A faixa tem altura fixa: o aviso diminui a letra para caber inteiro
-                adjustsFontSizeToFit
-                minimumFontScale={0.75}
-                accessibilityLiveRegion="polite">
-                {focusTarget === 'device'
-                  ? t('✓ Teclado ativo no campo da conversa (WhatsApp)')
-                  : statusText ?? (translated ? `→ ${tail(translated, PREVIEW_TAIL)}` : ' ')}
-              </Text>
-            </View>
+            {/* Embaixo do campo só os avisos (baixando o idioma, erro): a tradução já
+                aparece no campo da conversa, não precisa repetir aqui */}
+            {focusTarget !== 'device' && statusText ? (
+              <View style={styles.previewRow}>
+                {status === 'downloading' && (
+                  <ActivityIndicator size="small" color={colors.primaryText} style={styles.previewSpinner} />
+                )}
+                <Text
+                  testID="translate-result"
+                  style={[styles.preview, status === 'error' && styles.previewError]}
+                  numberOfLines={1}
+                  // Uma linha só: o aviso diminui a letra para caber inteiro
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                  accessibilityLiveRegion="polite">
+                  {statusText}
+                </Text>
+              </View>
+            ) : null}
           </View>
         )}
       </View>
@@ -584,10 +573,6 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Mostra o fim do texto (onde a pessoa está escrevendo) quando ele não cabe na linha. */
-function tail(text: string, max: number): string {
-  return text.length > max ? `…${text.slice(-max)}` : text;
-}
 
 function LangChip({ testID, label, name, open, onPress }: { testID: string; label: string; name: string; open: boolean; onPress: () => void }) {
   const styles = useStyles();
@@ -611,7 +596,7 @@ function LangChip({ testID, label, name, open, onPress }: { testID: string; labe
 const useStyles = makeStyles(colors => ({
   root: { flex: 1 },
   flex: { flex: 1 },
-  strip: { height: STRIP_HEIGHT, paddingHorizontal: spacing.sm, paddingTop: 4, gap: 4 },
+  strip: { minHeight: STRIP_MIN_HEIGHT, paddingHorizontal: spacing.sm, paddingTop: 4, paddingBottom: 4, gap: 4 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30 },
   chip: {
     flexDirection: 'row',
@@ -628,34 +613,12 @@ const useStyles = makeStyles(colors => ({
   chipText: { fontSize: 13, fontWeight: '600', color: colors.text, flexShrink: 1 },
   chipArrow: { fontSize: 10, color: colors.textMuted },
   iconBtn: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
-  focusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 26,
-    paddingHorizontal: 8,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    ...glassBorder(colors),
-  },
-  focusPillActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-  },
-  focusPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  focusPillTextActive: {
-    color: colors.primaryText,
-    fontWeight: '700',
-  },
-  body: { flex: 1 },
+  body: {},
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 36,
+    minHeight: 36,
+    paddingVertical: 6,
     paddingLeft: spacing.xs,
     paddingRight: 4,
     borderRadius: radius.md,
@@ -686,12 +649,15 @@ const useStyles = makeStyles(colors => ({
   },
   fieldScroll: {
     flex: 1,
-    height: '100%',
+    maxHeight: FIELD_MAX_LINES * FIELD_LINE_HEIGHT,
   },
   fieldScrollContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: '100%',
+    paddingLeft: spacing.xs,
+  },
+  fieldText: {
+    fontSize: 15,
+    lineHeight: FIELD_LINE_HEIGHT,
+    color: colors.text,
   },
   fieldEmptyTouch: {
     flex: 1,
@@ -700,43 +666,16 @@ const useStyles = makeStyles(colors => ({
     height: '100%',
     paddingLeft: spacing.xs,
   },
-  charsWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  charTouch: {
-    height: 32,
-    minWidth: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 0.5,
-  },
-  charText: {
-    fontSize: 15,
-    color: colors.text,
-  },
+  // Dentro do texto (inline): fica onde está o cursor, também no meio de uma linha
   caret: {
     width: 2,
-    height: 18,
+    height: 16,
     backgroundColor: colors.primary,
     borderRadius: 1,
   },
+  caretEmpty: { marginRight: 2 },
   caretHidden: {
     opacity: 0,
-  },
-  caretStart: {
-    marginRight: 2,
-  },
-  touchEdge: {
-    height: 32,
-    minWidth: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  touchFill: {
-    flex: 1,
-    height: 32,
-    minWidth: 20,
   },
   cursorControls: {
     flexDirection: 'row',

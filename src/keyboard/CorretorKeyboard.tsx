@@ -18,6 +18,8 @@ import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
 import { KeyboardCRM } from './components/KeyboardCRM';
 import { MoreTab } from './components/MoreTab';
+import { KeyboardSizeContext } from './components/ResizeHandle';
+import type { KeyboardSize } from './components/ResizeHandle';
 import { isProductFormOpen, ProductsTab } from './components/ProductsTab';
 import { ShortcutsTab } from './components/ShortcutsTab';
 import { SystemMenuBar } from './components/SystemMenuBar';
@@ -162,6 +164,23 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   bigRef.current = big;
   const tabRef = useRef(tab);
   tabRef.current = tab;
+
+  // Altura atual e limites do teclado, para a barrinha de puxar (ResizeHandle).
+  // Os limites mudam ao girar o celular: relê a cada vez que o teclado abre
+  const keyboardSize = useRef<KeyboardSize>({ height: 350, normal: 350, max: 700 });
+  useEffect(() => {
+    const read = () =>
+      KeyboardBridge.getKeyboardHeights()
+        .then(h => {
+          keyboardSize.current.normal = h.normal;
+          keyboardSize.current.max = h.max;
+        })
+        .catch(() => {});
+    read();
+    return KeyboardBridge.onKeyboardShow(read);
+  }, []);
+  /** A barrinha passou da altura mínima: volta ao teclado de letras. */
+  const collapseToKeyboard = useCallback(() => setTab('keyboard'), []);
   useEffect(() => {
     if (!big) return;
     setExpanded(true);
@@ -435,7 +454,13 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   );
 
   return (
-    <View style={styles.root} testID="corretor-keyboard">
+    <KeyboardSizeContext.Provider value={keyboardSize}>
+    <View
+      style={styles.root}
+      testID="corretor-keyboard"
+      onLayout={e => {
+        keyboardSize.current.height = e.nativeEvent.layout.height;
+      }}>
       {/* Liquid Glass discreto: aurora suave atrás do menu, dos cards e das teclas */}
       <Aurora intensity={0.55} />
       {/* Menu com os botões do sistema SEMPRE VISÍVEL no topo (Agenda e CRM: embaixo) */}
@@ -478,6 +503,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onShare={shareMedia}
             onInsert={insert}
             onExpandedChange={setExpanded}
+            onCollapse={collapseToKeyboard}
             onChanged={onDataChanged}
           />
         )}
@@ -504,6 +530,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
               setTab('agenda');
               setScheduleFor(lead);
             }}
+            onCollapse={collapseToKeyboard}
           />
         )}
         {!translating && loggedIn && tab === 'more' && (
@@ -513,8 +540,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onThemeChange={onThemeChange}
             seller={data.seller}
             onProfileChange={saveProfile}
-            onInsert={insert}
             onExpandedChange={setExpanded}
+            onCollapse={collapseToKeyboard}
           />
         )}
 
@@ -526,6 +553,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       </View>
       {menuAtBottom && menu}
     </View>
+    </KeyboardSizeContext.Provider>
   );
 }
 
@@ -576,7 +604,21 @@ const useStyles = makeStyles(colors => ({
     flex: 1,
   },
   // Fundo sólido: as teclas não aparecem por trás da pergunta
-  confirmSwitch: { position: 'absolute', top: 6, left: 8, right: 8, zIndex: 50, borderRadius: radius.md, backgroundColor: colors.bg, elevation: 6 },
+  // Fundo sólido (canvas): no vidro, bg/surface são transparentes e o texto de baixo aparecia junto
+  confirmSwitch: {
+    position: 'absolute',
+    top: 6,
+    left: 8,
+    right: 8,
+    zIndex: 50,
+    borderRadius: radius.md,
+    backgroundColor: colors.canvas,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
   toast: {
     position: 'absolute',
     bottom: 12,

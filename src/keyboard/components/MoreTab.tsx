@@ -7,8 +7,8 @@ import { KeyboardBridge } from '../../native/KeyboardBridge';
 import { getSegment, SEGMENTS } from '../../segments/segments';
 import type { MoreSubMenu, SellerProfile, ThemePreference } from '../../types';
 import { glassBorder, makeStyles, radius, spacing, touchTarget, useColors } from '../theme';
-import { AICopilotTab } from './AICopilotTab';
 import { Icon, IconTile } from './Icon';
+import { ResizeHandle } from './ResizeHandle';
 
 const THEME_LABEL: Record<ThemePreference, string> = {
   light: 'Claro',
@@ -31,20 +31,21 @@ interface Props {
   seller: SellerProfile;
   /** Salva o perfil (aparelho e nuvem) e recarrega o teclado. */
   onProfileChange: (profile: SellerProfile) => void;
-  onInsert: (text: string) => void;
   onExpandedChange: (expanded: boolean) => void;
+  /** A barrinha de puxar passou da altura mínima: volta ao teclado de letras. */
+  onCollapse?: () => void;
 }
 
 /**
- * Aba "Mais" — IA (respostas sugeridas) e Configurações.
+ * Aba "Mais" — Configurações (a IA saiu por enquanto: ver IMPLEMENTACOES-FUTURAS.md).
  * Agenda e CRM têm botões próprios no menu do teclado.
  */
-export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInsert, onExpandedChange }: Props) {
+export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onExpandedChange, onCollapse }: Props) {
   const colors = useColors();
   const styles = useStyles();
   const [selectedSubMenu, setSelectedSubMenu] = useState<MoreSubMenu>(null);
   const [settings, setSettings] = useState<SettingsScreen>('root');
-  // Num submenu (IA, Configurações), o "voltar" do celular volta uma tela
+  // Em Configurações, o "voltar" do celular volta uma tela
   useKeyboardBack(() => (settings !== 'root' ? setSettings('root') : setSelectedSubMenu(null)), selectedSubMenu !== null);
 
   // Configurações: listas longas (ramos, países), o teclado abre em tela grande
@@ -72,17 +73,6 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
     return (
       <ScrollView contentContainerStyle={styles.menuContainer} keyboardShouldPersistTaps="always">
         <Pressable
-          testID="more-btn-copilot"
-          style={styles.menuOption}
-          onPress={() => setSelectedSubMenu('copilot')}>
-          <IconTile name="ia" size={36} />
-          <View style={styles.menuInfo}>
-            <Text style={styles.menuTitle}>{t('IA')}</Text>
-            <Text style={styles.menuSubtitle}>{t('Respostas sugeridas para a mensagem do cliente')}</Text>
-          </View>
-        </Pressable>
-
-        <Pressable
           testID="more-btn-settings"
           style={styles.menuOption}
           onPress={() => {
@@ -101,17 +91,10 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
     );
   }
 
-  // 1. IA: sugestões de resposta para a mensagem copiada do cliente
-  if (selectedSubMenu === 'copilot') {
-    return (
-      <View style={styles.flex}>
-        {backBar(t('IA'), () => setSelectedSubMenu(null))}
-        <AICopilotTab onInsert={onInsert} />
-      </View>
-    );
-  }
+  // Barrinha no topo de todas as telas de Configurações (no mesmo lugar: não recomeça ao trocar de tela)
+  const handle = onCollapse ? <ResizeHandle id="settings" onCollapse={onCollapse} /> : null;
 
-  // 2. CONFIGURAÇÕES — as mesmas do app (tela Conta), salvas no aparelho e na nuvem
+  // CONFIGURAÇÕES — as mesmas do app (tela Conta), salvas no aparelho e na nuvem
   const toRoot = () => setSettings('root');
   const segment = getSegment(seller.segment);
   const language = seller.language ?? 'pt';
@@ -127,6 +110,7 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
   if (settings === 'theme') {
     return (
       <View style={styles.flex}>
+        {handle}
         {backBar(t('Tema da Interface'), toRoot)}
         <ScrollView contentContainerStyle={styles.options} keyboardShouldPersistTaps="always">
           {THEME_OPTIONS.map(opt => (
@@ -140,6 +124,7 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
   if (settings === 'segment') {
     return (
       <View style={styles.flex}>
+        {handle}
         {backBar(t('Ramo do negócio'), toRoot)}
         <ScrollView contentContainerStyle={styles.options} keyboardShouldPersistTaps="always">
           {SEGMENTS.map(s => {
@@ -164,6 +149,7 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
   if (settings === 'language') {
     return (
       <View style={styles.flex}>
+        {handle}
         {backBar(t('Idioma do app'), toRoot)}
         <ScrollView contentContainerStyle={styles.options} keyboardShouldPersistTaps="always">
           {LANGUAGES.map(l => (
@@ -183,6 +169,7 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
   if (settings === 'market') {
     return (
       <View style={styles.flex}>
+        {handle}
         {backBar(t('Onde você vende?'), toRoot)}
         <ScrollView contentContainerStyle={styles.options} keyboardShouldPersistTaps="always">
           <Text style={styles.sectionTitle}>{t('1. País onde você opera')}</Text>
@@ -227,6 +214,7 @@ export function MoreTab({ theme, onThemeChange, seller, onProfileChange, onInser
   const countryInfo = COUNTRIES.find(c => c.id === country) ?? COUNTRIES[0];
   return (
     <View style={styles.flex}>
+      {handle}
       {backBar(t('Configurações'), () => setSelectedSubMenu(null))}
       <ScrollView contentContainerStyle={styles.options} keyboardShouldPersistTaps="always">
         <SettingRow testID="kb-settings-theme" title={t('Tema da Interface')} value={t(THEME_LABEL[theme])} onPress={() => setSettings('theme')} />

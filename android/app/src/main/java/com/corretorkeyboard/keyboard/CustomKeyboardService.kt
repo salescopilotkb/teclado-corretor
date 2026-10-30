@@ -91,10 +91,11 @@ class CustomKeyboardService : InputMethodService() {
         private const val MIN_LANDSCAPE_HEIGHT_DP = 180
 
         /**
-         * Teclado expandido (CRM em tela grande): ocupa quase a tela toda e
-         * deixa só uma faixa do app em cima, para a pessoa saber onde está.
+         * Teclado expandido (CRM, Configurações, formulários) e o máximo da barrinha
+         * de puxar: deixa uma faixa do app em cima, com o contato do cliente no
+         * WhatsApp à vista (era 0.88; ficava atrás do teclado).
          */
-        private const val EXPANDED_SCREEN_FRACTION = 0.88f
+        private const val EXPANDED_SCREEN_FRACTION = 0.85f
         /** Tamanho intermediário (Atalhos): metade da tela, nunca menor que o normal + 90 dp. */
         private const val TALL_SCREEN_FRACTION = 0.5f
         private const val TALL_EXTRA_DP = 90
@@ -150,6 +151,13 @@ class CustomKeyboardService : InputMethodService() {
      * normal quando o teclado fecha; o JS pede de novo ao reabrir.
      */
     private var heightMode = HEIGHT_NORMAL
+
+    /**
+     * Altura exata pedida pelo JS, em dp (a barrinha de puxar das abas, a tradução
+     * que cresce com o texto). 0 = a altura do heightMode. Fica sempre entre a do
+     * teclado normal e a máxima (EXPANDED_SCREEN_FRACTION da tela).
+     */
+    private var customHeightDp = 0f
 
     // Sugestões do preenchimento automático (Android 11+): por cima da faixa do corretor
     private var autofillStrip: HorizontalScrollView? = null
@@ -343,6 +351,7 @@ class CustomKeyboardService : InputMethodService() {
         // Se mudou de app (outro pacote), volta ao tamanho normal
         if (targetPackage != null && newPackage != null && targetPackage != newPackage) {
             heightMode = HEIGHT_NORMAL
+            customHeightDp = 0f
         }
         targetPackage = newPackage
 
@@ -378,8 +387,10 @@ class CustomKeyboardService : InputMethodService() {
         // Saiu do campo: as sugestões de preenchimento eram dele
         autofillGeneration++
         showAutofill(emptyList())
-        if (heightMode != HEIGHT_NORMAL) {
+        // Ao reabrir, o teclado volta ao normal; o JS pede de novo o tamanho da tela aberta
+        if (heightMode != HEIGHT_NORMAL || customHeightDp > 0f) {
             heightMode = HEIGHT_NORMAL
+            customHeightDp = 0f
             rootContainer?.targetHeightPx = keyboardHeightPx()
         }
         try {
@@ -805,6 +816,19 @@ class CustomKeyboardService : InputMethodService() {
         return true
     }
 
+    /** Altura exata em dp (barrinha de puxar, tradução que cresce); 0 = volta à do heightMode. */
+    fun setCustomHeight(dp: Float): Boolean {
+        customHeightDp = if (dp > 0f) dp else 0f
+        rootContainer?.targetHeightPx = keyboardHeightPx()
+        return true
+    }
+
+    /** Altura mínima (teclado normal) e máxima, em dp, para o JS limitar a barrinha. */
+    fun heightsDp(): Pair<Float, Float> {
+        val density = resources.displayMetrics.density
+        return normalHeightPx() / density to maxHeightPx() / density
+    }
+
     /**
      * Mostra o teclado de novo depois que a galeria, a câmera ou o pedido de
      * permissão (abertos pelo próprio teclado) fecham: o campo da conversa
@@ -834,6 +858,9 @@ class CustomKeyboardService : InputMethodService() {
     private fun keyboardHeightPx(): Int {
         val metrics = resources.displayMetrics
         val portraitPx = (KEYBOARD_HEIGHT_DP * metrics.density).toInt()
+        if (customHeightDp > 0f) {
+            return (customHeightDp * metrics.density).toInt().coerceIn(normalHeightPx(), maxHeightPx())
+        }
         if (heightMode == HEIGHT_EXPANDED) {
             return (metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt().coerceAtLeast(portraitPx)
         }
@@ -845,6 +872,13 @@ class CustomKeyboardService : InputMethodService() {
             val minTall = portraitPx + (TALL_EXTRA_DP * metrics.density).toInt()
             return (metrics.heightPixels * TALL_SCREEN_FRACTION).toInt().coerceAtLeast(minTall)
         }
+        return normalHeightPx()
+    }
+
+    /** Teclado normal (de letras) na orientação atual: o mínimo da barrinha de puxar. */
+    private fun normalHeightPx(): Int {
+        val metrics = resources.displayMetrics
+        val portraitPx = (KEYBOARD_HEIGHT_DP * metrics.density).toInt()
         if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
             return portraitPx
         }
@@ -852,6 +886,10 @@ class CustomKeyboardService : InputMethodService() {
         val fractionPx = (metrics.heightPixels * LANDSCAPE_SCREEN_FRACTION).toInt()
         return fractionPx.coerceIn(minPx, portraitPx)
     }
+
+    /** O maior que o teclado pode ficar: deixa uma faixa do app visível em cima. */
+    private fun maxHeightPx(): Int =
+        (resources.displayMetrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt().coerceAtLeast(normalHeightPx())
 
     private fun emitToJs(event: String, params: Any) {
         try {

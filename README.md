@@ -14,7 +14,7 @@ serviço: cadastre seus produtos com fotos e envie tudo pelo teclado, dentro do 
 ┌──────────── Processo do nosso app ──────────┼──────────────┐
 │ CustomKeyboardService (InputMethodService)  ┘              │
 │   └─ ReactRootView ("CorretorKeyboard")                    │
-│        ├─ Toolbar: ABC | Produtos | Atalhos | IA | Mais     │
+│        ├─ Toolbar: ABC | Produtos | Atalhos | Mais          │
 │        ├─ KeyboardBridge.insertText() ──► commitText()     │
 │        ├─ MMKV (catálogo offline, leitura síncrona)        │
 │        └─ aiService → Clipboard → POST backend → LLM       │
@@ -181,7 +181,7 @@ Copie `src/`, `index.js`, `backend/` e os arquivos de `android/` e `ios/` deste 
 
 ### 3. iOS
 O projeto Xcode é gerado pelo [XcodeGen](https://github.com/yonaskolb/XcodeGen) a partir de
-`ios/project.yml` (o `.xcodeproj` não vai para o git). Precisa de um Mac com Xcode 15.4 (ou 16 até o 16.2).
+`ios/project.yml` (o `.xcodeproj` não vai para o git). Precisa de um Mac com Xcode 15.4 a 16.4 (no 16.3+ o `ios/Podfile` compila a `fmt` em C++17; a CI usa o 16.4 num Mac Intel).
 O app pede iOS 15.5 ou mais novo (mínimo do Google ML Kit, usado na tradução do teclado).
 1. `brew install xcodegen` (uma vez).
 2. `cd ios && xcodegen generate && pod install`.
@@ -207,7 +207,8 @@ O que já vem pronto no projeto:
 - CI: `.github/workflows/build-ios.yml` compila app + teclado para iPhone, sem assinatura,
   a cada commit e gera o `.ipa` sem assinatura (artefato `KEYCON-iOS-sem-assinatura-v…-ipa`).
 
-### 4. Backend de IA
+### 4. Backend de IA (fora do app por enquanto)
+A IA saiu do app e do teclado; o código ficou guardado. Como religar: `IMPLEMENTACOES-FUTURAS.md`.
 ```bash
 OPENAI_API_KEY=sk-... npm run backend
 ```

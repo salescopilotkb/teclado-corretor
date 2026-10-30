@@ -32,6 +32,7 @@ import { UploadStatus, useUploader } from '../../app/components/MediaUpload';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, useColors } from '../theme';
 import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
+import { ResizeHandle } from './ResizeHandle';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
 import { DEMO_MODE } from '../../config/demo';
@@ -50,6 +51,8 @@ interface Props {
   onInsert: (text: string) => void;
   /** Os formulários (nome da pasta...) abrem com o teclado em tela grande. */
   onExpandedChange: (expanded: boolean) => void;
+  /** A barrinha de puxar passou da altura mínima: volta ao teclado de letras. */
+  onCollapse?: () => void;
   /** Depois de gravar: relê os dados. */
   onChanged: () => void;
 }
@@ -63,7 +66,7 @@ type Screen =
   | { name: 'move'; kind: 'file' | 'folder'; id: string }
   | { name: 'name'; kind: 'new-folder' | 'rename-folder' | 'rename-file'; id?: string };
 
-export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChange, onChanged }: Props) {
+export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChange, onCollapse, onChanged }: Props) {
   /** Pasta aberta (null = início). */
   const [folderId, setFolderId] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'browse' });
@@ -274,7 +277,10 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     }
   }
 
+  // Lista de arquivos: a barrinha no topo puxa o teclado para a altura que a pessoa quiser
   return (
+    <View style={{ flex: 1 }}>
+      {onCollapse && <ResizeHandle id="files" onCollapse={onCollapse} />}
     <Browser
       files={files}
       folderId={folder ? folderId : null}
@@ -289,6 +295,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
       onFolderOptions={() => setScreen({ name: 'folder-options' })}
       onSearch={() => setScreen({ name: 'search' })}
     />
+    </View>
   );
 }
 
