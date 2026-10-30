@@ -7,12 +7,16 @@ import type { LocalMedia, UploadedMedia } from '../services/mediaUpload';
 import { formatDuration } from '../services/mediaUpload';
 import type { FileFolder, FilesData, SavedFile } from '../types';
 
+/** Nome da seção (marca do KEYCON): o mesmo em português, inglês e espanhol, sem tradução. */
+export const LOCKER_NAME = 'Locker';
+
 export function newFileId(): string {
   return `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/** Também é a chave da pasta na nuvem (Locker): não pode repetir entre aparelhos. */
 export function newFileFolderId(): string {
-  return `ffolder-${Date.now()}`;
+  return `ffolder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -44,9 +48,9 @@ export function folderPath(data: FilesData, folderId: string | null): FileFolder
   return path;
 }
 
-/** "Arquivos › Clientes › Fotos" (ou só "Arquivos" na raiz). */
+/** "Locker › Clientes › Fotos" (ou só "Locker" na raiz). */
 export function folderPathLabel(data: FilesData, folderId: string | null): string {
-  return [t('Arquivos'), ...folderPath(data, folderId).map(f => f.name)].join(' › ');
+  return [LOCKER_NAME, ...folderPath(data, folderId).map(f => f.name)].join(' › ');
 }
 
 /** A pasta e todas as subpastas dela (para não mover uma pasta para dentro dela mesma). */
@@ -111,10 +115,20 @@ export function savedFileFrom(media: LocalMedia, uploaded: UploadedMedia, folder
     storagePath: uploaded.storagePath,
     duration: formatDuration(media.durationMs) || undefined,
     createdAt: new Date().toISOString(),
+    mime: uploaded.mime ?? media.mimeType,
+    size: uploaded.size ?? media.size,
+    urlExpiresAt: uploaded.expiresAt,
   };
 }
 
-/** Texto que vai para a conversa quando o app não recebe o arquivo. */
+/**
+ * Texto que vai para a conversa quando o app não recebe o arquivo. Usa o link
+ * permanente do Locker (abre sem login); o link do R2 venceria em 7 dias.
+ */
 export function fileLink(file: SavedFile): string {
-  return `[${tSell(file.type === 'image' ? 'Foto' : 'Vídeo')}] ${file.title}: ${file.url}`;
+  const url = file.shareToken ? `${LOCKER_WEB_URL}/f/${file.shareToken}` : file.url;
+  return `[${tSell(file.type === 'image' ? 'Foto' : 'Vídeo')}] ${file.title}: ${url}`;
 }
+
+/** Endereço do Locker web (links públicos de arquivos e pastas). */
+export const LOCKER_WEB_URL = 'https://locker.keyconapp.com';

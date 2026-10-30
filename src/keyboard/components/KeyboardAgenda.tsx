@@ -25,6 +25,7 @@ import { Header } from './KeyboardCRM';
 import { ChoiceRow, KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
 import { MonthCalendar, monthOf } from './MonthCalendar';
+import { ResizeHandle } from './ResizeHandle';
 
 interface Props {
   agenda: ScheduleItem[];
@@ -34,9 +35,11 @@ interface Props {
   onChanged: () => void;
   /** Veio do CRM ("Agendar"): abre direto o cadastro com o cliente. */
   presetClient?: CRMLead | null;
+  /** A gaveta foi puxada para baixo: volta ao teclado de letras. */
+  onCollapse?: () => void;
 }
 
-export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onChanged, presetClient }: Props) {
+export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onChanged, presetClient, onCollapse }: Props) {
   const [selected, setSelected] = useState(todayISO());
   const [view, setView] = useState(() => monthOf(todayISO()));
   const [form, setForm] = useState<{ item: ScheduleItem | null } | null>(() => (presetClient ? { item: null } : null));
@@ -64,7 +67,10 @@ export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onC
     );
   }
 
+  // Calendário: a barrinha no topo é uma gaveta (puxar para baixo volta ao teclado)
   return (
+    <View style={{ flex: 1 }}>
+      {onCollapse && <ResizeHandle id="agenda" mode="drawer" onCollapse={onCollapse} />}
     <AgendaCalendar
       agenda={agenda || []}
       leads={leads || []}
@@ -81,6 +87,7 @@ export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onC
       }}
       onInsert={onInsert}
     />
+    </View>
   );
 }
 

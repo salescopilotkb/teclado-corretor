@@ -24,6 +24,7 @@ import { UploadStatus, useUploader } from '../../app/components/MediaUpload';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../theme';
 import { CoralSheen } from './Glass';
 import { Icon } from './Icon';
+import { ResizeHandle } from './ResizeHandle';
 import { ItemCard } from './ItemCard';
 import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
@@ -44,6 +45,8 @@ interface Props {
   onShareWithCaption: (urls: string[], caption: string) => void;
   /** Os formulários abrem com o teclado em tela grande. */
   onExpandedChange: (expanded: boolean) => void;
+  /** A barrinha de puxar passou da altura mínima: volta ao teclado de letras. */
+  onCollapse?: () => void;
   /** Depois de gravar: relê os dados. */
   onChanged: () => void;
 }
@@ -75,7 +78,7 @@ export function isProductFormOpen(): boolean {
   return activeProductDraft !== null;
 }
 
-export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWithCaption, onExpandedChange, onChanged }: Props) {
+export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWithCaption, onExpandedChange, onCollapse, onChanged }: Props) {
   /** Pasta aberta (null = lista de pastas). */
   const [folderId, setFolderId] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>(() => {
@@ -244,7 +247,10 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWi
     }
   }
 
+  // Lista de pastas e produtos: a barrinha no topo puxa o teclado para a altura que a pessoa quiser
   return (
+    <View style={{ flex: 1 }}>
+      {onCollapse && <ResizeHandle id="products" onCollapse={onCollapse} />}
     <Browser
       folders={folders}
       folder={folder}
@@ -258,6 +264,7 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWi
       onSearch={() => setScreen({ name: 'search' })}
       onUseProduct={useProduct}
     />
+    </View>
   );
 }
 

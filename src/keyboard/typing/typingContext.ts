@@ -22,6 +22,11 @@ const NO_ASSIST_VARIATIONS = new Set([0x10, 0x20, 0x80, 0x90, 0xb0, 0xd0, 0xe0])
 const FLAG_NO_SUGGESTIONS = 0x80000;
 /** Campo de nome: cada palavra começa com maiúscula ("Joana Lima"). */
 const FLAG_CAP_WORDS = 0x2000;
+/**
+ * Marca do KEYCON (fora das do Android) para os campos do próprio teclado, como a
+ * busca: sem maiúscula automática, mas com sugestões e correção.
+ */
+export const NO_AUTO_CAPS = 0x1000000;
 
 /** Variação de emoji (❤️), tom de pele (👍🏽) e tecla (1️⃣): grudam no anterior. */
 const isEmojiModifier = (c: string) => {
@@ -148,7 +153,7 @@ export class TypingContext {
    * Em campo de nome, também o começo de cada palavra.
    */
   atSentenceStart(): boolean {
-    if (!this.allowsAutoCapital()) return false;
+    if (!this.allowsAutoCapital() || (this.inputType & NO_AUTO_CAPS) !== 0) return false;
     const b = this.before;
     if ((this.inputType & FLAG_CAP_WORDS) !== 0 && /(^|\s)$/.test(b)) return true;
     return b.trim() === '' || /[.!?…]\s+$/.test(b) || /\n\s*$/.test(b);

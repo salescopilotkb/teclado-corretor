@@ -5,7 +5,7 @@
  * Mais, na ordem que o usuário escolher (segurar e arrastar).
  */
 import { t, tSell } from '../i18n';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { KeyboardBridge } from '../native/KeyboardBridge';
 import { keyboardBack, useKeyboardBack } from '../navigation/back';
@@ -14,12 +14,13 @@ import { LoginRequiredPanel } from './components/LoginRequiredPanel';
 import { Repo } from '../storage/storage';
 import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, SellerProfile, ThemePreference } from '../types';
 import { pushProfile } from '../services/auth';
+import { onLockerChange, pullLocker, startLockerSync } from '../files/locker';
 import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
 import { KeyboardCRM } from './components/KeyboardCRM';
 import { MoreTab } from './components/MoreTab';
 import { KeyboardSizeContext } from './components/ResizeHandle';
-import type { KeyboardSize } from './components/ResizeHandle';
+import type { KeyboardSizeState } from './components/ResizeHandle';
 import { isProductFormOpen, ProductsTab } from './components/ProductsTab';
 import { ShortcutsTab } from './components/ShortcutsTab';
 import { SystemMenuBar } from './components/SystemMenuBar';
@@ -113,6 +114,21 @@ interface ContentProps {
 }
 
 function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged }: ContentProps) {
+  // Locker: com login, os Arquivos sincronizam com a nuvem (e chegam na hora o que
+  // mudou no app, em outro aparelho ou no Locker web); ao abrir o teclado, confere de novo
+  useEffect(() => {
+    if (!loggedIn) return;
+    const stop = startLockerSync();
+    const offChange = onLockerChange(onDataChanged);
+    const offShow = KeyboardBridge.onKeyboardShow(() => {
+      pullLocker().catch(() => {});
+    });
+    return () => {
+      stop();
+      offChange();
+      offShow();
+    };
+  }, [loggedIn, onDataChanged]);
   useLanguage();
   const styles = useStyles();
 
@@ -167,7 +183,11 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
 
   // Altura atual e limites do teclado, para a barrinha de puxar (ResizeHandle).
   // Os limites mudam ao girar o celular: relê a cada vez que o teclado abre
-  const keyboardSize = useRef<KeyboardSize>({ height: 350, normal: 350, max: 700 });
+  // offset: a gaveta (Agenda, CRM) desce a área das abas junto com o dedo
+  const keyboardSize = useMemo<KeyboardSizeState>(
+    () => ({ current: { height: 350, normal: 350, max: 700 }, offset: new Animated.Value(0) }),
+    [],
+  );
   useEffect(() => {
     const read = () =>
       KeyboardBridge.getKeyboardHeights()
@@ -178,9 +198,16 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
         .catch(() => {});
     read();
     return KeyboardBridge.onKeyboardShow(read);
-  }, []);
-  /** A barrinha passou da altura mínima: volta ao teclado de letras. */
-  const collapseToKeyboard = useCallback(() => setTab('keyboard'), []);
+  }, [keyboardSize]);
+  /**
+   * A barrinha passou da altura mínima (ou a gaveta foi puxada para baixo): volta ao
+   * teclado de letras com um leve bounce (entra um pouco abaixo e assenta).
+   */
+  const collapseToKeyboard = useCallback(() => {
+    setTab('keyboard');
+    keyboardSize.offset.setValue(22);
+    Animated.spring(keyboardSize.offset, { toValue: 0, friction: 4, tension: 90, useNativeDriver: true }).start();
+  }, [keyboardSize]);
   useEffect(() => {
     if (!big) return;
     setExpanded(true);
@@ -438,7 +465,6 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   useKeyboardBack(() => handleTabChange('keyboard'), tab !== 'keyboard' && !translating);
 
   // Agenda e CRM abrem em tela grande: o menu desce, perto do polegar, e a área fica mais livre
-  const menuAtBottom = big && !translating;
   const menu = (
     <SystemMenuBar
       active={tab}
@@ -449,7 +475,6 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       translating={translating}
       onTranslate={() => setTranslating(v => !v)}
       onSwitchKeyboard={() => setConfirmSwitch(v => !v)}
-      atBottom={menuAtBottom}
     />
   );
 
@@ -463,11 +488,11 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       }}>
       {/* Liquid Glass discreto: aurora suave atrás do menu, dos cards e das teclas */}
       <Aurora intensity={0.55} />
-      {/* Menu com os botões do sistema SEMPRE VISÍVEL no topo (Agenda e CRM: embaixo) */}
-      {!menuAtBottom && menu}
+      {/* Menu com os botões do sistema sempre no topo, em todas as abas */}
+      {menu}
 
-      {/* Área de conteúdo: teclado de letras ou área de vendas */}
-      <View style={styles.content}>
+      {/* Área de conteúdo: teclado de letras ou área de vendas (desce com a gaveta) */}
+      <Animated.View style={[styles.content, { transform: [{ translateY: keyboardSize.offset }] }]}>
         {translating && <TranslatePanel onClose={() => setTranslating(false)} />}
         {confirmSwitch && (
           <SwitchConfirm
@@ -490,11 +515,12 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onShare={shareMedia}
             onShareWithCaption={shareWithCaption}
             onExpandedChange={setExpanded}
+            onCollapse={collapseToKeyboard}
             onChanged={onDataChanged}
           />
         )}
         {!translating && loggedIn && tab === 'shortcuts' && (
-          <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} onHeightChange={setHeightMode} onChanged={onDataChanged} />
+          <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} onHeightChange={setHeightMode} onCollapse={collapseToKeyboard} onChanged={onDataChanged} />
         )}
         {!translating && loggedIn && tab === 'files' && (
           <FilesTab
@@ -515,6 +541,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onInsert={sendAndClose}
             onChanged={onDataChanged}
             onClose={() => handleTabChange('keyboard')}
+            onCollapse={collapseToKeyboard}
           />
         )}
         {!translating && loggedIn && tab === 'crm' && (
@@ -550,8 +577,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             <Text style={styles.toastText}>{toast}</Text>
           </Animated.View>
         )}
-      </View>
-      {menuAtBottom && menu}
+      </Animated.View>
     </View>
     </KeyboardSizeContext.Provider>
   );
@@ -599,6 +625,8 @@ const useStyles = makeStyles(colors => ({
   root: {
     flex: 1,
     backgroundColor: colors.canvas,
+    // A gaveta desce a área das abas: o que passa da borda não aparece
+    overflow: 'hidden',
   },
   content: {
     flex: 1,

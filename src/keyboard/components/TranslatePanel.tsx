@@ -491,13 +491,13 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
                       if (caretRef.current >= textRef.current.length) scrollRef.current?.scrollToEnd({ animated: false });
                     }}>
                     <Text style={styles.fieldText} onPress={() => setCaret(text.length)} suppressHighlighting>
-                      {caretPos === 0 && <View style={[styles.caret, !caretVisible && styles.caretHidden]} />}
+                      {caretPos === 0 && <Text style={[styles.caretText, !caretVisible && styles.caretTextHidden]}>|</Text>}
                       {spans.map((s, idx) => (
                         <React.Fragment key={`${s.start}-${idx}`}>
                           <Text onPress={() => setCaret(s.end)} suppressHighlighting>
                             {s.char}
                           </Text>
-                          {caretPos === s.end && <View style={[styles.caret, !caretVisible && styles.caretHidden]} />}
+                          {caretPos === s.end && <Text style={[styles.caretText, !caretVisible && styles.caretTextHidden]}>|</Text>}
                         </React.Fragment>
                       ))}
                     </Text>
@@ -666,7 +666,11 @@ const useStyles = makeStyles(colors => ({
     height: '100%',
     paddingLeft: spacing.xs,
   },
-  // Dentro do texto (inline): fica onde está o cursor, também no meio de uma linha
+  // Cursor dentro do texto: um "|" laranja (uma View dentro do Text não aparecia no
+  // celular). Para piscar fica transparente, sem mudar de largura: o texto não pula
+  caretText: { color: colors.primary, fontWeight: '300', letterSpacing: -1 },
+  caretTextHidden: { color: 'transparent' },
+  // Cursor do campo vazio (fora do texto)
   caret: {
     width: 2,
     height: 16,

@@ -57,7 +57,12 @@ export function useUploader() {
   const busy = useRef(false);
 
   const run = useCallback(
-    async (pick: () => Promise<LocalMedia | null>, onDone: (uploaded: UploadedMedia, media: LocalMedia) => void) => {
+    async (
+      pick: () => Promise<LocalMedia | null>,
+      onDone: (uploaded: UploadedMedia, media: LocalMedia) => void,
+      /** Para onde vai (padrão: bucket "media"; Arquivos usa o Locker, no R2). */
+      upload: typeof uploadMedia = uploadMedia,
+    ) => {
       if (busy.current) return;
       busy.current = true;
       setError(null);
@@ -66,7 +71,7 @@ export function useUploader() {
         const media = await pick();
         if (!media) return;
         setUploading({ name: media.name, progress: 0 });
-        const uploaded = await uploadMedia(media, progress => setUploading({ name: media.name, progress }));
+        const uploaded = await upload(media, progress => setUploading({ name: media.name, progress }));
         onDone(uploaded, media);
       } catch (e) {
         // t(): as mensagens do Android (galeria do teclado) chegam em português

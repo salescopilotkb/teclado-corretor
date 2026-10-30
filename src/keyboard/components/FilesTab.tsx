@@ -22,7 +22,9 @@ import {
   newFileFolderId,
   savedFileFrom,
   subfolders,
+  LOCKER_NAME,
 } from '../../files/files';
+import { lockerDeleteFile, lockerDeleteFolder, lockerSaveFile, lockerSaveFolder, uploadToLocker } from '../../files/locker';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { KeyboardPickSource } from '../../native/KeyboardBridge';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
@@ -94,9 +96,11 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     uploader.run(
       () => KeyboardBridge.pickMedia(source),
       (uploaded, media) => {
-        Repo.saveFile(savedFileFrom(media, uploaded, target));
+        lockerSaveFile(savedFileFrom(media, uploaded, target));
         onChanged();
       },
+      // Arquivos vão para o Locker (Cloudflare R2)
+      uploadToLocker,
     );
   };
 
@@ -125,14 +129,14 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
         onSave={name => {
           if (screen.kind === 'new-folder') {
             const id = newFileFolderId();
-            Repo.saveFileFolder({ id, name, parentId: folderId, createdAt: new Date().toISOString() });
+            lockerSaveFolder({ id, name, parentId: folderId, createdAt: new Date().toISOString() });
             // Fica na lista de pastas, onde a nova aparece (abrir direto confundia)
             browse();
           } else if (screen.kind === 'rename-folder' && folder) {
-            Repo.saveFileFolder({ ...folder, name });
+            lockerSaveFolder({ ...folder, name });
             browse();
           } else if (file) {
-            Repo.saveFile({ ...file, title: name });
+            lockerSaveFile({ ...file, title: name });
             setScreen({ name: 'file', id: file.id });
           }
           onChanged();
@@ -222,8 +226,8 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
         current={current ?? null}
         onCancel={() => (isFolder ? setScreen({ name: 'folder-options' }) : setScreen({ name: 'file', id: screen.id }))}
         onMove={to => {
-          if ('parentId' in moving) Repo.saveFileFolder({ ...moving, parentId: to });
-          else Repo.saveFile({ ...moving, folderId: to });
+          if ('parentId' in moving) lockerSaveFolder({ ...moving, parentId: to });
+          else lockerSaveFile({ ...moving, folderId: to });
           onChanged();
           if (isFolder) browse();
           else {
@@ -245,7 +249,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
         onRename={() => setScreen({ name: 'name', kind: 'rename-folder' })}
         onMove={() => setScreen({ name: 'move', kind: 'folder', id: folder.id })}
         onDelete={() => {
-          const removed = Repo.deleteFileFolder(folder.id);
+          const removed = lockerDeleteFolder(folder.id);
           removed.forEach(f => deleteUploadedMedia(f.storagePath));
           setFolderId(folder.parentId);
           browse();
@@ -267,7 +271,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
           onRename={() => setScreen({ name: 'name', kind: 'rename-file', id: file.id })}
           onMove={() => setScreen({ name: 'move', kind: 'file', id: file.id })}
           onDelete={() => {
-            Repo.deleteFile(file.id);
+            lockerDeleteFile(file.id);
             deleteUploadedMedia(file.storagePath);
             browse();
             onChanged();
@@ -358,7 +362,7 @@ function Browser({
             </View>
           </Pressable>
         ) : (
-          <Text style={[styles.barTitle, styles.barTitleRoot]}>{t('Arquivos')}</Text>
+          <Text style={[styles.barTitle, styles.barTitleRoot]}>{LOCKER_NAME}</Text>
         )}
         {current && <BarButton testID="files-folder-options" icon="editar" label={t('Editar pasta')} onPress={onFolderOptions} />}
         <BarButton testID="files-new-folder" icon="novaPasta" label={current ? t('Nova subpasta') : t('Nova pasta')} onPress={onNewFolder} />

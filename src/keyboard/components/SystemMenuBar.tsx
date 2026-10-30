@@ -11,7 +11,8 @@ import { Icon } from './Icon';
 import { KeyconLogo } from './KeyconLogo';
 
 const BUTTONS: Record<MenuTab, { label: string; icon: IconName }> = {
-  files: { label: 'Arquivos', icon: 'galeria' },
+  // Locker é marca: o mesmo nome nos 3 idiomas (t() não tem tradução para ele)
+  files: { label: 'Locker', icon: 'galeria' },
   products: { label: 'Produtos', icon: 'arquivos' },
   shortcuts: { label: 'Atalhos', icon: 'atalhos' },
   agenda: { label: 'Agenda', icon: 'calendario' },
@@ -40,8 +41,6 @@ interface Props {
   onTranslate: () => void;
   /** Botão 🌐: voltar ao teclado padrão do sistema (pergunta antes). */
   onSwitchKeyboard: () => void;
-  /** Agenda e CRM (tela grande): o menu fica embaixo, perto do polegar. */
-  atBottom?: boolean;
 }
 
 /**
@@ -56,7 +55,7 @@ interface Props {
  * Segurar um botão por 1 segundo: o teclado vibra, o botão descola do fundo
  * e acompanha o dedo; soltar em outra posição muda a ordem (fica salva).
  */
-export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate, onSwitchKeyboard, atBottom }: Props) => {
+export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate, onSwitchKeyboard }: Props) => {
   const colors = useColors();
   const styles = useStyles();
   const keyboardActive = active === 'keyboard' && !translating;
@@ -184,7 +183,7 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
   };
 
   return (
-    <View style={[styles.wrap, atBottom && styles.wrapBottom]} testID="system-menu-bar">
+    <View style={styles.wrap} testID="system-menu-bar">
       <View style={styles.head}>
         {dragging ? (
           <Text style={styles.dragHint} numberOfLines={1}>
@@ -272,7 +271,6 @@ const useStyles = makeStyles(colors => ({
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },
-  wrapBottom: { borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: colors.divider },
   head: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -3,9 +3,10 @@
  *
  * Como nos formulários do teclado, o campo é só um visor: o teclado de letras
  * do KEYCON escreve nele (um TextInput tiraria o foco da conversa). Os
- * resultados filtram a cada letra; sem maiúscula nem correção automática.
+ * resultados filtram a cada letra. Sem maiúscula automática, mas com o corretor;
+ * o cursor (laranja) anda tocando numa letra ou nas setas ‹ ›.
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useKeyboardBack } from '../../navigation/back';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -73,6 +74,22 @@ export function SearchPanel({
   const form = useKeyboardForm(SEARCH_FIELD, { q: '' });
   const query = form.values.q ?? '';
   const results = query.trim() ? children(query) : null;
+  const chars = Array.from(query);
+  // Posição do cursor em letras (o texto pode ter emoji: 2 unidades numa letra só)
+  const caretChar = Array.from(query.slice(0, form.caret)).length;
+  const moveTo = (charIndex: number) => {
+    form.moveCaret(chars.slice(0, Math.max(0, charIndex)).join('').length);
+    // O teclado de letras relê o texto até o cursor (sugestões e correção)
+    setMoved(m => m + 1);
+  };
+  const [moved, setMoved] = useState(0);
+  // Cursor piscando, como no tradutor
+  const [blink, setBlink] = useState(true);
+  useEffect(() => {
+    const timer = setInterval(() => setBlink(b => !b), 530);
+    return () => clearInterval(timer);
+  }, []);
+  const caretMark = <Text style={[styles.caretText, !blink && styles.caretHidden]}>|</Text>;
   return (
     <View style={styles.flex} testID={testID}>
       <View style={styles.bar}>
@@ -82,22 +99,58 @@ export function SearchPanel({
         <View style={styles.field} testID="search-field">
           <Icon name="busca" size={18} color={colors.primaryText} />
           <View style={styles.valueRow}>
-            <Text style={[styles.value, !query && styles.placeholder]} numberOfLines={1}>
-              {query || placeholder}
-            </Text>
-            {!!query && <View style={styles.caret} />}
+            {query ? (
+              // Toque numa letra: o cursor vai para depois dela; no espaço vazio, para o fim
+              <Text style={styles.value} numberOfLines={1} ellipsizeMode="head" onPress={() => moveTo(chars.length)} suppressHighlighting>
+                {caretChar === 0 && caretMark}
+                {chars.map((c, i) => (
+                  <React.Fragment key={i}>
+                    <Text onPress={() => moveTo(i + 1)} suppressHighlighting>
+                      {c}
+                    </Text>
+                    {caretChar === i + 1 && caretMark}
+                  </React.Fragment>
+                ))}
+              </Text>
+            ) : (
+              <Text style={[styles.value, styles.placeholder]} numberOfLines={1}>
+                {placeholder}
+              </Text>
+            )}
           </View>
           {!!query && (
-            <Pressable testID="search-clear" accessibilityRole="button" accessibilityLabel={t('Limpar')} hitSlop={8} onPress={() => form.setValue('q', '')}>
-              <Icon name="fechar" size={18} color={colors.textMuted} />
-            </Pressable>
+            <View style={styles.cursorControls}>
+              <Pressable
+                testID="search-caret-left"
+                accessibilityRole="button"
+                accessibilityLabel={t('Voltar caractere')}
+                hitSlop={6}
+                disabled={caretChar === 0}
+                style={[styles.cursorBtn, caretChar === 0 && styles.cursorBtnDisabled]}
+                onPress={() => moveTo(caretChar - 1)}>
+                <Text style={styles.cursorBtnText}>‹</Text>
+              </Pressable>
+              <Pressable
+                testID="search-caret-right"
+                accessibilityRole="button"
+                accessibilityLabel={t('Avançar caractere')}
+                hitSlop={6}
+                disabled={caretChar >= chars.length}
+                style={[styles.cursorBtn, caretChar >= chars.length && styles.cursorBtnDisabled]}
+                onPress={() => moveTo(caretChar + 1)}>
+                <Text style={styles.cursorBtnText}>›</Text>
+              </Pressable>
+              <Pressable testID="search-clear" accessibilityRole="button" accessibilityLabel={t('Limpar')} hitSlop={8} onPress={() => form.setValue('q', '')}>
+                <Icon name="fechar" size={18} color={colors.textMuted} />
+              </Pressable>
+            </View>
           )}
         </View>
       </View>
       <ScrollView style={styles.flex} contentContainerStyle={styles.results} keyboardShouldPersistTaps="always">
         {results ?? <Text style={styles.hint}>{t('Digite para buscar.')}</Text>}
       </ScrollView>
-      <KeyboardFormKeys sink={form.sink} activeKey="q" spec={SEARCH_FIELD[0]} />
+      <KeyboardFormKeys sink={form.sink} activeKey={`q-${moved}`} spec={SEARCH_FIELD[0]} />
     </View>
   );
 }
@@ -154,7 +207,20 @@ const useStyles = makeStyles(colors => ({
   },
   valueRow: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   value: { fontSize: 15, color: colors.text, flexShrink: 1 },
-  caret: { width: 2, height: 18, backgroundColor: colors.primary, marginLeft: 1 },
+  // Cursor: um "|" laranja dentro do texto; para piscar fica transparente (sem mudar de largura)
+  caretText: { color: colors.primary, fontWeight: '300', letterSpacing: -1 },
+  caretHidden: { color: 'transparent' },
+  cursorControls: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  cursorBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
+  },
+  cursorBtnDisabled: { opacity: 0.35 },
+  cursorBtnText: { fontSize: 18, lineHeight: 20, fontWeight: '600', color: colors.text },
   results: { padding: spacing.sm },
   hint: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: spacing.lg, paddingHorizontal: spacing.lg },
   section: { fontSize: 12, fontWeight: '600', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.xs },

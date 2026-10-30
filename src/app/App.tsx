@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { pullProfile, restoreSession, signOut, startAuthSync } from '../services/auth';
+import { startLockerSync } from '../files/locker';
 import { supabase } from '../services/supabase';
 import { getSegment } from '../segments/segments';
 import { Repo } from '../storage/storage';
@@ -101,6 +102,12 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     },
     isAuthenticated && !showTutorial && currentTab !== 'home',
   );
+
+  // Locker: com login, os Arquivos sincronizam com a nuvem (Cloudflare R2 + tempo real)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    return startLockerSync();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const stopSync = startAuthSync();
@@ -327,7 +334,7 @@ const useStyles = makeStyles(colors => ({
     borderRadius: radius.pill,
   },
   navLabel: {
-    // 6 itens: 11 px para "Arquivos" e "Clientes" caberem num celular de 360 dp
+    // 11 px para "Clientes" e "Locker" caberem num celular de 360 dp
     fontSize: 11,
     color: colors.textSecondary,
     fontWeight: '500',

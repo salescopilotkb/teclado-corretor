@@ -84,6 +84,11 @@ Você vai continuar o desenvolvimento do **KEYCON**, um app de vendas com teclad
 - Cliente de exemplo, **Jessica Miller**: abre com 2 mensagens e responde 3 vezes, uma depois de cada mensagem do vendedor, com "typing…" no topo.
 - Pacote para o HostGator: monte `hostgator/` com o conteúdo de `landing/` (sem `three.min.js`) mais `dist/` dentro de `hostgator/app/`, e compacte em `keyconapp-public_html.zip` na raiz do projeto. As duas pastas estão no `.gitignore`. O usuário sobe o .zip em public_html e extrai.
 
+## Locker (30/10/2026)
+- A seção Arquivos vai virar o **Locker**: um "Google Drive" do KEYCON em locker.keyconapp.com, com o mesmo login, sincronizado em tempo real com o app e o teclado. Planos de 5, 20 e 100 GB por usuário.
+- Decidido: **Supabase** para login e organização (tabelas `locker_*`) + **Cloudflare R2** para os arquivos (sem custo de download). Já feito: `supabase/locker.sql`, a Edge Function `supabase/functions/locker` e `src/files/locker.ts` (envio para o R2, fila, tempo real). Sem migração: dados de teste, o Locker começa do zero (`supabase/locker-reset.sql` limpa a nuvem). Como ligar: `docs/LOCKER-SETUP.md`.
+- O dono respondeu as 15 perguntas e quer **uma tarefa por resposta, feita uma de cada vez, perguntando antes de seguir**. Feitas: 1 (nome "Locker"), 2 (abrir o Locker web logado pelo app: Edge Function `locker-handoff`) e 3 (sem migração). Faltam: 4, 5, 6, 7, 8 (site com as funções do Drive), 9 a 15.
+
 ## Implementações futuras (30/10/2026)
 - **A IA (sugestões de resposta) saiu do app, do site, da política e da loja**, junto com o login com Google/Apple e o Google Meet. Tudo o que saiu, o código guardado e como religar está em `IMPLEMENTACOES-FUTURAS.md`. Não religue sem eu pedir.
 

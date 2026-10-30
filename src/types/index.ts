@@ -178,11 +178,18 @@ export interface CRMLead {
 }
 
 /** Pasta da seção Arquivos. parentId null = pasta na raiz. */
+/** Quem vê a pasta pelo Locker: só o dono, quem tem o link, ou também a vitrine pública. */
+export type FolderVisibility = 'private' | 'link' | 'public';
+
 export interface FileFolder {
   id: string;
   name: string;
   parentId: string | null;
   createdAt: string;
+  /** Sem valor = privada (padrão). */
+  visibility?: FolderVisibility;
+  /** Código do link público da pasta (locker.keyconapp.com/d/<código>); vem da nuvem. */
+  shareToken?: string;
 }
 
 /** Foto ou vídeo guardado na seção Arquivos (fora do catálogo). */
@@ -193,10 +200,20 @@ export interface SavedFile {
   type: 'image' | 'video';
   title: string;
   url: string;
-  /** Caminho no Storage quando o arquivo foi enviado pelo app ou pelo teclado (vazio = link externo). */
+  /**
+   * Onde está o arquivo: "r2:<caminho>" no Cloudflare R2 (Locker), "<caminho>" no
+   * bucket "media" do Supabase (versão antiga) ou vazio para link externo.
+   */
   storagePath?: string;
   duration?: string;
   createdAt: string;
+  /** Tipo do conteúdo (image/jpeg...) e tamanho em bytes: o Locker conta o espaço do plano. */
+  mime?: string;
+  size?: number;
+  /** R2: o `url` é um link temporário; vale até aqui (ms) e o app renova antes de vencer. */
+  urlExpiresAt?: number;
+  /** Código do link público do arquivo (locker.keyconapp.com/f/<código>): abre sem login. Vem da nuvem. */
+  shareToken?: string;
 }
 
 /** Seção Arquivos: pastas, subpastas e os arquivos (mesmo dado no app e no teclado). */

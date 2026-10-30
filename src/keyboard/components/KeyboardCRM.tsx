@@ -143,10 +143,10 @@ export function KeyboardCRM({ segment, leads = [], agenda = [], onInsert, onClos
     }
   }
 
-  // Lista de clientes: a barrinha no topo puxa o teclado para a altura que a pessoa quiser
+  // Lista de clientes: a barrinha no topo é uma gaveta (puxar para baixo volta ao teclado)
   return (
     <View style={{ flex: 1 }}>
-      {onCollapse && <ResizeHandle id="crm" onCollapse={onCollapse} />}
+      {onCollapse && <ResizeHandle id="crm" mode="drawer" onCollapse={onCollapse} />}
     <LeadList
       segment={segment}
       leads={safeLeads}

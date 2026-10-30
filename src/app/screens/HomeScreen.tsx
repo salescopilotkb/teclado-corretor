@@ -10,6 +10,7 @@ import { IconTile } from '../../keyboard/components/Icon';
 import { makeStyles, spacing, useColors } from '../../keyboard/theme';
 import { getSegment } from '../../segments/segments';
 import { Repo } from '../../storage/storage';
+import { LOCKER_NAME } from '../../files/files';
 import {
   Button,
   Card,
@@ -161,7 +162,7 @@ function HomeRoot({ steps, keyboardReady, keyboardHalfway, onSection, onNavigate
         <MenuRow
           testID="home-files"
           icon="galeria"
-          title={t('Arquivos')}
+          title={LOCKER_NAME}
           subtitle={t('Pastas com fotos e vídeos')}
           value={`${files.files.length}`}
           onPress={() => onNavigate('files')}

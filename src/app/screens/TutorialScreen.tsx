@@ -44,8 +44,8 @@ function slidesFor(segment: SegmentProfile): Slide[] {
     },
     {
       icon: 'galeria',
-      title: t('Seus arquivos'),
-      text: t('Organize fotos e vídeos em pastas e subpastas, pelo app ou pelo próprio teclado, e envie na conversa.'),
+      title: t('Seu Locker'),
+      text: t('Organize fotos e vídeos em pastas e subpastas no Locker, pelo app ou pelo próprio teclado, e envie na conversa.'),
     },
     {
       icon: 'clientes',

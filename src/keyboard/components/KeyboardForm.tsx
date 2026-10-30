@@ -13,6 +13,8 @@ import { makeStyles, radius, spacing, useColors } from '../theme';
 import { TypingKeyboard } from './TypingKeyboard';
 import type { TextSink } from './TypingKeyboard';
 
+import { NO_AUTO_CAPS } from '../typing/typingContext';
+
 /** Tipos de campo do Android: o teclado usa para maiúscula automática e sugestões. */
 const INPUT_TYPE = {
   text: 0x1 | 0x4000, // frases com maiúscula
@@ -20,7 +22,8 @@ const INPUT_TYPE = {
   name: 0x1 | 0x2000, // cada palavra com maiúscula
   phone: 0x3,
   money: 0x2, // só números: o valor é montado como em maquininha
-  search: 0x1 | 0xb0, // busca: sem maiúscula nem correção automática
+  // Busca: sem maiúscula automática, mas com o corretor (NO_AUTO_CAPS é do KEYCON, ver typingContext)
+  search: 0x1 | NO_AUTO_CAPS,
   url: 0x1 | 0x10, // link: sem maiúscula nem correção automática
 } as const;
 
@@ -43,6 +46,10 @@ const onlyDigits = (v: string) => v.replace(/\D/g, '').replace(/^0+/, '').slice(
 export function useKeyboardForm(fields: FormFieldSpec[], initial: Record<string, string> = {}) {
   const [values, setValues] = useState<Record<string, string>>(() => ({ ...initial }));
   const [active, setActive] = useState<string>(fields[0]?.key ?? '');
+  /** Onde está o cursor em cada campo (sem valor = no fim, como nos formulários). */
+  const [carets, setCarets] = useState<Record<string, number | undefined>>({});
+  const caretsRef = useRef(carets);
+  caretsRef.current = carets;
 
   // Os toques do teclado chegam fora do ciclo do React: estado atual em refs
   const valuesRef = useRef(values);
@@ -52,14 +59,41 @@ export function useKeyboardForm(fields: FormFieldSpec[], initial: Record<string,
   const fieldsRef = useRef(fields);
   fieldsRef.current = fields;
 
-  const update = useCallback((fn: (v: string) => string) => {
-    const key = activeRef.current;
-    const money = fieldsRef.current.find(f => f.key === key)?.kind === 'money';
-    const value = fn(valuesRef.current[key] ?? '');
-    const next = { ...valuesRef.current, [key]: money ? onlyDigits(value) : value };
-    valuesRef.current = next;
-    setValues(next);
+  /** Posição do cursor no campo ativo (no fim quando a pessoa não moveu). */
+  const caretOf = useCallback((key: string) => {
+    const value = valuesRef.current[key] ?? '';
+    const at = caretsRef.current[key];
+    return at === undefined ? value.length : Math.min(Math.max(at, 0), value.length);
   }, []);
+
+  const setCaretAt = useCallback((key: string, at: number | undefined) => {
+    const next = { ...caretsRef.current, [key]: at };
+    caretsRef.current = next;
+    setCarets(next);
+  }, []);
+
+  /**
+   * Edita o texto antes do cursor: `fn` recebe o que vem antes e devolve o novo
+   * começo; o que vem depois do cursor fica como está. No fim, continua no fim.
+   */
+  const update = useCallback(
+    (fn: (before: string) => string) => {
+      const key = activeRef.current;
+      const money = fieldsRef.current.find(f => f.key === key)?.kind === 'money';
+      const value = valuesRef.current[key] ?? '';
+      const at = caretOf(key);
+      const atEnd = caretsRef.current[key] === undefined || at >= value.length;
+      const before = fn(value.slice(0, at));
+      const after = value.slice(at);
+      // Preço: o valor é montado como em maquininha, o cursor fica sempre no fim
+      const nextValue = money ? onlyDigits(before + after) : before + after;
+      const next = { ...valuesRef.current, [key]: nextValue };
+      valuesRef.current = next;
+      setValues(next);
+      if (!money && !atEnd) setCaretAt(key, before.length);
+    },
+    [caretOf, setCaretAt],
+  );
 
   const sink = useMemo<TextSink>(
     () => ({
@@ -68,7 +102,7 @@ export function useKeyboardForm(fields: FormFieldSpec[], initial: Record<string,
         return true;
       },
       deleteBackward: async () => {
-        const had = (valuesRef.current[activeRef.current] ?? '').length > 0;
+        const had = caretOf(activeRef.current) > 0;
         update(v => Array.from(v).slice(0, -1).join(''));
         return had;
       },
@@ -76,6 +110,7 @@ export function useKeyboardForm(fields: FormFieldSpec[], initial: Record<string,
         update(v => v.slice(0, Math.max(0, v.length - count)) + text);
         return true;
       },
+      // A correção e as sugestões leem só o que vem antes do cursor
       // ↵ = próximo campo
       sendEnter: async () => {
         const list = fieldsRef.current;
@@ -85,22 +120,40 @@ export function useKeyboardForm(fields: FormFieldSpec[], initial: Record<string,
       },
       getInputContext: async (): Promise<InputContext> => {
         const field = fieldsRef.current.find(f => f.key === activeRef.current);
+        const key = activeRef.current;
         return {
-          before: valuesRef.current[activeRef.current] ?? '',
+          before: (valuesRef.current[key] ?? '').slice(0, caretOf(key)),
           inputType: INPUT_TYPE[field?.kind ?? 'text'],
         };
       },
     }),
-    [update],
+    [update, caretOf],
   );
 
-  const setValue = useCallback((key: string, value: string) => {
-    const next = { ...valuesRef.current, [key]: value };
-    valuesRef.current = next;
-    setValues(next);
-  }, []);
+  const setValue = useCallback(
+    (key: string, value: string) => {
+      const next = { ...valuesRef.current, [key]: value };
+      valuesRef.current = next;
+      setValues(next);
+      // Valor trocado por fora (limpar, sugestão do app): o cursor volta ao fim
+      setCaretAt(key, undefined);
+    },
+    [setCaretAt],
+  );
 
-  return { values, setValue, active, setActive, sink };
+  /** Move o cursor do campo ativo (a busca deixa tocar na letra e usar ‹ ›). */
+  const moveCaret = useCallback(
+    (at: number) => {
+      const key = activeRef.current;
+      const value = valuesRef.current[key] ?? '';
+      const clamped = Math.min(Math.max(at, 0), value.length);
+      setCaretAt(key, clamped >= value.length ? undefined : clamped);
+    },
+    [setCaretAt],
+  );
+
+  const caret = caretOf(active);
+  return { values, setValue, active, setActive, sink, caret, moveCaret };
 }
 
 interface FieldProps {

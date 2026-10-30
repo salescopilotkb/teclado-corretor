@@ -17,14 +17,30 @@ import {
   newFileId,
   savedFileFrom,
   subfolders,
+  LOCKER_NAME,
 } from '../../files/files';
+import {
+  lockerDeleteFile,
+  lockerDeleteFolder,
+  lockerFileLink,
+  lockerFolderLink,
+  lockerSaveFile,
+  lockerSaveFolder,
+  onLockerChange,
+  openLockerWeb,
+  setFolderVisibility,
+  uploadToLocker,
+} from '../../files/locker';
+import Clipboard from '@react-native-clipboard/clipboard';
+import { ChoiceRow } from '../../keyboard/components/KeyboardForm';
 import { Icon } from '../../keyboard/components/Icon';
 import { makeStyles, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { canUseCamera, captureWithCamera, pickPhotoOrVideo } from '../../native/MediaPicker';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
 import type { LocalMedia } from '../../services/mediaUpload';
 import { Repo } from '../../storage/storage';
-import type { FilesData, SavedFile } from '../../types';
+import { DEMO_MODE } from '../../config/demo';
+import type { FileFolder, FilesData, FolderVisibility, SavedFile } from '../../types';
 import { normalizeUrl } from '../../utils/formatters';
 import { SourceButtons, UploadStatus, useUploader } from '../components/MediaUpload';
 import { Button, Card, CardText, CardTitle, EmptyState, MenuGroup, MenuRow, Page, ScreenTitle, SubHeader } from '../components/ui';
@@ -42,6 +58,9 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   const uploader = useUploader();
 
   const reload = useCallback(() => setData(Repo.getFiles()), []);
+  const [openingWeb, setOpeningWeb] = useState(false);
+  // Mudou no Locker (outro aparelho, o Locker web ou o teclado): mostra na hora
+  useEffect(() => onLockerChange(reload), [reload]);
   useEffect(() => {
     const sub = AppState.addEventListener('change', s => s === 'active' && reload());
     return () => sub.remove();
@@ -81,10 +100,10 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
     const clean = name.trim();
     if (!clean) return;
     if (mode === 'rename-folder' && folder) {
-      Repo.saveFileFolder({ ...folder, name: clean });
+      lockerSaveFolder({ ...folder, name: clean });
     } else {
       const id = newFileFolderId();
-      Repo.saveFileFolder({ id, name: clean, parentId: folderId, createdAt: new Date().toISOString() });
+      lockerSaveFolder({ id, name: clean, parentId: folderId, createdAt: new Date().toISOString() });
       setFolderId(id);
     }
     setMode(null);
@@ -94,10 +113,15 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   const add = (pick: () => Promise<LocalMedia | null>) => {
     const target = folderId;
     setMode(null);
-    uploader.run(pick, (uploaded, media) => {
-      Repo.saveFile(savedFileFrom(media, uploaded, target));
-      reload();
-    });
+    uploader.run(
+      pick,
+      (uploaded, media) => {
+        lockerSaveFile(savedFileFrom(media, uploaded, target));
+        reload();
+      },
+      // Arquivos vão para o Locker (Cloudflare R2)
+      uploadToLocker,
+    );
   };
 
   const deleteFolder = () => {
@@ -108,7 +132,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
         text: t('Excluir'),
         style: 'destructive',
         onPress: () => {
-          Repo.deleteFileFolder(folder.id).forEach(f => deleteUploadedMedia(f.storagePath));
+          lockerDeleteFolder(folder.id).forEach(f => deleteUploadedMedia(f.storagePath));
           setFolderId(folder.parentId);
           setMode(null);
           reload();
@@ -120,18 +144,36 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   const path = folderPath(data, folderId);
   const folders = subfolders(data, folderId);
   const items = filesIn(data, folderId);
-  const parentLabel = path.length > 1 ? path[path.length - 2].name : t('Arquivos');
+  const parentLabel = path.length > 1 ? path[path.length - 2].name : LOCKER_NAME;
 
   return (
     <Page>
       {folder ? (
         <SubHeader title={folder.name} onBack={() => (mode ? setMode(null) : open(folder.parentId))} />
       ) : onBack ? (
-        <SubHeader title={t('Arquivos')} subtitle={t('Fotos e vídeos em pastas, também no teclado')} onBack={onBack} />
+        <SubHeader title={LOCKER_NAME} subtitle={t('Fotos e vídeos em pastas, também no teclado')} onBack={onBack} />
       ) : (
-        <ScreenTitle title={t('Arquivos')} subtitle={t('Fotos e vídeos em pastas, também no teclado')} />
+        <ScreenTitle title={LOCKER_NAME} subtitle={t('Fotos e vídeos em pastas, também no teclado')} />
       )}
       {folder && path.length > 1 ? <Text style={styles.path}>{t('Em {folder}', { folder: parentLabel })}</Text> : null}
+
+      {/* Locker no navegador (locker.keyconapp.com), já logado: o app gera um link de entrada de uso único.
+          Na demonstração ainda não aparece: o Locker de exemplo vem na tarefa 13 */}
+      {!folder && !mode && !DEMO_MODE ? (
+        <Button
+          testID="locker-open-web"
+          label={t('Abrir o Locker no navegador')}
+          variant="secondary"
+          icon="globo"
+          loading={openingWeb}
+          onPress={() => {
+            setOpeningWeb(true);
+            openLockerWeb()
+              .catch(() => Alert.alert(t('Erro'), t('Não foi possível abrir o Locker no navegador.')))
+              .finally(() => setOpeningWeb(false));
+          }}
+        />
+      ) : null}
 
       {mode === 'new-folder' || mode === 'rename-folder' ? (
         <Card>
@@ -167,7 +209,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
         <LinkForm
           onCancel={() => setMode(null)}
           onSave={(title, url, type) => {
-            Repo.saveFile({ id: newFileId(), folderId, type, title, url, createdAt: new Date().toISOString() });
+            lockerSaveFile({ id: newFileId(), folderId, type, title, url, createdAt: new Date().toISOString() });
             setMode(null);
             reload();
           }}
@@ -179,7 +221,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
           current={folder.parentId}
           onCancel={() => setMode(null)}
           onMove={to => {
-            Repo.saveFileFolder({ ...folder, parentId: to });
+            lockerSaveFolder({ ...folder, parentId: to });
             setMode(null);
             reload();
           }}
@@ -207,6 +249,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
               <SmallAction icon="lixeira" label={t('Excluir')} danger onPress={deleteFolder} />
             </View>
           )}
+          {folder && <FolderSharing folder={folder} onChanged={reload} />}
         </View>
       )}
 
@@ -231,7 +274,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       {folders.length === 0 && items.length === 0 && mode === null && (
         <EmptyState
           icon="galeria"
-          title={folder ? t('Pasta vazia') : t('Seus arquivos')}
+          title={folder ? t('Pasta vazia') : t('Seu Locker')}
           text={
             folder
               ? t('Adicione fotos e vídeos ou crie uma subpasta.')
@@ -244,6 +287,62 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
 }
 
 // ── Peças ───────────────────────────────────────────────────────────────
+
+const VISIBILITY_OPTIONS: Array<{ value: FolderVisibility; label: string; hint: string }> = [
+  { value: 'private', label: 'Privada', hint: 'Só você vê esta pasta. Os links de cada arquivo continuam abrindo para quem os recebeu.' },
+  { value: 'link', label: 'Só com o link', hint: 'Quem tiver o link da pasta vê os arquivos dela, sem precisar entrar numa conta.' },
+  { value: 'public', label: 'Pública', hint: 'Como "Só com o link", e também aparece na sua vitrine pública do Locker.' },
+];
+
+/** Quem pode ver a pasta pelo Locker (locker.keyconapp.com) e o link dela. */
+function FolderSharing({ folder, onChanged }: { folder: FileFolder; onChanged: () => void }) {
+  const styles = useStyles();
+  const visibility = folder.visibility ?? 'private';
+  const option = VISIBILITY_OPTIONS.find(o => o.value === visibility) ?? VISIBILITY_OPTIONS[0];
+  return (
+    <Card>
+      <CardTitle>{t('Quem pode ver esta pasta')}</CardTitle>
+      <ChoiceRow
+        onCard
+        options={VISIBILITY_OPTIONS.map(o => ({ value: o.value, label: t(o.label) }))}
+        value={visibility}
+        onChange={v => {
+          setFolderVisibility(folder, v);
+          onChanged();
+        }}
+      />
+      <CardText>{t(option.hint)}</CardText>
+      {visibility !== 'private' && (
+        <View style={styles.actions}>
+          <CopyLinkButton testID="folder-copy-link" link={lockerFolderLink(folder)} label={t('Copiar link da pasta')} />
+        </View>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * Copia um link público do Locker. Sem o código ainda (a pasta ou o arquivo não
+ * chegou à nuvem), avisa em vez de copiar um link que não abriria.
+ */
+function CopyLinkButton({ link, label, testID }: { link: string | null; label: string; testID?: string }) {
+  return (
+    <Button
+      testID={testID}
+      label={label}
+      variant="secondary"
+      icon="compartilhar"
+      onPress={() => {
+        if (!link) {
+          Alert.alert(t('Link ainda não disponível'), t('O link aparece quando o Locker sincronizar com a nuvem. Verifique a internet e tente de novo.'));
+          return;
+        }
+        Clipboard.setString(link);
+        Alert.alert(t('Link copiado'), link);
+      }}
+    />
+  );
+}
 
 function NameInput({ value, onChange, onSubmit, placeholder }: { value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string }) {
   const colors = useColors();
@@ -418,7 +517,7 @@ function FileDetail({
         text: t('Excluir'),
         style: 'destructive',
         onPress: () => {
-          Repo.deleteFile(file.id);
+          lockerDeleteFile(file.id);
           deleteUploadedMedia(file.storagePath);
           onChanged();
           onBack();
@@ -445,7 +544,7 @@ function FileDetail({
           current={file.folderId}
           onCancel={() => setMoving(false)}
           onMove={to => {
-            Repo.saveFile({ ...file, folderId: to });
+            lockerSaveFile({ ...file, folderId: to });
             setMoving(false);
             onChanged();
             onMoved(to);
@@ -466,17 +565,19 @@ function FileDetail({
               testID="file-save-title"
               label={t('Salvar nome')}
               onPress={() => {
-                Repo.saveFile({ ...file, title: title.trim() });
+                lockerSaveFile({ ...file, title: title.trim() });
                 onChanged();
                 onBack();
               }}
             />
           ) : null}
-          <CardText>{t('Em {folder}', { folder: moveTargets(data).find(m => m.id === file.folderId)?.label ?? t('Arquivos') })}</CardText>
+          <CardText>{t('Em {folder}', { folder: moveTargets(data).find(m => m.id === file.folderId)?.label ?? LOCKER_NAME })}</CardText>
           <View style={styles.row}>
             <SmallAction icon="mover" label={t('Mover')} onPress={() => setMoving(true)} />
             <SmallAction icon="lixeira" label={t('Excluir')} danger onPress={remove} />
           </View>
+          {/* Link permanente do Locker: quem tiver abre o arquivo sem login */}
+          <CopyLinkButton testID="file-copy-link" link={lockerFileLink(file)} label={t('Copiar link do arquivo')} />
         </Card>
       )}
     </Page>

@@ -71,6 +71,8 @@ const USER_DATA_KEYS = [
   KEYS.files,
   KEYS.tutorialSeen,
   KEYS.stepsDone,
+  // Fila do Locker (src/files/locker.ts): mudanças de uma conta não podem subir para outra
+  'locker.pending',
 ];
 
 const DEFAULT_THEME: ThemePreference = 'dark';

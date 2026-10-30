@@ -32,6 +32,10 @@ export interface LocalMedia {
 export interface UploadedMedia {
   url: string;
   storagePath: string;
+  /** Locker (R2): o link é temporário e vale até aqui (ms). */
+  expiresAt?: number;
+  mime?: string;
+  size?: number;
 }
 
 export class UploadError extends Error {}
@@ -140,10 +144,17 @@ function uploadErrorMessage(status: number, response: string): string {
   return t('Não foi possível enviar o arquivo (erro {status}).', { status });
 }
 
-/** Apaga do Storage um arquivo enviado pelo app (links externos ficam como estão). */
+/**
+ * Apaga um arquivo enviado pelo app (links externos ficam como estão): do Locker
+ * no Cloudflare R2 ("r2:<caminho>", pela Edge Function "locker") ou do bucket "media".
+ */
 export async function deleteUploadedMedia(storagePath: string | undefined): Promise<void> {
   if (!storagePath) return;
   try {
+    if (storagePath.startsWith('r2:')) {
+      await supabase.functions.invoke('locker', { body: { action: 'delete', keys: [storagePath.slice(3)] } });
+      return;
+    }
     await supabase.storage.from(BUCKET).remove([storagePath]);
   } catch {
     // Sem internet: o arquivo fica órfão no Storage, sem afetar o app

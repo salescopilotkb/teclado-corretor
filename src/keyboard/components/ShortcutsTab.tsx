@@ -28,6 +28,7 @@ import { makeStyles, radius, spacing, useColors } from '../theme';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
+import { ResizeHandle } from './ResizeHandle';
 import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
 import { Header } from './KeyboardCRM';
 import { KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
@@ -45,6 +46,8 @@ interface Props {
    * atalhos); busca e formulários em tela grande (o teclado de letras escreve neles).
    */
   onHeightChange: (mode: HeightMode) => void;
+  /** A barrinha de puxar passou da altura mínima: volta ao teclado de letras. */
+  onCollapse?: () => void;
   /** Depois de gravar: relê os dados. */
   onChanged: () => void;
 }
@@ -57,7 +60,7 @@ const FILTERS: Array<{ kind: ShortcutKind; label: string; icon: IconName }> = [
 
 type Screen = { name: 'list' } | { name: 'search' } | { name: 'form'; kind: ShortcutKind; id: string | null };
 
-export function ShortcutsTab({ shortcuts, seller, onInsert, onShare, onHeightChange, onChanged }: Props) {
+export function ShortcutsTab({ shortcuts, seller, onInsert, onShare, onHeightChange, onCollapse, onChanged }: Props) {
   const styles = useStyles();
   const [filter, setFilter] = useState<ShortcutKind>('text');
   const [screen, setScreen] = useState<Screen>({ name: 'list' });
@@ -170,6 +173,8 @@ export function ShortcutsTab({ shortcuts, seller, onInsert, onShare, onHeightCha
 
   return (
     <View style={styles.container} testID="shortcuts-tab">
+      {/* Lista: a barrinha no topo puxa o teclado (sem puxar, fica no tamanho intermediário) */}
+      {onCollapse && <ResizeHandle id="shortcuts" onCollapse={onCollapse} />}
       {/* Menu pequeno: Texto · Áudio · Link */}
       <View style={styles.filterBar} accessibilityRole="tablist">
         {FILTERS.map(f => {
