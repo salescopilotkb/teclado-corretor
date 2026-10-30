@@ -1,5 +1,6 @@
-import React, { forwardRef, memo, useImperativeHandle, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Platform, Pressable, processColor, Text, View } from 'react-native';
+import { KeyboardBridge } from '../../native/KeyboardBridge';
 import { makeStyles, useColors } from '../theme';
 
 /**
@@ -23,24 +24,44 @@ export interface SuggestionBarHandle {
 
 interface Props {
   onPick: (item: SuggestionItem) => void;
+  /** Teclado digitando no app (não num formulário do KEYCON): mostra ali o preenchimento automático. */
+  autofill?: boolean;
 }
 
 /** Na web o Pressable espera 50 ms antes do toque; aqui não precisa. */
 const WEB_NO_PRESS_DELAY = Platform.OS === 'web' ? ({ delayPressIn: 0 } as object) : {};
 
 export const SuggestionBar = memo(
-  forwardRef<SuggestionBarHandle, Props>(({ onPick }, ref) => {
+  forwardRef<SuggestionBarHandle, Props>(({ onPick, autofill = false }, ref) => {
     const colors = useColors();
     const styles = useStyles();
     const [items, setItems] = useState<SuggestionItem[]>([]);
 
     useImperativeHandle(ref, () => ({ show: setItems }), []);
 
+    // Preenchimento automático do Android (e-mails, endereços): as sugestões aparecem
+    // por cima desta faixa, como no Gboard, e não numa caixinha sobre a tela
+    const barRef = useRef<View>(null);
+    const reportArea = useCallback(() => {
+      if (!autofill) return;
+      const color = processColor(colors.bg);
+      barRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
+        KeyboardBridge.setAutofillArea({ x: pageX, y: pageY, width, height, color: typeof color === 'number' ? color : 0 });
+      });
+    }, [autofill, colors.bg]);
+    useEffect(() => {
+      reportArea();
+    }, [reportArea]);
+    useEffect(() => {
+      if (!autofill) return;
+      return () => KeyboardBridge.setAutofillArea(null);
+    }, [autofill]);
+
     // A primeira sugestão de verdade (não a palavra literal) fica em destaque
     const highlighted = items.findIndex(i => !i.literal);
 
     return (
-      <View style={styles.bar} testID="suggestion-bar">
+      <View ref={barRef} style={styles.bar} testID="suggestion-bar" onLayout={reportArea}>
         {items.map((item, i) => (
           <React.Fragment key={`${i}-${item.text}`}>
             {i > 0 && <View style={styles.divider} />}

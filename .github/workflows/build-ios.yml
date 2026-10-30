@@ -144,16 +144,21 @@ jobs:
           ls "$APP/PlugIns/CorretorKeyboardExtension.appex"
           ls -la "$APP/main.jsbundle" "$APP/PlugIns/CorretorKeyboardExtension.appex/main.jsbundle"
 
-      # Ainda sem assinatura: o .app não instala num iPhone até ser assinado com a conta da Apple
-      - name: Compactar app (sem assinatura)
+      # .ipa (o formato de instalação do iPhone: Payload/CorretorKeyboard.app compactado).
+      # Ainda sem assinatura: só instala depois de assinado com uma conta da Apple
+      # (Xcode, Sideloadly/AltStore com o Apple ID, ou a conta Apple Developer para TestFlight).
+      - name: Gerar .ipa (sem assinatura)
         if: success()
         run: |
-          cd ios/build/Build/Products/Release-iphoneos
-          zip -qry "$GITHUB_WORKSPACE/KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.zip" CorretorKeyboard.app
+          rm -rf ipa && mkdir -p ipa/Payload
+          cp -R ios/build/Build/Products/Release-iphoneos/CorretorKeyboard.app ipa/Payload/
+          cd ipa
+          zip -qry "$GITHUB_WORKSPACE/KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.ipa" Payload
+          echo "::notice::KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.ipa gerado (sem assinatura)"
 
-      - name: Salvar app como Artefato
+      - name: Salvar .ipa como Artefato
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}
-          path: KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.zip
+          name: KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}-ipa
+          path: KEYCON-iOS-sem-assinatura-v${{ env.KEYCON_VERSION_NAME }}.ipa

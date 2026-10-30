@@ -3,6 +3,7 @@ package com.corretorkeyboard.keyboard
 import android.content.Context
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Rect
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.provider.Settings
@@ -254,6 +255,26 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
     // Envio de arquivos (fotos, vídeos e áudios)
     // -----------------------------------------------------------------------
 
+    /**
+     * Onde fica a faixa do corretor (em dp, relativo ao teclado) e a cor dela: as
+     * sugestões do preenchimento automático aparecem ali. width 0 = sem faixa na tela.
+     */
+    @ReactMethod
+    fun setAutofillArea(x: Double, y: Double, width: Double, height: Double, color: Double) {
+        UiThreadUtil.runOnUiThread {
+            val service = CustomKeyboardService.instance ?: return@runOnUiThread
+            if (width <= 0 || height <= 0) {
+                service.setAutofillArea(null, 0)
+                return@runOnUiThread
+            }
+            val d = reactApplicationContext.resources.displayMetrics.density
+            service.setAutofillArea(
+                Rect((x * d).toInt(), (y * d).toInt(), ((x + width) * d).toInt(), ((y + height) * d).toInt()),
+                color.toLong().toInt(),
+            )
+        }
+    }
+
     /** Formatos de arquivo que o campo em foco aceita (tela de Diagnóstico). */
     @ReactMethod
     fun getContentMimeTypes(promise: Promise) =
@@ -266,11 +287,8 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
     @ReactMethod
     fun commitImage(url: String, description: String, promise: Promise) {
         UiThreadUtil.runOnUiThread {
-            val service = CustomKeyboardService.instance
-                ?: return@runOnUiThread promise.reject("E_IME_INACTIVE", "O teclado KEYCON não está ativo.")
-            // Nem baixa se o campo não aceita nenhuma imagem
-            if (!MediaFiles.acceptsAny(service.acceptedContentMimeTypes(), "image/")) {
-                return@runOnUiThread promise.resolve("unsupported")
+            if (CustomKeyboardService.instance == null) {
+                return@runOnUiThread promise.reject("E_IME_INACTIVE", "O teclado KEYCON não está ativo.")
             }
             downloads.execute {
                 val media = try {
@@ -279,21 +297,43 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
                     promise.reject("E_DOWNLOAD", t.message ?: "Não foi possível baixar a foto.", t)
                     return@execute
                 }
-                UiThreadUtil.runOnUiThread {
-                    val current = CustomKeyboardService.instance
-                    when {
-                        current == null ->
-                            promise.reject("E_IME_INACTIVE", "O teclado foi fechado antes do envio.")
-                        !media.mimeType.startsWith("image/") ->
-                            promise.reject("E_NOT_IMAGE", "O link não é de uma imagem (${media.mimeType}).")
-                        !MediaFiles.accepts(current.acceptedContentMimeTypes(), media.mimeType) ->
-                            promise.resolve("unsupported")
-                        else -> try {
-                            promise.resolve(if (current.commitImage(media, description, url)) "sent" else "failed")
-                        } catch (t: Throwable) {
-                            promise.reject("E_COMMIT", t.message, t)
-                        }
-                    }
+                if (!media.mimeType.startsWith("image/")) {
+                    promise.reject("E_NOT_IMAGE", "O link não é de uma imagem (${media.mimeType}).")
+                    return@execute
+                }
+                UiThreadUtil.runOnUiThread { commitWhenFieldReady(media, description, url, promise, COMMIT_RETRIES) }
+            }
+        }
+    }
+
+    /**
+     * Logo depois da galeria/câmera fechar, o Android ainda está religando o
+     * teclado ao campo da conversa e, por um instante, o campo parece não aceitar
+     * nada: espera um pouco antes de dizer que o app não recebe fotos.
+     */
+    private fun commitWhenFieldReady(media: MediaFiles.Downloaded, description: String, url: String, promise: Promise, retries: Int) {
+        val service = CustomKeyboardService.instance
+            ?: return promise.reject("E_IME_INACTIVE", "O teclado foi fechado antes do envio.")
+        val accepted = service.acceptedContentMimeTypes()
+        if (!MediaFiles.acceptsAny(accepted, "image/")) {
+            if (retries > 0) {
+                UiThreadUtil.runOnUiThread({ commitWhenFieldReady(media, description, url, promise, retries - 1) }, COMMIT_RETRY_MS)
+            } else {
+                promise.resolve("unsupported")
+            }
+            return
+        }
+        // Formato que o campo não recebe (ex.: HEIC da câmera): converte fora da main thread
+        downloads.execute {
+            val image = runCatching { MediaFiles.imageFor(accepted, media) }.getOrNull()
+                ?: return@execute promise.resolve("unsupported")
+            UiThreadUtil.runOnUiThread {
+                val current = CustomKeyboardService.instance
+                    ?: return@runOnUiThread promise.reject("E_IME_INACTIVE", "O teclado foi fechado antes do envio.")
+                try {
+                    promise.resolve(if (current.commitImage(image, description, url)) "sent" else "failed")
+                } catch (t: Throwable) {
+                    promise.reject("E_COMMIT", t.message, t)
                 }
             }
         }
@@ -437,6 +477,9 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
     companion object {
         /** Arquivos pré-baixados por vez (o cache guarda até 150 MB). */
         private const val MAX_PREFETCH = 40
+        /** Espera o teclado religar ao campo da conversa: até 4 x 300 ms. */
+        private const val COMMIT_RETRIES = 4
+        private const val COMMIT_RETRY_MS = 300L
     }
 }
 

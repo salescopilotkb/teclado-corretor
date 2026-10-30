@@ -40,6 +40,7 @@ interface KeyboardBridgeNative {
   requestMicPermission?(): Promise<MicPermission>;
   /** Android: o "voltar" do celular volta uma tela no teclado (true) ou fecha o teclado (false). */
   setBackEnabled?(enabled: boolean): void;
+  setAutofillArea?(x: number, y: number, width: number, height: number, color: number): void;
 }
 
 /** De onde o teclado pega o arquivo da seção Arquivos. */
@@ -228,6 +229,13 @@ export const KeyboardBridge = {
   },
   /** Alguma tela do teclado tem para onde voltar? (o Android então entrega o "voltar" ao JS) */
   setBackEnabled: (enabled: boolean) => Native?.setBackEnabled?.(enabled),
+  /**
+   * Onde fica a faixa do corretor (dp, relativo ao teclado) e a cor dela: o Android
+   * mostra ali as sugestões do preenchimento automático (e-mails, endereços).
+   * null = o teclado de letras saiu da tela.
+   */
+  setAutofillArea: (area: { x: number; y: number; width: number; height: number; color: number } | null) =>
+    Native?.setAutofillArea?.(area?.x ?? 0, area?.y ?? 0, area?.width ?? 0, area?.height ?? 0, area?.color ?? 0),
   /** "Voltar" do celular com uma tela do teclado aberta (só chega quando setBackEnabled(true)). */
   onBackPressed(cb: () => void) {
     const sub = emitter?.addListener('onBackPressed', cb);

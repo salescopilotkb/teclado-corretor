@@ -5,6 +5,8 @@ import android.content.ClipData
 import android.content.ClipDescription
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
@@ -49,6 +51,31 @@ object MediaFiles {
     /** O campo aceita algum arquivo cujo tipo começa com o prefixo (ex.: "image/")? */
     fun acceptsAny(acceptedMimeTypes: Array<String>, prefix: String): Boolean =
         acceptedMimeTypes.any { it == "*/*" || it.startsWith(prefix) }
+
+    /**
+     * A foto num formato que o campo aceita. Fotos da câmera costumam vir em
+     * HEIC ou WEBP, e muitos apps (ex.: WhatsApp) só recebem pelo teclado
+     * JPEG/PNG/GIF: nesse caso converte para JPEG (ou PNG). null = o campo não
+     * aceita nenhuma foto, ou a foto não abriu.
+     * Lê e grava arquivo: chamar FORA da main thread.
+     */
+    fun imageFor(acceptedMimeTypes: Array<String>, media: Downloaded): Downloaded? {
+        if (accepts(acceptedMimeTypes, media.mimeType)) return media
+        val target = listOf("image/jpeg", "image/png").firstOrNull { accepts(acceptedMimeTypes, it) } ?: return null
+        val out = File(media.file.parentFile, "conv-${media.file.nameWithoutExtension}.${if (target == "image/png") "png" else "jpg"}")
+        if (out.exists() && out.length() > 0) {
+            out.setLastModified(System.currentTimeMillis())
+            return Downloaded(out, target)
+        }
+        val bitmap = BitmapFactory.decodeFile(media.file.absolutePath) ?: return null
+        try {
+            val format = if (target == "image/png") Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+            out.outputStream().use { bitmap.compress(format, 90, it) }
+        } finally {
+            bitmap.recycle()
+        }
+        return Downloaded(out, target)
+    }
 
     /**
      * Baixa (ou reaproveita do cache) o arquivo do link.
@@ -172,6 +199,8 @@ object MediaFiles {
     /** Usa o Content-Type do servidor; se for genérico, tenta pela extensão do link. */
     private fun resolveMimeType(contentType: String?, url: String): String? {
         val fromHeader = contentType?.substringBefore(';')?.trim()?.lowercase().orEmpty()
+            // "image/jpg" não é um tipo oficial: o campo da conversa só reconhece "image/jpeg"
+            .let { if (it == "image/jpg") "image/jpeg" else it }
         if (isMedia(fromHeader)) return fromHeader
         val ext = MimeTypeMap.getFileExtensionFromUrl(url)
         return if (ext.isNullOrEmpty()) null else mimeFromExtension(ext)

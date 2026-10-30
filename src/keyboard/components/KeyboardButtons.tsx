@@ -17,6 +17,7 @@ export function BarButton({
   onPress,
   primary,
   disabled,
+  showLabel,
   testID,
 }: {
   icon: IconName;
@@ -24,10 +25,13 @@ export function BarButton({
   onPress: () => void;
   primary?: boolean;
   disabled?: boolean;
+  /** Mostra o texto ao lado do ícone (ex.: "+ Novo produto"), para a ação principal ficar clara. */
+  showLabel?: boolean;
   testID?: string;
 }) {
   const colors = useColors();
   const styles = useStyles();
+  const color = primary ? colors.onPrimary : colors.text;
   return (
     <Pressable
       testID={testID}
@@ -36,9 +40,20 @@ export function BarButton({
       disabled={disabled}
       hitSlop={4}
       onPress={onPress}
-      style={({ pressed }) => [styles.barBtn, primary && styles.barBtnPrimary, pressed && styles.pressed, disabled && styles.disabled]}>
+      style={({ pressed }) => [
+        styles.barBtn,
+        showLabel && styles.barBtnLabeled,
+        primary && styles.barBtnPrimary,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+      ]}>
       {primary && <CoralSheen radius={radius.sm} />}
-      <Icon name={icon} size={20} color={primary ? colors.onPrimary : colors.text} />
+      <Icon name={icon} size={showLabel ? 18 : 20} color={color} />
+      {showLabel && (
+        <Text style={[styles.barBtnText, primary && onCoralText, { color }]} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -176,6 +191,8 @@ const useStyles = makeStyles(colors => ({
     ...glassBorder(colors),
   },
   barBtnPrimary: { backgroundColor: colors.primary, ...coralGlass(colors, { pill: false }) },
+  barBtnLabeled: { width: 'auto', flexDirection: 'row', gap: 4, paddingHorizontal: spacing.sm + 2, flexShrink: 0 },
+  barBtnText: { fontSize: 13, fontWeight: '600' },
   action: {
     flex: 1,
     flexDirection: 'row',

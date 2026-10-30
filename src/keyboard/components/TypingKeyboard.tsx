@@ -840,7 +840,7 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
 
   return (
     <View style={styles.container} testID="typing-keyboard">
-      <SuggestionBar ref={suggestionBar} onPick={pickSuggestion} />
+      <SuggestionBar ref={suggestionBar} onPick={pickSuggestion} autofill={!internal} />
 
       <View ref={areaRef} style={styles.keysArea} onLayout={measureOrigin} {...responder}>
         {/* As teclas só desenham: quem recebe o toque é a área inteira */}

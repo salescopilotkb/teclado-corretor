@@ -12,7 +12,7 @@
  * mensagem é enviada (o campo esvazia), a caixa limpa para a próxima.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { getSellingLanguage, getTypingLanguage, setTypingLanguage, t } from '../../i18n';
 import { useKeyboardBack } from '../../navigation/back';
 import type { Lang } from '../../i18n';
@@ -371,7 +371,7 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
 
   const statusText =
     status === 'downloading'
-      ? t('Baixando o tradutor deste idioma (só na primeira vez, cerca de 30 MB)...')
+      ? t('Baixando o tradutor (só na 1ª vez, ~30 MB)…')
       : status === 'error'
         ? error
         : null;
@@ -553,15 +553,24 @@ export function TranslatePanel({ onClose }: { onClose: () => void }) {
                 </Pressable>
               )}
             </Pressable>
-            <Text
-              testID="translate-result"
-              style={[styles.preview, status === 'error' && styles.previewError]}
-              numberOfLines={1}
-              accessibilityLiveRegion="polite">
-              {focusTarget === 'device'
-                ? t('✓ Teclado ativo no campo da conversa (WhatsApp)')
-                : statusText ?? (translated ? `→ ${tail(translated, PREVIEW_TAIL)}` : ' ')}
-            </Text>
+            <View style={styles.previewRow}>
+              {/* Baixando o idioma: loader pequeno ao lado do aviso */}
+              {focusTarget !== 'device' && status === 'downloading' && (
+                <ActivityIndicator size="small" color={colors.primaryText} style={styles.previewSpinner} />
+              )}
+              <Text
+                testID="translate-result"
+                style={[styles.preview, status === 'error' && styles.previewError]}
+                numberOfLines={1}
+                // A faixa tem altura fixa: o aviso diminui a letra para caber inteiro
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+                accessibilityLiveRegion="polite">
+                {focusTarget === 'device'
+                  ? t('✓ Teclado ativo no campo da conversa (WhatsApp)')
+                  : statusText ?? (translated ? `→ ${tail(translated, PREVIEW_TAIL)}` : ' ')}
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -768,9 +777,16 @@ const useStyles = makeStyles(colors => ({
     opacity: 0.75,
     flexShrink: 1,
   },
-  preview: {
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 3,
     paddingHorizontal: spacing.md,
+    gap: 6,
+  },
+  previewSpinner: { transform: [{ scale: 0.7 }], width: 16, height: 16 },
+  preview: {
+    flex: 1,
     fontSize: 13,
     lineHeight: 18,
     color: colors.primaryText,

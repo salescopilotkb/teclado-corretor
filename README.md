@@ -205,7 +205,7 @@ O que já vem pronto no projeto:
   simulador usa x86_64 (`EXCLUDED_ARCHS`).
 - Gravador dos atalhos de áudio só no app (`KeyconAudioRecorder.m`): a Apple proíbe microfone em teclados.
 - CI: `.github/workflows/build-ios.yml` compila app + teclado para iPhone, sem assinatura,
-  a cada commit (artefato `KEYCON-iOS-sem-assinatura-v…`).
+  a cada commit e gera o `.ipa` sem assinatura (artefato `KEYCON-iOS-sem-assinatura-v…-ipa`).
 
 ### 4. Backend de IA
 ```bash

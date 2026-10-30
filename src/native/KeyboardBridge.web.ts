@@ -240,6 +240,8 @@ export const KeyboardBridge = {
       deviceFocusListeners.delete(cb);
     };
   },
+  /** Web: não há preenchimento automático do Android. */
+  setAutofillArea: (_area: { x: number; y: number; width: number; height: number; color: number } | null) => {},
   setBackEnabled: (enabled: boolean) => {
     backEnabled = enabled;
   },

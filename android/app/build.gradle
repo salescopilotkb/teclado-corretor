@@ -65,6 +65,8 @@ dependencies {
     implementation("androidx.core:core:1.9.0")
     // Tradução no próprio aparelho (botão "Traduzir" do teclado): Google ML Kit, sem chave de API
     implementation("com.google.mlkit:translate:17.0.3")
+    // Sugestões do preenchimento automático (e-mails, endereços) na faixa do teclado, como no Gboard (Android 11+)
+    implementation("androidx.autofill:autofill:1.1.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

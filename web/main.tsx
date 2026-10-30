@@ -203,14 +203,14 @@ function Chat({ visible }: { visible: boolean }) {
             WebKeyboardHost.focusDeviceField();
             WebKeyboardHost.selectionChanged();
           }}
+          // Só clique e foco contam como "tocou no campo" (o teclado volta às letras);
+          // digitar ou mover o cursor apenas atualiza o contexto
           onChange={e => {
             update(e.target.value, e.target.selectionStart);
-            WebKeyboardHost.focusDeviceField();
             WebKeyboardHost.selectionChanged();
           }}
           onSelect={e => {
             caret.current = e.currentTarget.selectionStart;
-            WebKeyboardHost.focusDeviceField();
             WebKeyboardHost.selectionChanged();
           }}
         />

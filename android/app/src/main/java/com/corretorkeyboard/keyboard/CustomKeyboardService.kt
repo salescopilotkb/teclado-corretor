@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Rect
 import android.inputmethodservice.InputMethodService
 import android.os.Build
 import android.os.Bundle
@@ -13,16 +14,24 @@ import android.os.Looper
 import android.net.Uri
 import android.text.TextUtils
 import android.util.Log
+import android.util.Size
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InlineSuggestionsRequest
+import android.view.inputmethod.InlineSuggestionsResponse
 import android.view.inputmethod.InputMethodManager
 import android.view.ContextThemeWrapper
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
+import android.widget.inline.InlinePresentationSpec
+import androidx.annotation.RequiresApi
+import androidx.autofill.inline.UiVersions
+import androidx.autofill.inline.v1.InlineSuggestionUi
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -92,6 +101,10 @@ class CustomKeyboardService : InputMethodService() {
         /** Tradução: o normal + a faixa da tradução (idiomas, texto e prévia), nada além. */
         private const val TRANSLATE_EXTRA_DP = 104
 
+        /** Sugestões do preenchimento automático: altura do botão e largura mínima. */
+        private const val AUTOFILL_CHIP_HEIGHT_DP = 34
+        private const val AUTOFILL_CHIP_MIN_WIDTH_DP = 48
+
         /** Tamanhos do teclado pedidos pelo JS (KeyboardBridge.setHeightMode). */
         const val HEIGHT_NORMAL = 0
         const val HEIGHT_TALL = 1
@@ -112,6 +125,7 @@ class CustomKeyboardService : InputMethodService() {
         // Eventos emitidos ao JS
         const val EVENT_KEYBOARD_SHOW = "onKeyboardShow"
         const val EVENT_KEYBOARD_HIDE = "onKeyboardHide"
+        const val EVENT_FOCUS_DEVICE_FIELD = "onFocusDeviceField"
 
         /**
          * Referência fraca para que o NativeModule encontre o serviço ativo
@@ -136,6 +150,16 @@ class CustomKeyboardService : InputMethodService() {
      * normal quando o teclado fecha; o JS pede de novo ao reabrir.
      */
     private var heightMode = HEIGHT_NORMAL
+
+    // Sugestões do preenchimento automático (Android 11+): por cima da faixa do corretor
+    private var autofillStrip: HorizontalScrollView? = null
+    private var autofillRow: LinearLayout? = null
+    /** Onde fica a faixa do corretor (px, informado pelo JS); null = teclado de letras fechado. */
+    private var autofillArea: Rect? = null
+    private var autofillColor: Int = Color.TRANSPARENT
+    private var hasAutofillSuggestions = false
+    /** Respostas chegam a cada letra: só a mais recente é desenhada. */
+    private var autofillGeneration = 0
 
     /** O JS avisa (KeyboardBridge.notifyReady) quando a tela do teclado montou. */
     private var jsReady = false
@@ -351,6 +375,9 @@ class CustomKeyboardService : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        // Saiu do campo: as sugestões de preenchimento eram dele
+        autofillGeneration++
+        showAutofill(emptyList())
         if (heightMode != HEIGHT_NORMAL) {
             heightMode = HEIGHT_NORMAL
             rootContainer?.targetHeightPx = keyboardHeightPx()
@@ -367,6 +394,8 @@ class CustomKeyboardService : InputMethodService() {
         } catch (_: Throwable) {}
         reactRootView = null
         rootContainer = null
+        autofillStrip = null
+        autofillRow = null
         loadingLayout = null
         loadingSubtitle = null
         loadingProgress = null
@@ -454,6 +483,126 @@ class CustomKeyboardService : InputMethodService() {
         params.putInt("start", newSelStart)
         params.putInt("end", newSelEnd)
         emitToJs("onSelectionChange", params)
+    }
+
+    // -----------------------------------------------------------------------
+    // Preenchimento automático (e-mails, endereços, senhas salvas) — Android 11+
+    // -----------------------------------------------------------------------
+
+    /**
+     * Pede ao Android as sugestões do preenchimento automático para mostrar na
+     * faixa do teclado, como o Gboard. Sem isso, o Android mostra uma caixinha
+     * flutuante por cima do site ou do app.
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? {
+        val metrics = resources.displayMetrics
+        val heightPx = (AUTOFILL_CHIP_HEIGHT_DP * metrics.density).toInt()
+        val styles = UiVersions.newStylesBuilder()
+            .addStyle(InlineSuggestionUi.newStyleBuilder().build())
+            .build()
+        val spec = InlinePresentationSpec.Builder(
+            Size((AUTOFILL_CHIP_MIN_WIDTH_DP * metrics.density).toInt(), heightPx),
+            Size((metrics.widthPixels * 0.8f).toInt(), heightPx),
+        ).setStyle(styles).build()
+        return InlineSuggestionsRequest.Builder(listOf(spec)).build()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean {
+        val generation = ++autofillGeneration
+        val suggestions = response.inlineSuggestions
+        val context = rootContainer?.context ?: return false
+        if (suggestions.isEmpty()) {
+            showAutofill(emptyList())
+            return true
+        }
+        val size = Size(ViewGroup.LayoutParams.WRAP_CONTENT, (AUTOFILL_CHIP_HEIGHT_DP * resources.displayMetrics.density).toInt())
+        val views = arrayOfNulls<View>(suggestions.size)
+        var pending = suggestions.size
+        val done = {
+            pending--
+            if (pending == 0 && generation == autofillGeneration) showAutofill(views.filterNotNull())
+        }
+        suggestions.forEachIndexed { i, suggestion ->
+            try {
+                suggestion.inflate(context, size, mainExecutor) { view ->
+                    views[i] = view
+                    done()
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Sugestão de preenchimento ignorada: ${t.message}")
+                done()
+            }
+        }
+        return true
+    }
+
+    /** O JS informa onde fica a faixa do corretor (ou null quando o teclado de letras sai da tela). */
+    fun setAutofillArea(area: Rect?, color: Int) {
+        autofillArea = area
+        autofillColor = color
+        updateAutofillStrip()
+    }
+
+    private fun showAutofill(views: List<View>) {
+        hasAutofillSuggestions = views.isNotEmpty()
+        val row = if (hasAutofillSuggestions) ensureAutofillStrip() else autofillRow
+        row?.removeAllViews()
+        val gap = (6 * resources.displayMetrics.density).toInt()
+        views.forEach { view ->
+            row?.addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                marginEnd = gap
+                gravity = Gravity.CENTER_VERTICAL
+            })
+        }
+        updateAutofillStrip()
+    }
+
+    private fun ensureAutofillStrip(): LinearLayout? {
+        autofillRow?.let { return it }
+        val container = rootContainer ?: return null
+        val padding = (6 * resources.displayMetrics.density).toInt()
+        val row = LinearLayout(container.context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(padding, 0, padding, 0)
+        }
+        val strip = HorizontalScrollView(container.context).apply {
+            isHorizontalScrollBarEnabled = false
+            visibility = View.GONE
+            addView(row, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        container.addView(strip, FrameLayout.LayoutParams(0, 0))
+        autofillStrip = strip
+        autofillRow = row
+        return row
+    }
+
+    /** Mostra a faixa só com sugestões e com o teclado de letras na tela, bem em cima da faixa do corretor. */
+    private fun updateAutofillStrip() {
+        val strip = autofillStrip ?: return
+        val area = autofillArea
+        if (area == null || !hasAutofillSuggestions) {
+            strip.visibility = View.GONE
+            return
+        }
+        strip.layoutParams = FrameLayout.LayoutParams(area.width(), area.height()).apply {
+            leftMargin = area.left
+            topMargin = area.top
+        }
+        strip.setBackgroundColor(autofillColor)
+        strip.visibility = View.VISIBLE
+        strip.bringToFront()
+    }
+
+    /**
+     * A pessoa tocou no campo de texto do app (ex.: a mensagem do WhatsApp) com o
+     * teclado aberto: o JS volta para o teclado de letras, em qualquer tela.
+     */
+    override fun onViewClicked(focusChanged: Boolean) {
+        super.onViewClicked(focusChanged)
+        if (isInputViewShown) emitToJs(EVENT_FOCUS_DEVICE_FIELD, Arguments.createMap())
     }
 
     /**

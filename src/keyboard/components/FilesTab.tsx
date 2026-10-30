@@ -123,7 +123,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
           if (screen.kind === 'new-folder') {
             const id = newFileFolderId();
             Repo.saveFileFolder({ id, name, parentId: folderId, createdAt: new Date().toISOString() });
-            setFolderId(id);
+            // Fica na lista de pastas, onde a nova aparece (abrir direto confundia)
             browse();
           } else if (screen.kind === 'rename-folder' && folder) {
             Repo.saveFileFolder({ ...folder, name });
@@ -355,7 +355,7 @@ function Browser({
         )}
         {current && <BarButton testID="files-folder-options" icon="editar" label={t('Editar pasta')} onPress={onFolderOptions} />}
         <BarButton testID="files-new-folder" icon="novaPasta" label={current ? t('Nova subpasta') : t('Nova pasta')} onPress={onNewFolder} />
-        <BarButton testID="files-add" icon="adicionar" label={t('Adicionar foto ou vídeo')} primary onPress={onAdd} disabled={!!uploader.uploading} />
+        <BarButton testID="files-add" icon="adicionar" label={t('Novo arquivo')} primary showLabel onPress={onAdd} disabled={!!uploader.uploading} />
       </View>
       <SearchLauncher testID="files-search-open" placeholder={t('Buscar pastas e arquivos')} onPress={onSearch} />
 

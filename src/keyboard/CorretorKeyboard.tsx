@@ -12,12 +12,13 @@ import { keyboardBack, useKeyboardBack } from '../navigation/back';
 import type { HeightMode } from '../native/KeyboardBridge';
 import { LoginRequiredPanel } from './components/LoginRequiredPanel';
 import { Repo } from '../storage/storage';
-import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, ThemePreference } from '../types';
+import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, SellerProfile, ThemePreference } from '../types';
+import { pushProfile } from '../services/auth';
 import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
 import { KeyboardCRM } from './components/KeyboardCRM';
 import { MoreTab } from './components/MoreTab';
-import { ProductsTab } from './components/ProductsTab';
+import { isProductFormOpen, ProductsTab } from './components/ProductsTab';
 import { ShortcutsTab } from './components/ShortcutsTab';
 import { SystemMenuBar } from './components/SystemMenuBar';
 import { TranslatePanel } from './components/TranslatePanel';
@@ -159,15 +160,40 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   const big = tab === 'agenda' || tab === 'crm';
   const bigRef = useRef(big);
   bigRef.current = big;
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
   useEffect(() => {
     if (!big) return;
     setExpanded(true);
+    // Fechou e reabriu o teclado na Agenda/CRM: o Android volta ao tamanho normal ao
+    // fechar, então pede a tela grande de novo (senão a aba abre cortada)
+    const off = KeyboardBridge.onKeyboardShow(() => {
+      if (!translatingRef.current) setExpanded(true);
+    });
     // Saiu da Agenda/CRM: volta ao normal (antes de a próxima seção pedir o tamanho dela)
-    return () => setExpanded(false);
+    return () => {
+      off();
+      setExpanded(false);
+    };
   }, [big, setExpanded]);
   const setHeightMode = useCallback((mode: HeightMode) => {
     KeyboardBridge.setHeightMode(mode).catch(() => {});
   }, []);
+
+  /**
+   * Configurações do Mais (ramo, idioma, onde vende): grava no aparelho na hora
+   * (o teclado já muda) e manda para a nuvem em segundo plano, como no app.
+   */
+  const saveProfile = useCallback(
+    (profile: SellerProfile) => {
+      Repo.setSeller(profile);
+      onDataChanged();
+      pushProfile(profile).catch(() => {
+        // Sem internet: fica salvo neste aparelho e sobe na próxima vez que o app salvar o perfil
+      });
+    },
+    [onDataChanged],
+  );
 
   const reorderMenu = useCallback((order: MenuTab[]) => {
     Repo.setMenuOrder(order);
@@ -175,13 +201,30 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   }, []);
 
   // Ao fechar o teclado, a próxima abertura começa no teclado de letras e a aba
-  // Mais volta ao menu inicial. Exceção: fechou porque a galeria/câmera do
-  // próprio teclado abriu ou estava com formulário aberto — ao voltar, continua onde estava (ex.: no cadastro)
+  // Mais volta ao menu inicial. Exceções: a galeria/câmera do próprio teclado
+  // abriu, ou estava na Agenda, no CRM ou no cadastro de produto — ao voltar,
+  // continua onde estava (o ProductsTab pede a tela grande de novo)
   useEffect(
     () =>
       KeyboardBridge.onKeyboardHide(() => {
         if (KeyboardBridge.isPickingMedia() || bigRef.current) return;
+        if (tabRef.current === 'products' && isProductFormOpen()) return;
         setTranslating(false);
+        setConfirmSwitch(false);
+        setTab('keyboard');
+        setScheduleFor(null);
+        setMoreVisit(v => v + 1);
+      }),
+    [],
+  );
+
+  // Tocou no campo de mensagem do app (ex.: WhatsApp): volta ao teclado de letras,
+  // de qualquer tela. O cadastro de produto aberto fica guardado (volta ao abrir
+  // Produtos). Na tradução, o toque só troca onde se digita (TranslatePanel).
+  useEffect(
+    () =>
+      KeyboardBridge.onFocusDeviceField(() => {
+        if (translatingRef.current) return;
         setConfirmSwitch(false);
         setTab('keyboard');
         setScheduleFor(null);
@@ -464,7 +507,15 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
           />
         )}
         {!translating && loggedIn && tab === 'more' && (
-          <MoreTab key={moreVisit} theme={data.theme} onThemeChange={onThemeChange} onInsert={insert} />
+          <MoreTab
+            key={moreVisit}
+            theme={data.theme}
+            onThemeChange={onThemeChange}
+            seller={data.seller}
+            onProfileChange={saveProfile}
+            onInsert={insert}
+            onExpandedChange={setExpanded}
+          />
         )}
 
         {toast && (

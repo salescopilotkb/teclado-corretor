@@ -70,6 +70,11 @@ let activeProductDraft: {
   imageStoragePath?: string;
 } | null = null;
 
+/** Cadastro ou edição de produto aberto (o teclado fechar e voltar não deve perdê-lo). */
+export function isProductFormOpen(): boolean {
+  return activeProductDraft !== null;
+}
+
 export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWithCaption, onExpandedChange, onChanged }: Props) {
   /** Pasta aberta (null = lista de pastas). */
   const [folderId, setFolderId] = useState<string | null>(null);
@@ -178,7 +183,8 @@ export function ProductsTab({ folders, segment, onInsert, onSendImage, onShareWi
         onCancel={browse}
         onSaved={id => {
           onChanged();
-          setFolderId(id);
+          // Pasta nova: volta para a lista de pastas, onde ela aparece (abrir direto confundia)
+          if (target) setFolderId(id);
           browse();
         }}
         onDeleted={() => {
@@ -307,7 +313,7 @@ function Browser({
         ) : (
           <BarButton testID="products-new-folder" icon="novaPasta" label={t('Nova pasta')} onPress={onNewFolder} />
         )}
-        <BarButton testID="products-new" icon="adicionar" label={t('Novo {item}', { item })} primary onPress={onNewProduct} />
+        <BarButton testID="products-new" icon="adicionar" label={t('Novo {item}', { item })} primary showLabel onPress={onNewProduct} />
       </View>
       <SearchLauncher testID="products-search-open" placeholder={t('Buscar {items}', { items })} onPress={onSearch} />
 

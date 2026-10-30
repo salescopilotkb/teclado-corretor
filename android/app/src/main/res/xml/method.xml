@@ -6,11 +6,14 @@
     do teclado em Ajustes > Sistema > Teclados.
   • supportsSwitchingToNextInputMethod: habilita a tecla 🌐 para alternar
     de volta ao teclado de digitação padrão (Gboard/Samsung).
+  • supportsInlineSuggestions: o preenchimento automático (e-mails, endereços)
+    aparece na faixa do teclado em vez de numa caixinha sobre a tela (Android 11+).
   • subtype: idioma/modo anunciado ao sistema.
 -->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
     android:settingsActivity="com.corretorkeyboard.MainActivity"
     android:supportsSwitchingToNextInputMethod="true"
+    android:supportsInlineSuggestions="true"
     android:isDefault="false">
 
     <subtype
