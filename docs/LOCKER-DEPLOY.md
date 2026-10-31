@@ -88,15 +88,19 @@ Confira em Supabase → **Edge Functions**: as quatro aparecem.
 
 1. **Authentication** → **URL Configuration** → **Redirect URLs** → **Add URL**:
    `https://locker.keyconapp.com/**`
-2. **Authentication** → **Email Templates** → **Reset Password**:
-   - Assunto: `KEYCON: crie uma senha nova`
-   - Corpo:
+2. **Authentication** → **SMTP Settings** → ligue o SMTP próprio (sem ele o Supabase não deixa
+   mudar os e-mails e só manda para a equipe do projeto). Sem custo: uma conta de e-mail do
+   HostGator, por exemplo `nao-responda@keyconapp.com`, host `mail.keyconapp.com`, porta `465`.
+3. **Authentication** → **Email Templates**: os e-mails são sempre em **inglês** (o público do app
+   é americano) e com a identidade da KEYCON. Em cada modelo abaixo, troque o assunto e cole
+   **todo** o conteúdo do arquivo no corpo (aba *Source*) → **Save**:
 
-```html
-<p>Recebemos um pedido para trocar a senha da sua conta KEYCON.</p>
-<p><a href="{{ .ConfirmationURL }}">Criar senha nova</a></p>
-<p>Se não foi você, ignore este e-mail. Sua senha continua a mesma.</p>
-```
+| Modelo no Supabase | Assunto | Arquivo |
+| --- | --- | --- |
+| **Reset Password** | `KEYCON: create a new password` | `supabase/email-templates/reset-password.html` |
+| **Confirm signup** | `KEYCON: confirm your email` | `supabase/email-templates/confirm-signup.html` |
+
+   O logo vem de `https://keyconapp.com/img/logo-keycon.png`: não apague esse arquivo do site.
 
 ## 6. HostGator: o site do Locker (15 min)
 
@@ -120,7 +124,7 @@ Use uma conta de teste e um celular com a versão nova do app.
 **Locker web**
 - [ ] `https://locker.keyconapp.com` abre com cadeado e mostra a página de entrada.
 - [ ] Entra com a conta do app.
-- [ ] "Esqueci a senha" manda o e-mail em português; o link abre "Crie uma senha nova"; a senha nova entra no app também.
+- [ ] "Esqueci a senha" manda o e-mail em inglês ("KEYCON: create a new password"); o link abre "Crie uma senha nova"; a senha nova entra no app também.
 - [ ] Envia uma foto, um PDF e uma pasta inteira (arrastando).
 - [ ] No Supabase → `locker_files`: as linhas novas têm `storage = r2`. No R2 → bucket: os arquivos estão na pasta com o id do usuário.
 - [ ] Prévia: foto, vídeo, áudio e PDF abrem; ← → passam de arquivo.

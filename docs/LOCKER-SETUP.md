@@ -148,10 +148,10 @@ de "Esqueci a senha" volta para `https://locker.keyconapp.com/?redefinir=1`, ond
 cria a senha nova (vale também no app).
 
 1. O endereço de volta já está liberado pelo passo 6 (`https://locker.keyconapp.com/**`).
-2. Supabase → **Authentication** → **Email Templates** → **Reset Password**: troque o texto
-   padrão (em inglês) por um da KEYCON, por exemplo:
-   - Assunto: `KEYCON: crie uma senha nova`
-   - Corpo: `Recebemos um pedido para trocar a senha da sua conta KEYCON. <a href="{{ .ConfirmationURL }}">Criar senha nova</a>. Se não foi você, ignore este e-mail.`
+2. Supabase → **Authentication** → **Email Templates** → **Reset Password** e **Confirm signup**:
+   cole os modelos de `supabase/email-templates/` (identidade da KEYCON, **sempre em inglês**: o
+   público do app é americano). Assuntos: `KEYCON: create a new password` e
+   `KEYCON: confirm your email`. Exige SMTP próprio ligado (ver `LOCKER-DEPLOY.md`, passo 5).
 3. O link vale 1 hora (Authentication → **Providers** → **Email** → *Email OTP expiration*). Se
    vencer, a página avisa e oferece mandar outro.
 
