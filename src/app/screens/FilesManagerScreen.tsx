@@ -43,6 +43,10 @@ import type { FileFolder, FilesData, FolderVisibility, SavedFile } from '../../t
 import { normalizeUrl } from '../../utils/formatters';
 import { SourceButtons, UploadStatus, useUploader } from '../components/MediaUpload';
 import { LockerUsageCard } from '../components/LockerUsageCard';
+import { OverLimitBanner } from '../components/OverLimitBanner';
+import { limitError } from '../../plans/plan';
+import { alertPlanLimit } from '../components/planAlert';
+import { usePlan } from '../../plans/usePlan';
 import { LockerKeyboardPreview } from './LockerKeyboardPreview';
 import { Button, Card, CardText, CardTitle, EmptyState, MenuGroup, MenuRow, Page, ScreenTitle, SubHeader } from '../components/ui';
 
@@ -99,7 +103,14 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
     setFolderId(id);
     setMode(null);
   };
+  /** Plano grátis: avisa antes de abrir o formulário (true = não pode criar). */
+  const blockedBy = (what: 'files' | 'fileFolders') => {
+    const tooMany = limitError(what);
+    if (tooMany) alertPlanLimit(tooMany);
+    return !!tooMany;
+  };
   const startName = (m: 'new-folder' | 'rename-folder') => {
+    if (m === 'new-folder' && blockedBy('fileFolders')) return;
     setName(m === 'rename-folder' ? folder?.name ?? '' : '');
     setMode(m);
   };
@@ -165,6 +176,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       {folder && path.length > 1 ? <Text style={styles.path}>{t('Em {folder}', { folder: parentLabel })}</Text> : null}
 
       {/* Quanto já usou do plano (some ao abrir uma pasta) */}
+      {!folder && !mode ? <OverLimitBanner /> : null}
       {!folder && !mode ? <LockerUsageCard refreshKey={data} /> : null}
 
       {/* O Locker no navegador (já logado) abre pela barra de endereço da moldura (LockerFrame) */}
@@ -233,7 +245,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
         <View style={styles.actions}>
           <View style={styles.row}>
             <View style={styles.flex}>
-              <Button testID="files-add" label={t('Adicionar')} icon="adicionar" onPress={() => setMode('add')} disabled={!!uploader.uploading} />
+              <Button testID="files-add" label={t('Adicionar')} icon="adicionar" onPress={() => !blockedBy('files') && setMode('add')} disabled={!!uploader.uploading} />
             </View>
             <View style={styles.flex}>
               <Button
@@ -335,7 +347,19 @@ const VISIBILITY_OPTIONS: Array<{ value: FolderVisibility; label: string; hint: 
 /** Quem pode ver a pasta pelo Locker (locker.keyconapp.com) e o link dela. */
 function FolderSharing({ folder, onChanged }: { folder: FileFolder; onChanged: () => void }) {
   const styles = useStyles();
+  const plan = usePlan();
   const visibility = folder.visibility ?? 'private';
+  // Pasta por link ou pública: Plus em diante (sem o plano, o link da pasta não abre)
+  if (!plan.limits.folderLinks) {
+    return (
+      <Card>
+        <CardTitle>{t('Quem pode ver esta pasta')}</CardTitle>
+        <CardText>
+          {t('Só você vê esta pasta. Para compartilhar uma pasta por link ou numa vitrine pública, assine o plano Plus ou o Pro.')}
+        </CardText>
+      </Card>
+    );
+  }
   const option = VISIBILITY_OPTIONS.find(o => o.value === visibility) ?? VISIBILITY_OPTIONS[0];
   return (
     <Card>

@@ -1,6 +1,6 @@
 /** Medidor de espaço do menu lateral (o mesmo da tela Locker do app). */
 import React from 'react';
-import { formatBytes, LOCKER_PLANS } from '../../src/files/limits';
+import { formatBytes, lockerPlanName } from '../../src/files/limits';
 import { getLanguage, t } from '../../src/i18n';
 import type { Usage } from './data';
 
@@ -26,7 +26,7 @@ export function UsageMeter({ usage }: { usage: Usage | null }) {
           : t('{used} usados', { used: formatBytes(usage.used, lang) })}
       </p>
       <p className="usage-plan">
-        {t('Plano {plan}', { plan: LOCKER_PLANS[usage.plan].name })}
+        {t('Plano {plan}', { plan: lockerPlanName(usage.plan) })}
         {full ? <span className="usage-warn"> · {t('quase cheio')}</span> : null}
       </p>
     </div>

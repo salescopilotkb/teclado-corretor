@@ -24,6 +24,8 @@ import { CoralSheen, EmptyState } from '../components/ui';
 import { SourceButtons, UploadStatus, useUploader } from '../components/MediaUpload';
 import { canUseCamera, captureWithCamera, pickFromGallery } from '../../native/MediaPicker';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
+import { limitError } from '../../plans/plan';
+import { alertPlanLimit } from '../components/planAlert';
 
 /** Formulário de pasta (categoria): id null = criando uma pasta nova. */
 interface FolderForm {
@@ -123,7 +125,15 @@ export function ProductsManagerScreen({ onBack }: { onBack?: () => void } = {}) 
 
   const makeEmptyProductForm = (defaultFolderId?: string): ProductForm => emptyDraft(defaultFolderId ?? (folders[0]?.id || ''));
 
+  /** Plano grátis: avisa antes de abrir o formulário (null = pode criar). */
+  const blockedBy = (what: 'products' | 'productFolders') => {
+    const tooMany = limitError(what);
+    if (tooMany) alertPlanLimit(tooMany);
+    return !!tooMany;
+  };
+
   const startCreateProduct = (defaultFolderId?: string) => {
+    if (blockedBy('products')) return;
     setFolderForm(null);
     setIsCreatingNewCategory(folders.length === 0);
     setShowLinkInput(false);
@@ -599,7 +609,7 @@ export function ProductsManagerScreen({ onBack }: { onBack?: () => void } = {}) 
           </Pressable>
           <Pressable
             style={styles.secondaryHeaderBtn}
-            onPress={() => setFolderForm({ id: null, name: '', description: '' })}>
+            onPress={() => !blockedBy('productFolders') && setFolderForm({ id: null, name: '', description: '' })}>
             <Icon name="novaPasta" size={18} color={colors.text} />
           </Pressable>
         </View>
@@ -618,7 +628,7 @@ export function ProductsManagerScreen({ onBack }: { onBack?: () => void } = {}) 
               title={t('Comece pela primeira pasta')}
               text={t('As pastas organizam seus {items}. {folderName}.', { items, folderName: segment.examples.folderName })}
               actionLabel={t('Criar pasta')}
-              onAction={() => setFolderForm({ id: null, name: '', description: '' })}
+              onAction={() => !blockedBy('productFolders') && setFolderForm({ id: null, name: '', description: '' })}
             />
           )
         }

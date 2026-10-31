@@ -25,6 +25,7 @@ import { getLanguage, t } from '../i18n';
 import { supabase } from '../services/supabase';
 import { deleteUploadedMedia, UploadError, uploadMedia } from '../services/mediaUpload';
 import { isLockerPlan, LOCKER_PLANS, lockerSizeError } from './limits';
+import { limitMessage } from '../plans/plan';
 import type { LockerPlanId } from './limits';
 import type { LocalMedia, UploadedMedia } from '../services/mediaUpload';
 import { Repo, storage } from '../storage/storage';
@@ -41,7 +42,7 @@ const R2_PREFIX = 'r2:';
 
 // ── Chamadas à Edge Function ───────────────────────────────────────────────
 
-type LockerReply<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
+type LockerReply<T> = { ok: true; data: T } | { ok: false; status: number; error: string; max?: number };
 
 /** Chama a função "locker" e devolve o erro já lido (sem lançar). */
 async function callLocker<T>(body: Record<string, unknown>): Promise<LockerReply<T>> {
@@ -51,12 +52,15 @@ async function callLocker<T>(body: Record<string, unknown>): Promise<LockerReply
     const context = (error as { context?: Response }).context;
     const status = context?.status ?? 0;
     let code = '';
+    let max: number | undefined;
     try {
-      code = String((await context?.json())?.error ?? '');
+      const reply = await context?.json();
+      code = String(reply?.error ?? '');
+      if (typeof reply?.max === 'number') max = reply.max;
     } catch {
       // sem corpo JSON (função não publicada, sem internet)
     }
-    return { ok: false, status, error: code || error.message || 'failed' };
+    return { ok: false, status, error: code || error.message || 'failed', max };
   } catch (e) {
     return { ok: false, status: 0, error: e instanceof Error ? e.message : 'failed' };
   }
@@ -97,6 +101,8 @@ export async function uploadToLocker(media: LocalMedia, onProgress?: (fraction: 
       throw new UploadError(t('Seu Locker está cheio. Libere espaço ou mude de plano para enviar mais arquivos.'));
     }
     if (reply.error === 'file_too_large') throw new UploadError(lockerSizeError(mime, size) ?? t('O arquivo é grande demais para o Locker.'));
+    // Plano grátis: até 3 arquivos (supabase/plans.sql)
+    if (reply.error === 'plan_limit') throw new UploadError(limitMessage('files', reply.max ?? 3));
     if (reply.status === 401) throw new UploadError(t('Sessão expirada. Entre na conta de novo para enviar arquivos.'));
     throw new UploadError(t('Sem conexão com a internet. Verifique e tente de novo.'));
   }
@@ -327,7 +333,9 @@ async function doFlush(): Promise<boolean> {
             : await supabase.from('locker_files').delete().eq('id', op.id);
     if (result.error) {
       if (missingTable(result.error)) installed = false;
-      return false; // sem internet ou Locker não instalado: tenta de novo depois
+      // Recusado pelo plano (supabase/plans.sql): tentar de novo não adianta. Sai da
+      // fila e fica só no aparelho; o resto da fila continua subindo
+      if (!/^plan_limit:/.test(result.error.message ?? '')) return false; // sem internet ou Locker não instalado: tenta de novo depois
     }
     // Tira da fila o que subiu (outra mudança pode ter entrado enquanto isso)
     ops = readPending().filter(o => o !== op && !(o.kind === op.kind && o.id === op.id && JSON.stringify(o) === JSON.stringify(op)));

@@ -186,21 +186,52 @@ delete from public.locker_folders where user_id = '<User UID>';
 Limite de cada arquivo (no app e no servidor): **foto 16 MB, vídeo 64 MB, outros 10 MB**
 (PDF, documentos, áudio). O medidor na tela Locker do app mostra quanto já foi usado.
 
-- Sem nada configurado, cada pessoa tem **5 GB** (`basic`).
-- Para mudar o plano de alguém (até existir a cobrança da assinatura), no SQL Editor:
+**Com os planos de assinatura (`supabase/plans.sql`)** os limites passam a seguir o plano de
+cada conta, e a tabela acima vale só para quem não rodou esse arquivo. O que cada plano
+permite fica na tabela `plan_limits`:
 
-```sql
-insert into public.locker_plans (user_id, plan, limit_bytes)
-values ('<id do usuário>', 'plus', 21474836480)
-on conflict (user_id) do update set plan = excluded.plan, limit_bytes = excluded.limit_bytes, updated_at = now();
-```
+| Plano | Espaço | Foto / vídeo / outros | Arquivos | Pessoas por e-mail | Equipes / dependentes | Vitrine | Lixeira |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Free (sem assinatura) | 200 MB | 16 / 64 / 10 MB | 1 pasta, 3 arquivos | — | — | — | 30 dias |
+| Basic | 5 GB | 16 / 64 / 10 MB | sem limite | 3 | — | — | 30 dias |
+| Plus | 20 GB | 32 / 256 / 50 MB | sem limite | sem limite | 1 / 5 | sim | 60 dias |
+| Pro | 100 GB | 64 MB / 1 GB / 200 MB | sem limite | sem limite | 5 / 50 | sim | 90 dias |
+| Enterprise | combinado | 64 MB / 1 GB / 200 MB | sem limite | sem limite | sem limite | sim | 90 dias |
 
-Depois de mudar o `locker.sql` (o Enterprise entrou agora), rode o arquivo de novo e
-republique a função `locker`, que confere os limites por tipo:
+Para ligar: rode `supabase/plans.sql` no SQL Editor (depois do `locker.sql`) e republique:
 
 ```bash
 supabase functions deploy locker
+supabase functions deploy locker-public --no-verify-jwt
+supabase functions deploy locker-purge --no-verify-jwt
 ```
+
+**Atenção:** a partir daí, toda conta sem linha em `locker_plans` vale como **free**
+(1 pasta com 3 arquivos, sem compartilhar). Para testar, dê um plano à conta de teste.
+
+- Para dar um plano à mão (contas de teste, ou antes da cobrança pelas lojas), no SQL Editor.
+  Sem `expires_at` o plano não vence; o Enterprise usa o espaço de `limit_bytes`:
+
+```sql
+insert into public.locker_plans (user_id, plan, limit_bytes, store, expires_at)
+values ('<id do usuário>', 'pro', 107374182400, 'manual', null)
+on conflict (user_id) do update set plan = excluded.plan, limit_bytes = excluded.limit_bytes,
+  store = excluded.store, expires_at = excluded.expires_at, updated_at = now();
+```
+
+- Para voltar a conta ao free: `delete from public.locker_plans where user_id = '<id do usuário>';`
+
+**Passou do limite (assinatura vencida ou plano menor):** a limpeza diária (`locker-purge`,
+4h17 UTC) marca em `locker_plans.over_limit_since` o dia em que a conta passou do limite (na
+assinatura vencida, o dia do vencimento). O app mostra "Faltam X dias para você perder seus
+arquivos." e a tela "Escolher o que manter". Depois de 30 dias, saem os arquivos mais
+**recentes** que passam do limite (pela data de envio) e, no free, o que fica vai para uma
+pasta só. Voltou a caber (apagou arquivos ou assinou): a data some sozinha.
+
+- Para testar sem esperar 30 dias: `update public.locker_plans set over_limit_since = now() - interval '31 days' where user_id = '<id>';`
+  e rode a limpeza (Database → Cron Jobs → `locker-purge-daily` → Run, ou espere o dia seguinte).
+- O app, o teclado e o Locker web leem o próprio plano com `select public.my_plan();` (plano,
+  situação da assinatura, limites, o que já usou).
 
 A pessoa só consegue **ler** o próprio plano: quem muda é o servidor (chave service_role).
 

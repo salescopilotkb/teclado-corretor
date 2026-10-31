@@ -32,6 +32,7 @@ import { deleteUploadedMedia } from '../../services/mediaUpload';
 import { Repo } from '../../storage/storage';
 import type { FilesData, SavedFile } from '../../types';
 import { UploadStatus, useUploader } from '../../app/components/MediaUpload';
+import { limitError } from '../../plans/plan';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, useColors } from '../theme';
 import { CoralSheen } from './Glass';
 import { fileIcon, Icon } from './Icon';
@@ -95,7 +96,12 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     const target = folderId;
     browse();
     uploader.run(
-      () => KeyboardBridge.pickMedia(source),
+      () => {
+        // Plano grátis: até 3 arquivos (avisa antes de abrir a galeria)
+        const tooMany = limitError('files');
+        if (tooMany) throw new Error(tooMany);
+        return KeyboardBridge.pickMedia(source);
+      },
       (uploaded, media) => {
         lockerSaveFile(savedFileFrom(media, uploaded, target));
         onChanged();
@@ -310,7 +316,11 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
       onUseFile={send}
       onUseFileLink={file => onInsert(fileLink(file))}
       onAdd={() => setScreen({ name: 'add' })}
-      onNewFolder={() => setScreen({ name: 'name', kind: 'new-folder' })}
+      onNewFolder={() => {
+        const tooMany = limitError('fileFolders');
+        if (tooMany) uploader.fail(tooMany);
+        else setScreen({ name: 'name', kind: 'new-folder' });
+      }}
       onFolderOptions={() => setScreen({ name: 'folder-options' })}
       onSearch={() => setScreen({ name: 'search' })}
     />

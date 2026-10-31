@@ -88,7 +88,8 @@ create index if not exists locker_files_folder_idx on public.locker_files (folde
 -- Plano de armazenamento de cada pessoa: basic 5 GB, plus 20 GB, pro 100 GB ou
 -- enterprise (espaço combinado com o suporte, gravado em limit_bytes).
 -- A pessoa só LÊ o próprio plano: quem muda é o servidor (cobrança da assinatura,
--- com a chave service_role). Sem linha aqui = 5 GB.
+-- com a chave service_role). Sem linha aqui = sem assinatura (free): os limites de
+-- cada plano e a assinatura ficam em supabase/plans.sql.
 create table if not exists public.locker_plans (
   user_id     uuid primary key references auth.users (id) on delete cascade,
   plan        text not null default 'basic',
@@ -99,7 +100,7 @@ create table if not exists public.locker_plans (
 -- Planos aceitos (o enterprise entrou depois: troca a regra antiga, se existir)
 alter table public.locker_plans drop constraint if exists locker_plans_plan_check;
 alter table public.locker_plans
-  add constraint locker_plans_plan_check check (plan in ('basic', 'plus', 'pro', 'enterprise'));
+  add constraint locker_plans_plan_check check (plan in ('free', 'basic', 'plus', 'pro', 'enterprise'));
 
 -- -----------------------------------------------------------------------------
 -- Segurança: cada pessoa só vê e mexe nas próprias pastas e arquivos
@@ -140,20 +141,30 @@ create trigger locker_files_touch before update on public.locker_files
   for each row execute function public.locker_touch();
 
 -- -----------------------------------------------------------------------------
--- Espaço usado e limite do plano (a lixeira também conta, até ser esvaziada)
+-- Espaço usado e limite do plano (a lixeira também conta, até ser esvaziada).
+-- Versão provisória: supabase/plans.sql troca por uma que segue a assinatura.
+-- Só é criada se ainda não existir, para rodar este arquivo de novo não desfazer.
 -- -----------------------------------------------------------------------------
-create or replace function public.locker_usage()
-returns table (used_bytes bigint, limit_bytes bigint, plan text)
-language sql
-stable
-security invoker
-set search_path = public
-as $$
-  select
-    coalesce((select sum(f.size_bytes) from public.locker_files f where f.user_id = auth.uid() and f.storage <> 'link'), 0)::bigint,
-    coalesce((select p.limit_bytes from public.locker_plans p where p.user_id = auth.uid()), 5368709120)::bigint,
-    coalesce((select p.plan from public.locker_plans p where p.user_id = auth.uid()), 'basic');
-$$;
+do $do$
+begin
+  if not exists (select 1 from pg_proc where proname = 'locker_usage' and pronamespace = 'public'::regnamespace) then
+    execute $f$
+      create function public.locker_usage()
+      returns table (used_bytes bigint, limit_bytes bigint, plan text)
+      language sql
+      stable
+      security invoker
+      set search_path = public
+      as $q$
+        select
+          coalesce((select sum(f.size_bytes) from public.locker_files f where f.user_id = auth.uid() and f.storage <> 'link'), 0)::bigint,
+          coalesce((select p.limit_bytes from public.locker_plans p where p.user_id = auth.uid()), 5368709120)::bigint,
+          coalesce((select p.plan from public.locker_plans p where p.user_id = auth.uid()), 'basic');
+      $q$
+    $f$;
+  end if;
+end;
+$do$;
 
 -- -----------------------------------------------------------------------------
 -- Tempo real: app, teclado e Locker web recebem as mudanças na hora

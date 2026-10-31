@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { getLanguage, t } from '../../i18n';
-import { formatBytes, LOCKER_PLANS } from '../../files/limits';
+import { formatBytes, lockerPlanName } from '../../files/limits';
 import { lockerUsage, onLockerChange } from '../../files/locker';
 import type { LockerUsage } from '../../files/locker';
 import { makeStyles, radius, spacing } from '../../keyboard/theme';
@@ -37,13 +37,12 @@ export function LockerUsageCard({ refreshKey }: { refreshKey?: unknown }) {
   const lang = getLanguage();
   const fraction = usage.limit > 0 ? Math.min(1, usage.used / usage.limit) : 0;
   const almostFull = fraction >= ALMOST_FULL;
-  const plan = LOCKER_PLANS[usage.plan];
 
   return (
     <Card>
       <View style={styles.head}>
         <CardTitle>{t('Espaço do Locker')}</CardTitle>
-        <Text style={styles.plan}>{t('Plano {plan}', { plan: plan.name })}</Text>
+        <Text style={styles.plan}>{t('Plano {plan}', { plan: lockerPlanName(usage.plan) })}</Text>
       </View>
       <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(fraction * 100) }}>
         <View style={[styles.fill, almostFull && styles.fillFull, { width: `${Math.max(fraction * 100, usage.used > 0 ? 2 : 0)}%` }]} />

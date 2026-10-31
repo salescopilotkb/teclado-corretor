@@ -21,6 +21,9 @@ import { fillLegal, LEGAL_UPDATED, PRIVACY, TERMS } from '../../legal/legal';
 import type { LegalDocument } from '../../legal/legal';
 import { KeyconLogo } from '../../keyboard/components/KeyconLogo';
 import { Button, Card, CardText, CardTitle, MenuGroup, MenuRow, Page, ScreenTitle, StatusChip, SubHeader } from '../components/ui';
+import { lockerPlanName } from '../../files/limits';
+import { openPlans } from '../../plans/plan';
+import { usePlan } from '../../plans/usePlan';
 
 export type AccountSection =
   | 'root'
@@ -54,6 +57,7 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
   const [seller, setSeller] = useState<SellerProfile>(() => Repo.getSeller());
   const [theme, setTheme] = useState<ThemePreference>(() => Repo.getTheme());
   const [email, setEmail] = useState<string | null>(null);
+  const plan = usePlan();
 
   useEffect(() => {
     currentEmail().then(setEmail).catch(() => {});
@@ -188,6 +192,17 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
           title={t('Aparência')}
           value={t(THEME_OPTIONS.find(o => o.key === theme)?.label ?? '')}
           onPress={() => setSection('theme')}
+        />
+      </MenuGroup>
+
+      <MenuGroup>
+        <MenuRow
+          testID="account-plan"
+          icon="favoritos"
+          title={t('Plano e assinatura')}
+          subtitle={t('Planos, restaurar compras e gerenciar')}
+          value={plan.status === 'open' ? undefined : lockerPlanName(plan.status === 'expired' ? 'free' : plan.plan)}
+          onPress={openPlans}
         />
       </MenuGroup>
 
@@ -373,7 +388,7 @@ function AboutSection({ onBack, onOpen }: { onBack: () => void; onOpen: (s: Acco
 }
 
 /** Termos de Uso / Política de Privacidade, no idioma do app. */
-function LegalScreen({ doc, onBack }: { doc: Record<Lang, LegalDocument>; onBack: () => void }) {
+export function LegalScreen({ doc, onBack }: { doc: Record<Lang, LegalDocument>; onBack: () => void }) {
   const styles = useStyles();
   const current = doc[getLanguage()] ?? doc.pt;
   return (

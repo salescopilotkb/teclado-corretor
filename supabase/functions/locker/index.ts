@@ -3,8 +3,9 @@
  *
  * O app e o teclado nunca têm as chaves do R2: pedem aqui links temporários
  * (assinados) para enviar e baixar direto do R2, sem o arquivo passar pelo
- * Supabase. Antes de cada envio, confere o espaço livre do plano (5/20/100 GB,
- * ver locker_usage em supabase/locker.sql).
+ * Supabase. Antes de cada envio, confere o plano da conta (supabase/plans.sql,
+ * my_plan): o tamanho máximo de cada tipo de arquivo, o espaço livre e quantos
+ * arquivos a conta pode ter (free: 3).
  *
  * Publicar (uma vez):
  *   supabase secrets set R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=keycon-locker
@@ -20,6 +21,9 @@
  *   { action: "delete", keys: [...] }        → { deleted }
  *   { action: "copy", keys: [...] }          → { copies: { key: novaKey } }  ("Fazer uma cópia"; confere o espaço)
  *   { action: "usage" }                      → { used, limit, plan }
+ *
+ * Erros do plano: 413 file_too_large { max } · 413 quota_exceeded { used, limit, plan }
+ * · 403 plan_limit { limit: "files", max }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { r2FromEnv } from '../_shared/r2.ts';
@@ -29,9 +33,16 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/** Limite por tipo, o mesmo do app (src/files/limits.ts): foto 16 MB, vídeo 64 MB, outros 10 MB. */
+/** Sem a tabela de planos (plans.sql ainda não rodou): os limites do Basic. */
 const MB = 1024 * 1024;
-const limitFor = (mime: string) => (mime.startsWith('image/') ? 16 * MB : mime.startsWith('video/') ? 64 * MB : 10 * MB);
+const FALLBACK: Plan = {
+  plan: 'basic',
+  used: 0,
+  files: 0,
+  limit: 5 * 1024 * MB,
+  maxFiles: null,
+  max: { image: 16 * MB, video: 64 * MB, other: 10 * MB },
+};
 /** Envio: o link vale 15 minutos. Download: 7 dias (o app guarda e renova antes de vencer). */
 const UPLOAD_EXPIRES = 15 * 60;
 const DOWNLOAD_EXPIRES = 7 * 24 * 60 * 60;
@@ -91,14 +102,27 @@ Deno.serve(async req => {
     return usage ? json(usage) : json({ error: 'locker_not_installed' }, 409);
   }
 
+  /** Cabe no plano? (null = cabe; senão a resposta de erro pronta) */
+  const refuse = (plan: Plan, bytes: number, count: number): Response | null => {
+    if (plan.limit !== null && plan.used + bytes > plan.limit) {
+      return json({ error: 'quota_exceeded', used: plan.used, limit: plan.limit, plan: plan.plan }, 413);
+    }
+    if (plan.maxFiles !== null && plan.files + count > plan.maxFiles) {
+      return json({ error: 'plan_limit', limit: 'files', max: plan.maxFiles, plan: plan.plan }, 403);
+    }
+    return null;
+  };
+
   if (action === 'upload') {
     const size = Number(body.size ?? 0);
     const mime = String(body.mime ?? 'application/octet-stream').slice(0, 100);
     const name = String(body.name ?? 'arquivo');
     if (!Number.isFinite(size) || size < 0) return json({ error: 'bad_size' }, 400);
-    if (size > limitFor(mime)) return json({ error: 'file_too_large', max: limitFor(mime) }, 413);
-    const usage = await usageOf(supabase);
-    if (usage && usage.used + size > usage.limit) return json({ error: 'quota_exceeded', ...usage }, 413);
+    const plan = await planOf(supabase);
+    const max = plan.max[kindOf(mime)];
+    if (size > max) return json({ error: 'file_too_large', max, plan: plan.plan }, 413);
+    const refused = refuse(plan, size, 1);
+    if (refused) return refused;
     const key = `${userId}/${randomName()}.${extensionFor(mime, name)}`;
     const uploadUrl = await presign('PUT', key, UPLOAD_EXPIRES, { 'Content-Type': mime });
     return json({ key, uploadUrl, expiresIn: UPLOAD_EXPIRES });
@@ -136,8 +160,8 @@ Deno.serve(async req => {
     const { data: rows } = await supabase.from('locker_files').select('object_key, size_bytes').in('object_key', keys);
     const sizes = new Map((rows ?? []).map((r: { object_key: string; size_bytes: number }) => [r.object_key, Number(r.size_bytes) || 0]));
     const total = keys.reduce((sum, k) => sum + (sizes.get(k) ?? 0), 0);
-    const usage = await usageOf(supabase);
-    if (usage && usage.used + total > usage.limit) return json({ error: 'quota_exceeded', ...usage }, 413);
+    const refused = refuse(await planOf(supabase), total, sizes.size);
+    if (refused) return refused;
     const copies: Record<string, string> = {};
     for (const key of keys) {
       if (!sizes.has(key)) continue;
@@ -162,6 +186,43 @@ async function usageOf(
     used: Number(row?.used_bytes ?? 0),
     limit: Number(row?.limit_bytes ?? 5368709120),
     plan: String(row?.plan ?? 'basic'),
+  };
+}
+
+type Plan = {
+  plan: string;
+  used: number;
+  files: number;
+  /** Espaço do plano (null = sem limite) */
+  limit: number | null;
+  /** Quantos arquivos a conta pode ter (null = sem limite) */
+  maxFiles: number | null;
+  /** Tamanho máximo de cada arquivo, por tipo */
+  max: Record<'image' | 'video' | 'other', number>;
+};
+
+const kindOf = (mime: string) => (mime.startsWith('image/') ? 'image' : mime.startsWith('video/') ? 'video' : 'other');
+
+/** O plano que vale agora, com o que a conta já usou (supabase/plans.sql: my_plan). */
+async function planOf(supabase: ReturnType<typeof createClient>): Promise<Plan> {
+  const { data, error } = await supabase.rpc('my_plan');
+  if (error || !data) {
+    const usage = await usageOf(supabase);
+    return usage ? { ...FALLBACK, used: usage.used, limit: usage.limit } : FALLBACK;
+  }
+  const p = data as { plan: string; used_bytes: number; files: number; limits: Record<string, number | null> };
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    plan: p.plan,
+    used: Number(p.used_bytes) || 0,
+    files: Number(p.files) || 0,
+    limit: num(p.limits.limit_bytes),
+    maxFiles: num(p.limits.max_files),
+    max: {
+      image: num(p.limits.max_image_bytes) ?? FALLBACK.max.image,
+      video: num(p.limits.max_video_bytes) ?? FALLBACK.max.video,
+      other: num(p.limits.max_other_bytes) ?? FALLBACK.max.other,
+    },
   };
 }
 

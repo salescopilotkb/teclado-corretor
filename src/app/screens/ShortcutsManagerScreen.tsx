@@ -11,6 +11,8 @@ import {
 import { Repo } from '../../storage/storage';
 import type { AudioShortcut, LinkShortcut, ShortcutsData, TextShortcut } from '../../types';
 import { deleteShortcut, saveLinkShortcut } from '../../shortcuts/shortcuts';
+import { limitError } from '../../plans/plan';
+import { alertPlanLimit } from '../components/planAlert';
 import { normalizeUrl } from '../../utils/formatters';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { Icon, IconTile } from '../../keyboard/components/Icon';
@@ -173,6 +175,12 @@ export function ShortcutsManagerScreen() {
       Alert.alert(t('Atenção'), t('Preencha o título e o texto da mensagem.'));
       return;
     }
+    // Plano grátis: 1 atalho de cada formato
+    const tooMany = textForm.id ? null : limitError('text');
+    if (tooMany) {
+      Alert.alert(t('Atenção'), tooMany);
+      return;
+    }
 
     const shortcut: TextShortcut = {
       id: textForm.id ?? `text-${Date.now()}`,
@@ -199,6 +207,11 @@ export function ShortcutsManagerScreen() {
     const audioUrl = normalizeUrl(audioForm.url);
     if (!audioUrl) {
       Alert.alert(t('Atenção'), t('Grave o áudio, escolha um arquivo do celular ou cole o link.'));
+      return;
+    }
+    const tooMany = audioForm.id ? null : limitError('audio');
+    if (tooMany) {
+      Alert.alert(t('Atenção'), tooMany);
       return;
     }
     // Trocou o áudio de um atalho que já tinha arquivo na nuvem: apaga o antigo
@@ -285,6 +298,12 @@ export function ShortcutsManagerScreen() {
         <Pressable
           style={styles.addBtn}
           onPress={() => {
+            // Plano grátis: avisa antes de preencher o formulário
+            const tooMany = limitError(activeTab);
+            if (tooMany) {
+              alertPlanLimit(tooMany);
+              return;
+            }
             if (activeTab === 'text') setTextForm({ id: null, title: '', text: '' });
             else if (activeTab === 'link') setLinkForm(EMPTY_LINK_FORM);
             else setAudioForm(EMPTY_AUDIO_FORM);

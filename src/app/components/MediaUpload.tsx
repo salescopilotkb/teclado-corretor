@@ -89,7 +89,7 @@ export function useUploader() {
     [],
   );
 
-  return { run, uploading, error, clearError: () => setError(null) };
+  return { run, uploading, error, clearError: () => setError(null), fail: (message: string) => setError(message) };
 }
 
 /** Faixa de "Enviando… 45%" e mensagem de erro. */

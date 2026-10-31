@@ -35,10 +35,15 @@ export function lockerSizeError(mime: string | undefined, size: number | undefin
   return t('O arquivo passa de {mb} MB. Escolha um menor.', { mb });
 }
 
-export type LockerPlanId = 'basic' | 'plus' | 'pro' | 'enterprise';
+export type LockerPlanId = 'free' | 'basic' | 'plus' | 'pro' | 'enterprise';
 
-/** Planos de assinatura do Locker. Enterprise: espaço combinado com o suporte. */
+/**
+ * Planos de assinatura. Free = sem assinatura (1 pasta com 3 arquivos). Enterprise:
+ * espaço combinado com o suporte. Os limites completos de cada plano ficam no
+ * servidor (supabase/plans.sql, tabela plan_limits).
+ */
 export const LOCKER_PLANS: Record<LockerPlanId, { name: string; bytes: number | null }> = {
+  free: { name: 'Free', bytes: 200 * MB },
   basic: { name: 'Basic', bytes: 5 * GB },
   plus: { name: 'Plus', bytes: 20 * GB },
   pro: { name: 'Pro', bytes: 100 * GB },
@@ -46,6 +51,9 @@ export const LOCKER_PLANS: Record<LockerPlanId, { name: string; bytes: number | 
 };
 
 export const isLockerPlan = (v: unknown): v is LockerPlanId => typeof v === 'string' && v in LOCKER_PLANS;
+
+/** Nome do plano na tela ("Grátis" traduzido; os pagos têm o mesmo nome em todo idioma). */
+export const lockerPlanName = (plan: LockerPlanId): string => (plan === 'free' ? t('Grátis') : LOCKER_PLANS[plan].name);
 
 /** "1,2 GB", "340 MB", "12 KB" (vírgula ou ponto conforme o idioma). */
 export function formatBytes(bytes: number, lang: 'pt' | 'en' | 'es' = 'pt'): string {

@@ -6,6 +6,7 @@
 import { t } from '../i18n';
 import { currentMarketInfo, digitsFromMoney, moneyFromDigits } from '../i18n/markets';
 import type { SegmentProfile } from '../segments/segments';
+import { limitError } from '../plans/plan';
 import { deleteUploadedMedia } from '../services/mediaUpload';
 import { Repo } from '../storage/storage';
 import type { MediaItem, Product, ProductFolder } from '../types';
@@ -59,6 +60,10 @@ export function saveProductDraft(draft: ProductDraft, segment: SegmentProfile, n
   if (!(price > 0) && !segment.price.optional) return { ok: false, error: t('Informe o preço.') };
 
   const folders = Repo.getFolders();
+  // Plano grátis: até 3 produtos (supabase/plans.sql); editar um que já existe sempre pode
+  const isNew = !draft.id || !folders.some(f => f.products.some(p => p.id === draft.id));
+  const tooMany = isNew ? limitError('products') : null;
+  if (tooMany) return { ok: false, error: tooMany };
   let folderId = draft.folderId;
   if (newCategory || !folderId || !folders.some(f => f.id === folderId)) {
     const name = draft.newCategoryName.trim();
@@ -66,6 +71,8 @@ export function saveProductDraft(draft: ProductDraft, segment: SegmentProfile, n
     const same = folders.find(f => f.name.trim().toLowerCase() === name.toLowerCase());
     if (same) folderId = same.id;
     else {
+      const noFolder = limitError('productFolders');
+      if (noFolder) return { ok: false, error: noFolder };
       folderId = `folder-${Date.now()}`;
       Repo.addFolder({ id: folderId, name, products: [] });
     }
@@ -131,6 +138,8 @@ export function saveFolder(id: string | null, name: string, description: string)
     Repo.updateFolder(id, { name: clean, description: desc });
     return { ok: true, id };
   }
+  const tooMany = limitError('productFolders');
+  if (tooMany) return { ok: false, error: tooMany };
   const newId = `folder-${Date.now()}`;
   Repo.addFolder({ id: newId, name: clean, description: desc, products: [] });
   return { ok: true, id: newId };

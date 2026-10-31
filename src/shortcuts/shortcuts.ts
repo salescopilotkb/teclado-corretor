@@ -4,6 +4,7 @@
  * Os dois lados gravam no mesmo lugar (Repo).
  */
 import { t, tSell } from '../i18n';
+import { limitError } from '../plans/plan';
 import { deleteUploadedMedia } from '../services/mediaUpload';
 import { Repo } from '../storage/storage';
 import type { AudioShortcut, LinkShortcut, TextShortcut } from '../types';
@@ -29,6 +30,9 @@ export function linkMessage(l: LinkShortcut): string {
 export function saveTextShortcut(id: string | null, title: string, text: string): Saved<TextShortcut> {
   if (!title.trim()) return { ok: false, error: t('Informe o título do atalho.') };
   if (!text.trim()) return { ok: false, error: t('Escreva a mensagem do atalho.') };
+  // Plano grátis: 1 atalho de cada formato (supabase/plans.sql)
+  const tooMany = id ? null : limitError('text');
+  if (tooMany) return { ok: false, error: tooMany };
   const item: TextShortcut = { id: id ?? newId('text'), title: title.trim(), text: text.trim() };
   if (id) Repo.updateTextShortcut(item);
   else Repo.addTextShortcut(item);
@@ -39,6 +43,8 @@ export function saveLinkShortcut(id: string | null, title: string, url: string, 
   if (!title.trim()) return { ok: false, error: t('Informe o título do atalho.') };
   const clean = normalizeUrl(url);
   if (!clean) return { ok: false, error: t('O link não parece válido. Ex: https://seusite.com.br/pagina') };
+  const tooMany = id ? null : limitError('link');
+  if (tooMany) return { ok: false, error: tooMany };
   const item: LinkShortcut = { id: id ?? newId('link'), title: title.trim(), url: clean, message: message.trim() || undefined };
   Repo.saveLinkShortcut(item);
   return { ok: true, item };
@@ -58,6 +64,8 @@ export interface AudioDraft {
 export function saveAudioShortcut(previous: AudioShortcut | null, title: string, audio: AudioDraft | null): Saved<AudioShortcut> {
   if (!title.trim()) return { ok: false, error: t('Informe o título do atalho.') };
   if (!audio?.audioUrl) return { ok: false, error: t('Grave ou escolha um áudio.') };
+  const tooMany = previous ? null : limitError('audio');
+  if (tooMany) return { ok: false, error: tooMany };
   const item: AudioShortcut = {
     id: previous?.id ?? newId('audio'),
     title: title.trim(),

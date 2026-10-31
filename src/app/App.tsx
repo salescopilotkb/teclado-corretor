@@ -42,6 +42,12 @@ import { ClientsScreen } from './screens/ClientsScreen';
 import { FilesManagerScreen } from './screens/FilesManagerScreen';
 import { LockerFrame } from './components/LockerFrame';
 import { TutorialScreen } from './screens/TutorialScreen';
+import { PlanLocked } from './components/PlanLocked';
+import { onOpenPlans, refreshPlan } from '../plans/plan';
+import type { PlanScreen } from '../plans/plan';
+import { PlansScreen } from './screens/PlansScreen';
+import { KeepFilesScreen } from './screens/KeepFilesScreen';
+import { usePlan } from '../plans/usePlan';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
 
@@ -112,6 +118,21 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     return startLockerSync();
   }, [isAuthenticated]);
 
+  // Plano da conta (o que pode usar): ao entrar e a cada volta para o app
+  const plan = usePlan();
+  // Tela de planos: abre de qualquer lugar (Conta, avisos de limite, telas bloqueadas)
+  const [planScreen, setPlanScreen] = useState<PlanScreen | null>(null);
+  useEffect(() => onOpenPlans(setPlanScreen), []);
+  const showPlans = planScreen !== null;
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    refreshPlan().catch(() => {});
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') refreshPlan().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [isAuthenticated]);
+
   useEffect(() => {
     const stopSync = startAuthSync();
     // Confere a sessão do Supabase (desfaz logins antigos de demonstração)
@@ -159,6 +180,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   }
 
   const openTab = (tab: AppTab, section: AccountSection = 'root') => {
+    setPlanScreen(null);
     setAccountSection(section);
     setScheduleClientId(null);
     setCurrentTab(tab);
@@ -205,6 +227,10 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
 
       {/* Área da Tela Ativa */}
       <View style={styles.screenBody}>
+        {planScreen === 'plans' && <PlansScreen onBack={() => setPlanScreen(null)} />}
+        {planScreen === 'keep' && <KeepFilesScreen onBack={() => setPlanScreen(null)} />}
+        {/* Escondida (não desmontada) atrás dos planos: ao voltar, a tela está como estava */}
+        <View style={showPlans ? styles.hidden : styles.fill}>
         {currentTab === 'home' && (
           <HomeScreen key={tabVisit} onNavigate={navigateFromHome} onOpenTutorial={() => setShowTutorial(true)} />
         )}
@@ -215,7 +241,9 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             onBack={() => openTab('home')}
           />
         )}
-        {currentTab === 'clients' && (
+        {/* Plano grátis: sem CRM e sem Agenda (os dados do aparelho continuam guardados) */}
+        {currentTab === 'clients' && !plan.limits.crm && <PlanLocked feature="crm" />}
+        {currentTab === 'clients' && plan.limits.crm && (
           <ClientsScreen
             key={`${seller.segment}-${tabVisit}`}
             onSchedule={lead => {
@@ -230,7 +258,8 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             <FilesManagerScreen key={tabVisit} />
           </LockerFrame>
         )}
-        {currentTab === 'agenda' && <AgendaScreen key={`${tabVisit}-${scheduleClientId ?? ''}`} presetClientId={scheduleClientId} />}
+        {currentTab === 'agenda' && !plan.limits.agenda && <PlanLocked feature="agenda" />}
+        {currentTab === 'agenda' && plan.limits.agenda && <AgendaScreen key={`${tabVisit}-${scheduleClientId ?? ''}`} presetClientId={scheduleClientId} />}
         {currentTab === 'profile' && (
           <ProfileSettingsScreen
             key={tabVisit}
@@ -246,6 +275,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             }}
           />
         )}
+        </View>
       </View>
 
       {/* Dock: menu inferior flutuante em vidro leve (o ativo em laranja leve) */}
@@ -310,6 +340,8 @@ const useStyles = makeStyles(colors => ({
     fontSize: 14,
     fontWeight: '700',
   },
+  hidden: { display: 'none' },
+  fill: { flex: 1 },
   screenBody: {
     flex: 1,
   },

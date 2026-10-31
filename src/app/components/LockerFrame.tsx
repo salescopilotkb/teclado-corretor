@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import { t } from '../../i18n';
 import { LOCKER_WEB_URL, openLockerWeb } from '../../files/locker';
+import { usePlan } from '../../plans/usePlan';
 import { Icon } from '../../keyboard/components/Icon';
 import { brand, radius, spacing, ThemeProvider } from '../../keyboard/theme';
 
@@ -24,6 +25,8 @@ const PAGE = {
 
 export function LockerFrame({ children }: { children: React.ReactNode }) {
   const [opening, setOpening] = useState(false);
+  // Locker no computador: só com plano (o grátis guarda os 3 arquivos só no app e no teclado)
+  const plan = usePlan();
   const host = LOCKER_WEB_URL.replace(/^https?:\/\//, '');
 
   const openInBrowser = () => {
@@ -44,7 +47,7 @@ export function LockerFrame({ children }: { children: React.ReactNode }) {
           </Text>
         </View>
         {/* Na demonstração abre o Locker web de exemplo */}
-        {(
+        {plan.limits.locker && (
 
           <Pressable
             testID="locker-open-web"

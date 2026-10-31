@@ -18,6 +18,9 @@ import { onLockerChange, pullLocker, startLockerSync } from '../files/locker';
 import { keyboardView } from '../files/files';
 import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
+import { PlanLockedPanel } from './components/PlanLockedPanel';
+import { refreshPlan } from '../plans/plan';
+import { usePlan } from '../plans/usePlan';
 import { KeyboardCRM } from './components/KeyboardCRM';
 import { MoreTab } from './components/MoreTab';
 import { KeyboardSizeContext } from './components/ResizeHandle';
@@ -121,8 +124,11 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
     if (!loggedIn) return;
     const stop = startLockerSync();
     const offChange = onLockerChange(onDataChanged);
+    refreshPlan().catch(() => {});
     const offShow = KeyboardBridge.onKeyboardShow(() => {
       pullLocker().catch(() => {});
+      // O plano pode ter mudado no app (compra, vencimento)
+      refreshPlan().catch(() => {});
     });
     return () => {
       stop();
@@ -132,6 +138,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   }, [loggedIn, onDataChanged]);
   useLanguage();
   const styles = useStyles();
+  const plan = usePlan();
 
   useEffect(() => {
     applyProfileLanguages(data.seller);
@@ -537,7 +544,10 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onChanged={onDataChanged}
           />
         )}
-        {!translating && loggedIn && tab === 'agenda' && (
+        {/* Plano grátis: sem Agenda e sem CRM */}
+        {!translating && loggedIn && tab === 'agenda' && !plan.limits.agenda && <PlanLockedPanel feature="agenda" />}
+        {!translating && loggedIn && tab === 'crm' && !plan.limits.crm && <PlanLockedPanel feature="crm" />}
+        {!translating && loggedIn && tab === 'agenda' && plan.limits.agenda && (
           <KeyboardAgenda
             agenda={data.agenda}
             leads={data.crm}
@@ -548,7 +558,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onCollapse={collapseToKeyboard}
           />
         )}
-        {!translating && loggedIn && tab === 'crm' && (
+        {!translating && loggedIn && tab === 'crm' && plan.limits.crm && (
           <KeyboardCRM
             segment={segment}
             leads={data.crm}

@@ -27,6 +27,7 @@ import { buildSteps } from '../onboarding/steps';
 import type { OnboardingStep, StepTarget } from '../onboarding/steps';
 import { KeyboardSetupScreen, KeyboardTestScreen, useKeyboardStatus } from './KeyboardSetupScreen';
 import { ShortcutsManagerScreen } from './ShortcutsManagerScreen';
+import { OverLimitBanner } from '../components/OverLimitBanner';
 
 type HomeSection = 'root' | 'install' | 'steps' | 'test' | 'shortcuts';
 
@@ -107,6 +108,9 @@ function HomeRoot({ steps, keyboardReady, keyboardHalfway, onSection, onNavigate
         overline={seller.business || segment.label}
         title={firstName ? t('Olá, {firstName}', { firstName }) : t('Olá!')}
       />
+
+      {/* Passou do limite do plano: faltam X dias para escolher o que manter */}
+      <OverLimitBanner />
 
       {/* Teclado: o essencial para tudo funcionar */}
       <Card>
