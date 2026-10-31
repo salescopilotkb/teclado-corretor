@@ -26,10 +26,15 @@ if (typeof window !== 'undefined') {
   });
 }
 import { Repo } from '../src/storage/storage';
+import { demoFilesData } from '../src/files/demoLocker';
+import { isLang } from '../src/i18n';
 
 if (!Repo.isLoggedIn()) {
   Repo.setAuthToken('test-web-token');
 }
+
+// Locker de exemplo (o mesmo do Locker web de demonstração), no idioma da demonstração
+if (!Repo.getFiles().files.length) Repo.setFiles(demoFilesData(isLang(Repo.getSeller().language) ? Repo.getSeller().language : 'en'));
 
 const initialSeller = Repo.getSeller();
 if (!initialSeller.name || initialSeller.name === 'Alex Morgan') {

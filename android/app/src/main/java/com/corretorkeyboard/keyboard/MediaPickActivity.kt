@@ -194,7 +194,8 @@ class MediaPickActivity : Activity() {
         private const val STATE_CAMERA_FILE = "cameraFile"
         private const val STATE_CAMERA_MIME = "cameraMime"
         private const val DIR = "picked"
-        private const val MAX_BYTES = 50L * 1024 * 1024
+        /** O maior limite do Locker (vídeo, 64 MB: ver src/files/limits.ts); cada destino confere o seu. */
+        private const val MAX_BYTES = 64L * 1024 * 1024
         private const val MAX_PHOTO_SIDE = 2048
         private const val MAX_VIDEO_SECONDS = 180
 
@@ -248,7 +249,7 @@ class MediaPickActivity : Activity() {
                     if (!c.isNull(1)) size = c.getLong(1)
                 }
             }
-            if (size > MAX_BYTES) throw MediaFiles.MediaException("O arquivo passa de 50 MB. Escolha um menor.")
+            if (size > MAX_BYTES) throw MediaFiles.MediaException("O arquivo passa de 64 MB. Escolha um menor.")
 
             val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "bin"
             val target = newPickedFile(context, ext)
@@ -263,7 +264,7 @@ class MediaPickActivity : Activity() {
                         if (total > MAX_BYTES) {
                             out.close()
                             target.delete()
-                            throw MediaFiles.MediaException("O arquivo passa de 50 MB. Escolha um menor.")
+                            throw MediaFiles.MediaException("O arquivo passa de 64 MB. Escolha um menor.")
                         }
                         out.write(buffer, 0, n)
                     }
@@ -277,14 +278,14 @@ class MediaPickActivity : Activity() {
             if (mime.startsWith("video/")) {
                 if (file.length() > MAX_BYTES) {
                     file.delete()
-                    throw MediaFiles.MediaException("O vídeo passa de 50 MB. Grave um mais curto.")
+                    throw MediaFiles.MediaException("O vídeo passa de 64 MB. Grave um mais curto.")
                 }
                 return Picked(file, name, mime, mediaDuration(file))
             }
             if (mime.startsWith("audio/") || mime == "application/ogg") {
                 if (file.length() > MAX_BYTES) {
                     file.delete()
-                    throw MediaFiles.MediaException("O áudio passa de 50 MB.")
+                    throw MediaFiles.MediaException("O áudio passa de 64 MB.")
                 }
                 return Picked(file, name, mime, mediaDuration(file))
             }

@@ -16,8 +16,9 @@
  *
  * Ações (POST, JSON):
  *   { action: "upload", name, mime, size }  → { key, uploadUrl, expiresIn }  (PUT do arquivo com Content-Type = mime)
- *   { action: "sign", keys: [...] }          → { urls: { key: url }, expiresIn }  (links de download, 7 dias)
+ *   { action: "sign", keys: [...] }          → { urls: { key: url }, expiresIn }  (links de download, 7 dias; também dos compartilhados com a pessoa)
  *   { action: "delete", keys: [...] }        → { deleted }
+ *   { action: "copy", keys: [...] }          → { copies: { key: novaKey } }  ("Fazer uma cópia"; confere o espaço)
  *   { action: "usage" }                      → { used, limit, plan }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
@@ -28,8 +29,9 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-/** Mesmo limite do app (MAX_UPLOAD_BYTES em src/services/mediaUpload.ts). */
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+/** Limite por tipo, o mesmo do app (src/files/limits.ts): foto 16 MB, vídeo 64 MB, outros 10 MB. */
+const MB = 1024 * 1024;
+const limitFor = (mime: string) => (mime.startsWith('image/') ? 16 * MB : mime.startsWith('video/') ? 64 * MB : 10 * MB);
 /** Envio: o link vale 15 minutos. Download: 7 dias (o app guarda e renova antes de vencer). */
 const UPLOAD_EXPIRES = 15 * 60;
 const DOWNLOAD_EXPIRES = 7 * 24 * 60 * 60;
@@ -94,7 +96,7 @@ Deno.serve(async req => {
     const mime = String(body.mime ?? 'application/octet-stream').slice(0, 100);
     const name = String(body.name ?? 'arquivo');
     if (!Number.isFinite(size) || size < 0) return json({ error: 'bad_size' }, 400);
-    if (size > MAX_FILE_BYTES) return json({ error: 'file_too_large', max: MAX_FILE_BYTES }, 413);
+    if (size > limitFor(mime)) return json({ error: 'file_too_large', max: limitFor(mime) }, 413);
     const usage = await usageOf(supabase);
     if (usage && usage.used + size > usage.limit) return json({ error: 'quota_exceeded', ...usage }, 413);
     const key = `${userId}/${randomName()}.${extensionFor(mime, name)}`;
@@ -103,7 +105,15 @@ Deno.serve(async req => {
   }
 
   if (action === 'sign') {
-    const keys = ownKeys(body.keys);
+    // Os da pessoa e os compartilhados com ela (a tabela, com as regras RLS, diz o que ela pode ler)
+    const asked = (Array.isArray(body.keys) ? body.keys : []).filter((k): k is string => typeof k === 'string' && !k.includes('..')).slice(0, MAX_BATCH);
+    const others = asked.filter(k => !k.startsWith(`${userId}/`));
+    let readable = new Set<string>();
+    if (others.length) {
+      const { data: rows } = await supabase.from('locker_files').select('object_key').eq('storage', 'r2').in('object_key', others);
+      readable = new Set((rows ?? []).map((r: { object_key: string }) => r.object_key));
+    }
+    const keys = asked.filter(k => k.startsWith(`${userId}/`) || readable.has(k));
     const urls: Record<string, string> = {};
     for (const key of keys) urls[key] = await presign('GET', key, DOWNLOAD_EXPIRES);
     return json({ urls, expiresIn: DOWNLOAD_EXPIRES });
@@ -117,6 +127,26 @@ Deno.serve(async req => {
       if (res.ok || res.status === 404) deleted++;
     }
     return json({ deleted });
+  }
+
+  if (action === 'copy') {
+    const keys = ownKeys(body.keys);
+    if (!keys.length) return json({ copies: {} });
+    // O tamanho vem da tabela (RLS: só os arquivos da pessoa)
+    const { data: rows } = await supabase.from('locker_files').select('object_key, size_bytes').in('object_key', keys);
+    const sizes = new Map((rows ?? []).map((r: { object_key: string; size_bytes: number }) => [r.object_key, Number(r.size_bytes) || 0]));
+    const total = keys.reduce((sum, k) => sum + (sizes.get(k) ?? 0), 0);
+    const usage = await usageOf(supabase);
+    if (usage && usage.used + total > usage.limit) return json({ error: 'quota_exceeded', ...usage }, 413);
+    const copies: Record<string, string> = {};
+    for (const key of keys) {
+      if (!sizes.has(key)) continue;
+      const ext = /.([a-z0-9]{1,8})$/i.exec(key)?.[1] ?? 'bin';
+      const to = `${userId}/${randomName()}.${ext}`;
+      const res = await r2.copy(key, to);
+      if (res.ok) copies[key] = to;
+    }
+    return json({ copies });
   }
 
   return json({ error: 'unknown_action' }, 400);

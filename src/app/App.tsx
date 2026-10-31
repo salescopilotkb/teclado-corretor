@@ -40,6 +40,7 @@ import type { AccountSection } from './screens/ProfileSettingsScreen';
 import { AgendaScreen } from './screens/AgendaScreen';
 import { ClientsScreen } from './screens/ClientsScreen';
 import { FilesManagerScreen } from './screens/FilesManagerScreen';
+import { LockerFrame } from './components/LockerFrame';
 import { TutorialScreen } from './screens/TutorialScreen';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
@@ -49,6 +50,8 @@ const NAV_ITEMS: Array<{ key: AppTab; label: string; icon: IconName }> = [
   // Mesmos dados do CRM e da Agenda do teclado
   { key: 'clients', label: 'Clientes', icon: 'clientes' },
   { key: 'agenda', label: 'Agenda', icon: 'calendario' },
+  // Locker: os arquivos na nuvem (marca: o mesmo nome nos 3 idiomas)
+  { key: 'files', label: 'Locker', icon: 'galeria' },
   // Configurações = engrenagem (manual de marca)
   { key: 'profile', label: 'Conta', icon: 'configuracoes' },
 ];
@@ -221,11 +224,11 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             }}
           />
         )}
+        {/* Locker: uma área "fora do app", como o site locker.keyconapp.com no navegador */}
         {currentTab === 'files' && (
-          <FilesManagerScreen
-            key={tabVisit}
-            onBack={() => openTab('home')}
-          />
+          <LockerFrame>
+            <FilesManagerScreen key={tabVisit} />
+          </LockerFrame>
         )}
         {currentTab === 'agenda' && <AgendaScreen key={`${tabVisit}-${scheduleClientId ?? ''}`} presetClientId={scheduleClientId} />}
         {currentTab === 'profile' && (

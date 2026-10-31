@@ -30,7 +30,8 @@ import java.security.MessageDigest
  */
 object MediaFiles {
     private const val DIR = "keyboard_media"
-    private const val MAX_BYTES = 50L * 1024 * 1024
+    /** O maior limite do Locker (vídeo, 64 MB: ver src/files/limits.ts). */
+    private const val MAX_BYTES = 64L * 1024 * 1024
     private const val MAX_CACHE_BYTES = 150L * 1024 * 1024
     private const val MAX_REDIRECTS = 5
 
@@ -118,7 +119,7 @@ object MediaFiles {
                         "O link não aponta direto para uma foto, vídeo ou áudio " +
                             "(recebido: ${conn.contentType ?: "desconhecido"})."
                     )
-                if (conn.contentLengthLong > MAX_BYTES) throw MediaException("Arquivo maior que 50 MB.")
+                if (conn.contentLengthLong > MAX_BYTES) throw MediaException("Arquivo maior que 64 MB.")
 
                 val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "bin"
                 // Temporário exclusivo: o pré-download e um envio podem baixar o mesmo link juntos
@@ -219,7 +220,7 @@ object MediaFiles {
             val n = input.read(buffer)
             if (n < 0) break
             total += n
-            if (total > MAX_BYTES) throw MediaException("Arquivo maior que 50 MB.")
+            if (total > MAX_BYTES) throw MediaException("Arquivo maior que 64 MB.")
             out.write(buffer, 0, n)
         }
     }

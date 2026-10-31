@@ -21,13 +21,15 @@
  */
 import { Linking } from 'react-native';
 import { DEMO_MODE } from '../config/demo';
-import { t } from '../i18n';
+import { getLanguage, t } from '../i18n';
 import { supabase } from '../services/supabase';
-import { MAX_UPLOAD_BYTES, UploadError, uploadMedia } from '../services/mediaUpload';
+import { deleteUploadedMedia, UploadError, uploadMedia } from '../services/mediaUpload';
+import { isLockerPlan, LOCKER_PLANS, lockerSizeError } from './limits';
+import type { LockerPlanId } from './limits';
 import type { LocalMedia, UploadedMedia } from '../services/mediaUpload';
 import { Repo, storage } from '../storage/storage';
 import type { FileFolder, FilesData, SavedFile } from '../types';
-import { LOCKER_WEB_URL } from './files';
+import { LOCKER_WEB_URL, replacedFile, savedFileType } from './files';
 
 const FUNCTION = 'locker';
 const PENDING_KEY = 'locker.pending';
@@ -79,12 +81,14 @@ async function blobOf(media: LocalMedia): Promise<Blob> {
  */
 export async function uploadToLocker(media: LocalMedia, onProgress?: (fraction: number) => void): Promise<UploadedMedia> {
   if (DEMO_MODE) return uploadMedia(media, onProgress);
-  if (media.size && media.size > MAX_UPLOAD_BYTES) {
-    throw new UploadError(t('O arquivo passa de 50 MB. Escolha um menor ou mande o link.'));
-  }
+  // Limite do tipo (foto 16 MB, vídeo 64 MB, outros 10 MB): antes de carregar o arquivo
+  const early = lockerSizeError(media.mimeType, media.size);
+  if (early) throw new UploadError(early);
   const blob = await blobOf(media);
   const size = media.size || blob.size;
   const mime = media.mimeType || blob.type || 'application/octet-stream';
+  const tooBig = lockerSizeError(mime, size);
+  if (tooBig) throw new UploadError(tooBig);
 
   const reply = await callLocker<{ key: string; uploadUrl: string }>({ action: 'upload', name: media.name, mime, size });
   if (!reply.ok) {
@@ -92,7 +96,7 @@ export async function uploadToLocker(media: LocalMedia, onProgress?: (fraction: 
     if (reply.error === 'quota_exceeded') {
       throw new UploadError(t('Seu Locker está cheio. Libere espaço ou mude de plano para enviar mais arquivos.'));
     }
-    if (reply.error === 'file_too_large') throw new UploadError(t('O arquivo passa do limite de 50 MB.'));
+    if (reply.error === 'file_too_large') throw new UploadError(lockerSizeError(mime, size) ?? t('O arquivo é grande demais para o Locker.'));
     if (reply.status === 401) throw new UploadError(t('Sessão expirada. Entre na conta de novo para enviar arquivos.'));
     throw new UploadError(t('Sem conexão com a internet. Verifique e tente de novo.'));
   }
@@ -186,7 +190,16 @@ const folderRow = (f: FileFolder): FolderRow => ({
   name: f.name,
   created_at: f.createdAt,
   ...(f.visibility ? { visibility: f.visibility } : {}),
+  ...keyboardFields(f),
 });
+
+/** Marca do teclado e ordem: só vão quando a pessoa mexeu (sem valor = o padrão do banco). */
+function keyboardFields(item: { inKeyboard?: boolean; position?: number }) {
+  return {
+    ...(item.inKeyboard !== undefined ? { in_keyboard: item.inKeyboard } : {}),
+    ...(item.position !== undefined ? { position: item.position } : {}),
+  };
+}
 
 function fileRow(f: SavedFile): FileRow {
   const path = f.storagePath ?? '';
@@ -204,6 +217,7 @@ function fileRow(f: SavedFile): FileRow {
     url: storage === 'r2' ? '' : f.url,
     duration: f.duration ?? null,
     created_at: f.createdAt,
+    ...keyboardFields(f),
   };
 }
 
@@ -214,7 +228,12 @@ const folderFrom = (r: FolderRow): FileFolder => ({
   createdAt: r.created_at,
   visibility: r.visibility ?? 'private',
   shareToken: r.share_token || undefined,
+  inKeyboard: r.in_keyboard ?? true,
+  position: positionOf(r.position ?? 0),
 });
+
+/** 0 é a posição padrão do banco (nunca reordenado): no app, sem posição. As escolhidas começam em 1. */
+const positionOf = (p: number) => (p > 0 ? p : undefined);
 
 function fileFrom(r: FileRow, local: SavedFile | undefined): SavedFile {
   const storagePath = r.storage === 'r2' ? R2_PREFIX + r.object_key : r.storage === 'supabase' ? r.object_key : undefined;
@@ -223,7 +242,7 @@ function fileFrom(r: FileRow, local: SavedFile | undefined): SavedFile {
   return {
     id: r.id,
     folderId: r.folder_id ?? null,
-    type: r.kind === 'video' ? 'video' : 'image',
+    type: savedFileType(r.kind, r.mime, r.name),
     title: r.name,
     url: r.storage === 'r2' ? (keepLink ? local!.url : '') : r.url,
     urlExpiresAt: keepLink ? local!.urlExpiresAt : undefined,
@@ -233,6 +252,8 @@ function fileFrom(r: FileRow, local: SavedFile | undefined): SavedFile {
     mime: r.mime || undefined,
     size: Number(r.size_bytes) || undefined,
     shareToken: r.share_token || undefined,
+    inKeyboard: r.in_keyboard ?? true,
+    position: positionOf(r.position ?? 0),
   };
 }
 
@@ -327,6 +348,12 @@ export function lockerSaveFile(file: SavedFile) {
   enqueue({ kind: 'file', id: file.id, row: fileRow(file) });
 }
 
+/** "Trocar arquivo": grava a versão nova (mesmo id, links e lugar no teclado) e apaga a antiga. */
+export function lockerReplaceFile(file: SavedFile, media: LocalMedia, uploaded: UploadedMedia) {
+  lockerSaveFile(replacedFile(file, media, uploaded));
+  if (file.storagePath && file.storagePath !== uploaded.storagePath) deleteUploadedMedia(file.storagePath);
+}
+
 /** Exclui a pasta com as subpastas e os arquivos (na nuvem, a exclusão leva tudo junto). */
 export function lockerDeleteFolder(folderId: string): SavedFile[] {
   const removed = Repo.deleteFileFolder(folderId);
@@ -362,6 +389,26 @@ export function pullLocker(): Promise<void> {
   return pulling;
 }
 
+/**
+ * Uma pasta na lixeira (Locker web) não vem da nuvem, mas o que está dentro dela vem:
+ * tira as subpastas e os arquivos cuja pasta não existe mais aqui.
+ */
+function dropInsideTrash(data: FilesData) {
+  const ids = new Set(data.folders.map(f => f.id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const f of data.folders) {
+      if (f.parentId && !ids.has(f.parentId) && ids.has(f.id)) {
+        ids.delete(f.id);
+        changed = true;
+      }
+    }
+  }
+  data.folders = data.folders.filter(f => ids.has(f.id));
+  data.files = data.files.filter(f => !f.folderId || ids.has(f.folderId));
+}
+
 async function doPull(): Promise<void> {
   if (DEMO_MODE) return;
   const { data: auth } = await supabase.auth.getSession();
@@ -372,8 +419,8 @@ async function doPull(): Promise<void> {
   if (readPending().length && !(await flush())) return;
 
   const [folders, files] = await Promise.all([
-    supabase.from('locker_folders').select('id, parent_id, name, position, in_keyboard, created_at, visibility, share_token').is('trashed_at', null),
-    supabase.from('locker_files').select('id, folder_id, name, kind, mime, size_bytes, storage, object_key, url, duration, position, in_keyboard, created_at, share_token').is('trashed_at', null),
+    supabase.from('locker_folders').select('id, parent_id, name, position, in_keyboard, created_at, visibility, share_token').eq('user_id', userId).is('trashed_at', null),
+    supabase.from('locker_files').select('id, folder_id, name, kind, mime, size_bytes, storage, object_key, url, duration, position, in_keyboard, created_at, share_token').eq('user_id', userId).is('trashed_at', null),
   ]);
   const error = folders.error ?? files.error;
   if (error) {
@@ -388,6 +435,7 @@ async function doPull(): Promise<void> {
     folders: (folders.data as FolderRow[]).map(folderFrom),
     files: (files.data as FileRow[]).map(r => fileFrom(r, byId.get(r.id))),
   };
+  dropInsideTrash(next);
 
   // Links do R2 que faltam ou vencem logo
   const stale = next.files.filter(f => isLockerPath(f.storagePath) && (!f.url || (f.urlExpiresAt ?? 0) - Date.now() < RENEW_BEFORE_MS));
@@ -465,7 +513,8 @@ export { LOCKER_WEB_URL };
  * função publicada ou sem internet, abre a página de login do Locker.
  */
 export async function openLockerWeb(path = '/'): Promise<void> {
-  let target = `${LOCKER_WEB_URL}${path}`;
+  // Demonstração: o Locker web de exemplo, no idioma do app (sem conta)
+  let target = DEMO_MODE ? `${LOCKER_WEB_URL}/?demo=1&lang=${getLanguage()}` : `${LOCKER_WEB_URL}${path}`;
   if (!DEMO_MODE) {
     try {
       const { data, error } = await supabase.functions.invoke<{ url?: string }>('locker-handoff', { body: { path } });
@@ -495,8 +544,38 @@ export function setFolderVisibility(folder: FileFolder, visibility: NonNullable<
   lockerSaveFolder({ ...folder, visibility });
 }
 
-/** Espaço usado e limite do plano (null = Locker ainda não instalado). */
-export async function lockerUsage(): Promise<{ used: number; limit: number; plan: string } | null> {
-  const reply = await callLocker<{ used: number; limit: number; plan: string }>({ action: 'usage' });
-  return reply.ok ? reply.data : null;
+export interface LockerUsage {
+  used: number;
+  limit: number;
+  plan: LockerPlanId;
+  /** true = calculado no aparelho (o Locker ainda não está instalado na nuvem). */
+  estimate: boolean;
+}
+
+/**
+ * Espaço usado e limite do plano, direto do banco (locker_usage: funciona mesmo
+ * sem o R2). Sem o Locker instalado, estima pelos arquivos do aparelho (Basic).
+ */
+export async function lockerUsage(): Promise<LockerUsage> {
+  const local = (): LockerUsage => ({
+    used: Repo.getFiles().files.reduce((sum, f) => sum + (f.size ?? 0), 0),
+    limit: LOCKER_PLANS.basic.bytes!,
+    plan: 'basic',
+    estimate: true,
+  });
+  if (DEMO_MODE) return local();
+  try {
+    const { data, error } = await supabase.rpc('locker_usage');
+    if (error) return local();
+    const row = Array.isArray(data) ? data[0] : data;
+    const plan = isLockerPlan(row?.plan) ? row.plan : 'basic';
+    return {
+      used: Number(row?.used_bytes ?? 0),
+      limit: Number(row?.limit_bytes ?? LOCKER_PLANS.basic.bytes),
+      plan,
+      estimate: false,
+    };
+  } catch {
+    return local();
+  }
 }

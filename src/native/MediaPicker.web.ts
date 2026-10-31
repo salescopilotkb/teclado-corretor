@@ -4,7 +4,7 @@
  * celular abre a câmera e no computador cai no seletor de arquivos.
  */
 import type { LocalMedia } from '../services/mediaUpload';
-import { MAX_UPLOAD_BYTES } from '../services/mediaUpload';
+import { MAX_PICK_BYTES } from '../files/limits';
 import { t } from '../i18n';
 
 export type MediaKind = 'image' | 'video';
@@ -35,8 +35,8 @@ function chooseFile(accept: string, capture?: string): Promise<LocalMedia | null
         resolve(null);
         return;
       }
-      if (file.size > MAX_UPLOAD_BYTES) {
-        reject(new PickError(t('O arquivo passa de 50 MB.')));
+      if (file.size > MAX_PICK_BYTES) {
+        reject(new PickError(t('O arquivo passa de 64 MB.')));
         return;
       }
       resolve({ uri: URL.createObjectURL(file), name: file.name, mimeType: file.type || 'application/octet-stream', size: file.size, file });

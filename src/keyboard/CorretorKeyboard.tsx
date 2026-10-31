@@ -15,6 +15,7 @@ import { Repo } from '../storage/storage';
 import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, SellerProfile, ThemePreference } from '../types';
 import { pushProfile } from '../services/auth';
 import { onLockerChange, pullLocker, startLockerSync } from '../files/locker';
+import { keyboardView } from '../files/files';
 import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
 import { KeyboardCRM } from './components/KeyboardCRM';
@@ -180,6 +181,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   bigRef.current = big;
   const tabRef = useRef(tab);
   tabRef.current = tab;
+  /** Locker no teclado: só as pastas e arquivos marcados para o teclado. */
+  const keyboardFiles = useMemo(() => keyboardView(data.files), [data.files]);
 
   // Altura atual e limites do teclado, para a barrinha de puxar (ResizeHandle).
   // Os limites mudam ao girar o celular: relê a cada vez que o teclado abre
@@ -524,7 +527,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
         )}
         {!translating && loggedIn && tab === 'files' && (
           <FilesTab
-            files={data.files}
+            // Só o que a pessoa marcou para o teclado, na ordem que ela escolheu
+            files={keyboardFiles}
             onSendImage={sendImage}
             onShare={shareMedia}
             onInsert={insert}

@@ -1,5 +1,8 @@
 # Locker: como ligar a nuvem (Supabase + Cloudflare R2)
 
+> **Para ligar tudo de uma vez, siga o roteiro único: [`LOCKER-DEPLOY.md`](LOCKER-DEPLOY.md).**
+> Este arquivo é a referência técnica de cada parte (o que faz e por quê).
+
 O código do Locker já está no app e no teclado. Enquanto estes passos não forem feitos,
 tudo continua funcionando como antes (arquivos no bucket "media" do Supabase e a
 organização só no aparelho). Depois deles, os arquivos novos vão para o R2, a
@@ -55,7 +58,7 @@ O navegador só envia direto para o R2 com esta regra. No bucket → **Settings*
 ```json
 [
   {
-    "AllowedOrigins": ["https://locker.keyconapp.com", "https://keyconapp.com"],
+    "AllowedOrigins": ["https://locker.keyconapp.com", "https://keyconapp.com", "http://localhost:5174"],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["content-type"],
     "MaxAgeSeconds": 3600
@@ -103,25 +106,109 @@ Os links `/f/` e `/d/` passam a abrir quando o site do Locker estiver no ar
 (locker-public_html.zip, tarefa 12): a página chama a `locker-public`, que confere o código
 do link e devolve só o que foi compartilhado.
 
-## Planos de espaço
+## 8. Lixeira que se esvazia sozinha depois de 30 dias (5 min)
+
+No Locker web, "Mover para a lixeira" guarda o item por 30 dias (dá para restaurar). Depois
+disso, a função `locker-purge` apaga de vez, uma vez por dia: as linhas das tabelas e os
+arquivos de verdade no R2 e no bucket "media".
+
+1. Escolha uma senha longa qualquer (só para o agendador chamar a função) e publique:
+
+```bash
+supabase secrets set CRON_SECRET=<a senha>
+supabase functions deploy locker-purge --no-verify-jwt
+supabase functions deploy locker
+```
+
+   (A `locker` ganhou a ação de copiar arquivos, usada em "Fazer uma cópia".)
+
+2. Abra `supabase/locker-purge.sql`, troque `<CRON_SECRET>` pela mesma senha → SQL Editor → **Run**.
+   Ele liga as extensões `pg_cron` e `pg_net` e agenda a limpeza para todo dia às 4h17 (UTC).
+3. Para conferir: **Database → Cron Jobs** mostra `locker-purge-daily`.
+
+## 9. Compartilhar com pessoas e equipes (2 min)
+
+No Locker web, **Compartilhar** dá acesso de **leitor** (ver, abrir e baixar) a um e-mail ou a
+uma **equipe** (seção Equipes). Quem recebe acha em **Compartilhados comigo** ao entrar com
+aquele e-mail. O app e o teclado continuam mostrando só o Locker da própria pessoa.
+
+1. Rode de novo o `supabase/locker.sql` (cria `locker_teams`, `locker_team_members`,
+   `locker_shares` e as regras de leitura do que foi compartilhado).
+2. Republique a função `locker` (ela passou a assinar os links dos arquivos compartilhados
+   com a pessoa):
+
+```bash
+supabase functions deploy locker
+```
+
+## 10. Entrada do Locker web e "Esqueci a senha" (5 min)
+
+A página de entrada tem só **Entrar** e **Esqueci a senha** (a conta é criada no app). O link
+de "Esqueci a senha" volta para `https://locker.keyconapp.com/?redefinir=1`, onde a pessoa
+cria a senha nova (vale também no app).
+
+1. O endereço de volta já está liberado pelo passo 6 (`https://locker.keyconapp.com/**`).
+2. Supabase → **Authentication** → **Email Templates** → **Reset Password**: troque o texto
+   padrão (em inglês) por um da KEYCON, por exemplo:
+   - Assunto: `KEYCON: crie uma senha nova`
+   - Corpo: `Recebemos um pedido para trocar a senha da sua conta KEYCON. <a href="{{ .ConfirmationURL }}">Criar senha nova</a>. Se não foi você, ignore este e-mail.`
+3. O link vale 1 hora (Authentication → **Providers** → **Email** → *Email OTP expiration*). Se
+   vencer, a página avisa e oferece mandar outro.
+
+## Excluir a conta de alguém (pedido por e-mail)
+
+A página `keyconapp.com/excluir-conta.html` promete apagar a conta **e o Locker** em até 30 dias.
+Apagar o usuário no Supabase apaga as linhas do Locker (pastas, arquivos, compartilhamentos e
+equipes), mas **não** os arquivos guardados no R2 e no bucket "media". Por isso, nesta ordem:
+
+1. Supabase → **Authentication** → **Users** → procure o e-mail → copie o **User UID**.
+2. Cloudflare → **R2** → bucket `keycon-locker` → abra a pasta com esse UID → selecione tudo → **Delete**.
+3. Supabase → **Storage** → bucket `media` → pasta com esse UID → selecione tudo → **Delete**.
+4. Supabase → **Authentication** → **Users** → o usuário → **Delete user**.
+5. Responda o e-mail confirmando a exclusão.
+
+Pedido de apagar **só o Locker** (sem a conta): faça os passos 2 e 3 e, no SQL Editor:
+
+```sql
+delete from public.locker_files where user_id = '<User UID>';
+delete from public.locker_folders where user_id = '<User UID>';
+```
+
+## Planos de espaço e limites por arquivo
+
+| Plano | Espaço | `plan` | `limit_bytes` |
+| --- | --- | --- | --- |
+| Basic | 5 GB | `basic` | 5368709120 |
+| Plus | 20 GB | `plus` | 21474836480 |
+| Pro | 100 GB | `pro` | 107374182400 |
+| Enterprise | combinado com o suporte | `enterprise` | o valor combinado (ex.: 1 TB = 1099511627776) |
+
+Limite de cada arquivo (no app e no servidor): **foto 16 MB, vídeo 64 MB, outros 10 MB**
+(PDF, documentos, áudio). O medidor na tela Locker do app mostra quanto já foi usado.
 
 - Sem nada configurado, cada pessoa tem **5 GB** (`basic`).
 - Para mudar o plano de alguém (até existir a cobrança da assinatura), no SQL Editor:
 
 ```sql
 insert into public.locker_plans (user_id, plan, limit_bytes)
-values ('<id do usuário>', 'plus', 21474836480)   -- 20 GB; 'pro' = 107374182400 (100 GB)
+values ('<id do usuário>', 'plus', 21474836480)
 on conflict (user_id) do update set plan = excluded.plan, limit_bytes = excluded.limit_bytes, updated_at = now();
+```
+
+Depois de mudar o `locker.sql` (o Enterprise entrou agora), rode o arquivo de novo e
+republique a função `locker`, que confere os limites por tipo:
+
+```bash
+supabase functions deploy locker
 ```
 
 A pessoa só consegue **ler** o próprio plano: quem muda é o servidor (chave service_role).
 
 ## Antes de ligar para todos
 
-- **Política de privacidade:** hoje ela diz que os arquivos ficam em links públicos. Com o R2,
-  eles ficam privados, com links temporários, e a Cloudflare entra como provedora de
-  armazenamento. Atualizar `src/legal/legal.ts` e rodar `npm run landing:legal`.
-- **Google Play › Segurança dos dados:** os arquivos e a organização ficam na nuvem.
+- **Política de privacidade e termos:** já descrevem o Locker (atualizados em 2026-10-31, em
+  `src/legal/legal.ts`); basta subir o `keyconapp-public_html.zip`.
+- **Google Play › Segurança dos dados:** preencher como em `GOOGLE-PLAY-SEGURANCA-DOS-DADOS.md`.
 
 ## Como funciona (para quem for mexer no código)
 
@@ -131,7 +218,9 @@ A pessoa só consegue **ler** o próprio plano: quem muda é o servidor (chave s
 | Links assinados do R2, limite do plano | `supabase/functions/locker/index.ts` |
 | Link de entrada de uso único (abrir o Locker web logado) | `supabase/functions/locker-handoff/index.ts` |
 | Links públicos (arquivo e pasta compartilhada, sem login) | `supabase/functions/locker-public/index.ts` |
-| Assinatura de links do R2 (usada pelas duas funções) | `supabase/functions/_shared/r2.ts` |
+| Assinatura de links do R2 (usada pelas funções) | `supabase/functions/_shared/r2.ts` |
+| Lixeira: apagar de vez depois de 30 dias (todo dia) | `supabase/functions/locker-purge/index.ts`, `supabase/locker-purge.sql` |
+| Locker web (locker.keyconapp.com) | `locker/` (`npm run locker:dev`, `npm run locker:build` → `dist-locker/`) |
 | Envio para o R2, fila de mudanças, tempo real, limpeza única do aparelho | `src/files/locker.ts` |
 | Telas que usam (app e teclado) | `src/app/screens/FilesManagerScreen.tsx`, `src/keyboard/components/FilesTab.tsx` |
 

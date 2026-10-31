@@ -13,6 +13,7 @@ import { t } from '../../i18n';
 import { useKeyboardBack } from '../../navigation/back';
 import {
   descendantIds,
+  FILE_TYPE_LABEL,
   fileLink,
   filesIn,
   folderPath,
@@ -24,7 +25,7 @@ import {
   subfolders,
   LOCKER_NAME,
 } from '../../files/files';
-import { lockerDeleteFile, lockerDeleteFolder, lockerSaveFile, lockerSaveFolder, uploadToLocker } from '../../files/locker';
+import { lockerDeleteFile, lockerDeleteFolder, lockerReplaceFile, lockerSaveFile, lockerSaveFolder, uploadToLocker } from '../../files/locker';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { KeyboardPickSource } from '../../native/KeyboardBridge';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
@@ -33,7 +34,7 @@ import type { FilesData, SavedFile } from '../../types';
 import { UploadStatus, useUploader } from '../../app/components/MediaUpload';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, useColors } from '../theme';
 import { CoralSheen } from './Glass';
-import { Icon } from './Icon';
+import { fileIcon, Icon } from './Icon';
 import { ResizeHandle } from './ResizeHandle';
 import type { IconName } from './Icon';
 import { ItemCard } from './ItemCard';
@@ -176,9 +177,9 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
                   testID={`search-file-${f.id}`}
                   title={f.title}
                   subtitle={folderPathLabel(files, f.folderId)}
-                  meta={f.type === 'video' ? f.duration || t('Vídeo') : undefined}
+                  meta={f.type === 'video' ? f.duration || t('Vídeo') : f.type === 'image' ? undefined : t(FILE_TYPE_LABEL[f.type])}
                   imageUri={f.type === 'image' ? f.url : undefined}
-                  icon={f.type === 'video' ? 'video' : undefined}
+                  icon={f.type === 'image' ? undefined : fileIcon(f.type)}
                   onPress={() => {
                     setFolderId(f.folderId);
                     setScreen({ name: 'file', id: f.id });
@@ -259,6 +260,19 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     );
   }
 
+  /** Trocar por uma nova versão: volta para a lista, onde aparece o "Enviando…". */
+  const replace = (file: SavedFile) => {
+    browse();
+    uploader.run(
+      () => KeyboardBridge.pickMedia('gallery'),
+      (uploaded, media) => {
+        lockerReplaceFile(file, media, uploaded);
+        onChanged();
+      },
+      uploadToLocker,
+    );
+  };
+
   if (screen.name === 'file') {
     const file = files.files.find(f => f.id === screen.id);
     if (file) {
@@ -270,6 +284,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
           onSendLink={() => onInsert(fileLink(file))}
           onRename={() => setScreen({ name: 'name', kind: 'rename-file', id: file.id })}
           onMove={() => setScreen({ name: 'move', kind: 'file', id: file.id })}
+          onReplace={KeyboardBridge.canPickMedia ? () => replace(file) : undefined}
           onDelete={() => {
             lockerDeleteFile(file.id);
             deleteUploadedMedia(file.storagePath);
@@ -430,7 +445,7 @@ function Thumb({ file, onPress, onUse, onUseLink }: { file: SavedFile; onPress: 
           <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
         ) : (
           <View style={styles.thumbVideo}>
-            <Icon name="video" size={24} color={colors.textSecondary} />
+            <Icon name={fileIcon(file.type)} size={24} color={colors.textSecondary} />
             {file.duration ? <Text style={styles.thumbDuration}>{file.duration}</Text> : null}
           </View>
         )}
@@ -497,6 +512,7 @@ function FileDetail({
   onSendLink,
   onRename,
   onMove,
+  onReplace,
   onDelete,
 }: {
   file: SavedFile;
@@ -505,6 +521,8 @@ function FileDetail({
   onSendLink: () => void;
   onRename: () => void;
   onMove: () => void;
+  /** Trocar por uma nova versão (só onde o teclado escolhe arquivos: Android). */
+  onReplace?: () => void;
   onDelete: () => void;
 }) {
   const colors = useColors();
@@ -519,7 +537,7 @@ function FileDetail({
             <Image source={{ uri: file.url }} style={styles.preview} resizeMode="cover" />
           ) : (
             <View style={[styles.preview, styles.thumbVideo]}>
-              <Icon name="video" size={32} color={colors.textSecondary} />
+              <Icon name={fileIcon(file.type)} size={32} color={colors.textSecondary} />
               {file.duration ? <Text style={styles.thumbDuration}>{file.duration}</Text> : null}
             </View>
           )}
@@ -533,7 +551,7 @@ function FileDetail({
               onLongPress={onSendLink}>
               <CoralSheen radius={radius.sm} />
               <Icon name="compartilhar" size={18} color={colors.onPrimary} />
-              <Text style={styles.sendText}>{file.type === 'image' ? t('Enviar foto') : t('Enviar vídeo')}</Text>
+              <Text style={styles.sendText}>{file.type === 'image' ? t('Enviar foto') : file.type === 'video' ? t('Enviar vídeo') : t('Enviar arquivo')}</Text>
             </Pressable>
             <Text style={styles.hint}>{t('Segure para enviar só o link.')}</Text>
           </View>
@@ -550,6 +568,7 @@ function FileDetail({
           <View style={styles.row}>
             <ActionButton testID="file-rename" icon="editar" label={t('Renomear')} onPress={onRename} />
             <ActionButton testID="file-move" icon="mover" label={t('Mover')} onPress={onMove} />
+            {onReplace ? <ActionButton testID="file-replace" icon="galeria" label={t('Trocar')} onPress={onReplace} /> : null}
             <ActionButton testID="file-delete" icon="lixeira" label={t('Excluir')} onPress={() => setConfirming(true)} />
           </View>
         )}

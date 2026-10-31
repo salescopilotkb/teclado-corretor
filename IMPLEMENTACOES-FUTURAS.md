@@ -9,6 +9,7 @@ pedido explícito.
 | IA: sugestões de resposta para a mensagem do cliente | 30/10/2026 | `0f6e70d` |
 | Login com Google e com a Apple | 30/10/2026 | `fdc098c` |
 | Google Meet / Google Agenda na agenda | 30/10/2026 | `fdc098c` |
+| Locker: Editor, aviso por e-mail, limpeza de órfãos, versões, cobrança (nunca feitos) | 31/10/2026 | (item 4) |
 
 Para ver um arquivo como era: `git show <commit>:<caminho>`, por exemplo
 `git show 0f6e70d:src/keyboard/components/MoreTab.tsx`.
@@ -92,3 +93,28 @@ Compromissos antigos mantêm o `meetUrl` salvo.
 **Como religar:** depende do login com Google (item 2). Voltar o campo e o botão do Meet em
 `AgendaScreen.tsx` e `KeyboardAgenda.tsx`, a linha do Meet em Conta › Status e os textos da
 política sobre o Google Agenda.
+
+---
+
+## 4. Locker: o que ficou para depois
+
+O Locker (tarefas 1 a 15, outubro de 2026) foi entregue sem estes itens, de propósito:
+
+- **Papel de Editor no compartilhamento.** Hoje quem recebe é só **Leitor** (ver, abrir, baixar).
+  Editor mexe em quem paga o espaço de cada envio e em quem é dono de cada arquivo: precisa
+  decidir isso antes. Onde: `locker_shares.role` (hoje só `viewer`, regra
+  `locker_shares_role` em `supabase/locker.sql`), as regras de leitura do mesmo arquivo e
+  `locker/src/ShareDialog.tsx`.
+- **Aviso por e-mail ao compartilhar.** Precisa de um serviço de envio de e-mails (por exemplo,
+  o SMTP do Supabase ou um provedor como o Resend) e de uma Edge Function chamada ao criar o
+  compartilhamento. Hoje a pessoa vê em "Compartilhados comigo" ao entrar.
+- **Limpeza de arquivos órfãos no R2.** Um envio cancelado no último instante pode deixar o
+  arquivo no R2 sem linha na tabela. Ideia: na `locker-purge`, listar a pasta de cada conta no
+  R2 e apagar o que não está em `locker_files` há mais de 1 dia.
+- **Histórico de versões.** "Trocar por nova versão" substitui o arquivo de vez; o Drive guarda
+  as anteriores por 30 dias.
+- **Cobrança dos planos (Plus, Pro, Enterprise).** Hoje o plano é trocado à mão no SQL
+  (`docs/LOCKER-SETUP.md`, "Planos de espaço").
+
+Ao fazer qualquer um deles, revise a política (`src/legal/legal.ts`) e a Segurança dos dados
+(`docs/GOOGLE-PLAY-SEGURANCA-DOS-DADOS.md`).

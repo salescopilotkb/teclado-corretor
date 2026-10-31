@@ -190,14 +190,21 @@ export interface FileFolder {
   visibility?: FolderVisibility;
   /** Código do link público da pasta (locker.keyconapp.com/d/<código>); vem da nuvem. */
   shareToken?: string;
+  /** Aparece no teclado (sem valor = sim). A pessoa escolhe no app ou no Locker web. */
+  inKeyboard?: boolean;
+  /** Ordem escolhida pela pessoa (no teclado e no Locker); sem valor = ordem padrão. */
+  position?: number;
 }
 
-/** Foto ou vídeo guardado na seção Arquivos (fora do catálogo). */
+/** Tipo de arquivo do Locker (o Locker web aceita também PDF, áudio e documentos). */
+export type SavedFileType = 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'other';
+
+/** Arquivo guardado no Locker (fora do catálogo). */
 export interface SavedFile {
   id: string;
   /** null = solto na raiz, fora de pasta. */
   folderId: string | null;
-  type: 'image' | 'video';
+  type: SavedFileType;
   title: string;
   url: string;
   /**
@@ -214,6 +221,10 @@ export interface SavedFile {
   urlExpiresAt?: number;
   /** Código do link público do arquivo (locker.keyconapp.com/f/<código>): abre sem login. Vem da nuvem. */
   shareToken?: string;
+  /** Aparece no teclado (sem valor = sim). A pessoa escolhe no app ou no Locker web. */
+  inKeyboard?: boolean;
+  /** Ordem escolhida pela pessoa (no teclado e no Locker); sem valor = ordem padrão. */
+  position?: number;
 }
 
 /** Seção Arquivos: pastas, subpastas e os arquivos (mesmo dado no app e no teclado). */

@@ -11,7 +11,7 @@ import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import type { Asset, ImagePickerResponse } from 'react-native-image-picker';
 import type { LocalMedia } from '../services/mediaUpload';
-import { MAX_UPLOAD_BYTES } from '../services/mediaUpload';
+import { MAX_PICK_BYTES } from '../files/limits';
 
 export type MediaKind = 'image' | 'video';
 
@@ -42,8 +42,8 @@ function handle(response: ImagePickerResponse, kind: MediaKind): LocalMedia | nu
   const asset = response.assets?.[0];
   if (!asset) return null;
   const media = toLocal(asset, kind);
-  if (media.size && media.size > MAX_UPLOAD_BYTES) {
-    throw new PickError(t('O arquivo passa de 50 MB. Grave um vídeo mais curto ou mande o link.'));
+  if (media.size && media.size > MAX_PICK_BYTES) {
+    throw new PickError(t('O arquivo passa de 64 MB. Grave um vídeo mais curto ou mande o link.'));
   }
   return media;
 }
@@ -79,7 +79,7 @@ export async function pickAudioFile(): Promise<LocalMedia | null> {
     // Cópia no cache do app: o link content:// de outro app pode expirar antes do envio
     const file = await DocumentPicker.pickSingle({ type: [DocumentPicker.types.audio], copyTo: 'cachesDirectory' });
     if (file.copyError) throw new PickError(t('Não foi possível ler o arquivo escolhido.'));
-    if (file.size && file.size > MAX_UPLOAD_BYTES) throw new PickError(t('O áudio passa de 50 MB.'));
+    if (file.size && file.size > MAX_PICK_BYTES) throw new PickError(t('O áudio passa de 64 MB.'));
     return {
       uri: file.fileCopyUri ?? file.uri,
       name: file.name ?? `audio-${Date.now()}`,

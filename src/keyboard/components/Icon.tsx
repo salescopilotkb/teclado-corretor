@@ -137,6 +137,11 @@ const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
+/** Ícone de cada tipo de arquivo do Locker (foto mostra a própria imagem). */
+export function fileIcon(type: 'image' | 'video' | 'audio' | 'pdf' | 'document' | 'other'): IconName {
+  return type === 'image' ? 'foto' : type === 'video' ? 'video' : type === 'audio' ? 'audio' : 'arquivos';
+}
+
 /** Cores funcionais do manual (coral = ação, verde = arquivos, roxo = IA, azul = etiquetas). */
 export function iconColor(name: IconName, colors: Palette): string {
   switch (name) {

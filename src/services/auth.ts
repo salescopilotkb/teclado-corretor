@@ -14,6 +14,7 @@ import { Repo } from '../storage/storage';
 import type { SellerProfile } from '../types';
 import { supabase } from './supabase';
 import { DEMO_MODE } from '../config/demo';
+import { LOCKER_WEB_URL } from '../files/files';
 
 export class AuthError extends Error {}
 
@@ -57,7 +58,7 @@ function friendlyMessage(raw: string): string {
     return t('A senha precisa ter pelo menos 6 caracteres.');
   if (msg.includes('invalid email') || msg.includes('unable to validate email'))
     return t('Informe um e-mail válido.');
-  if (msg.includes('rate limit') || msg.includes('too many'))
+  if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('security purposes'))
     return t('Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.');
   if (msg.includes('network request failed') || msg.includes('fetch'))
     return t('Sem conexão com a internet. Verifique e tente de novo.');
@@ -125,6 +126,19 @@ export async function restoreSession(): Promise<boolean> {
   if (error) return Repo.isLoggedIn();
   applySession(data.session);
   return !!data.session;
+}
+
+/**
+ * "Esqueci a senha": manda o link do Supabase para o e-mail. O link abre a página do
+ * Locker web (locker.keyconapp.com), onde a pessoa cria a senha nova; ela vale no app.
+ * Conta inexistente não dá erro: ninguém descobre quais e-mails têm cadastro.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (DEMO_MODE) return;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${LOCKER_WEB_URL}/?redefinir=1` });
+  if (!error) return;
+  const msg = error.message.toLowerCase();
+  if (error.status === 429 || msg.includes('rate limit') || msg.includes('security purposes') || msg.includes('fetch') || msg.includes('network')) fail(error);
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

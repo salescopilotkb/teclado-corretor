@@ -10,7 +10,6 @@ import { IconTile } from '../../keyboard/components/Icon';
 import { makeStyles, spacing, useColors } from '../../keyboard/theme';
 import { getSegment } from '../../segments/segments';
 import { Repo } from '../../storage/storage';
-import { LOCKER_NAME } from '../../files/files';
 import {
   Button,
   Card,
@@ -97,7 +96,6 @@ function HomeRoot({ steps, keyboardReady, keyboardHalfway, onSection, onNavigate
   const itemCount = folders.reduce((n, f) => n + f.products.length, 0);
   const shortcuts = Repo.getShortcuts();
   const shortcutCount = shortcuts.texts.length + shortcuts.audios.length + shortcuts.links.length;
-  const files = Repo.getFiles();
 
   const doneCount = steps.filter(s => s.done).length;
   const nextStep = steps.find(s => !s.done);
@@ -158,14 +156,6 @@ function HomeRoot({ steps, keyboardReady, keyboardHalfway, onSection, onNavigate
           subtitle={t('Textos, áudios e links prontos')}
           value={`${shortcutCount}`}
           onPress={() => onSection('shortcuts')}
-        />
-        <MenuRow
-          testID="home-files"
-          icon="galeria"
-          title={LOCKER_NAME}
-          subtitle={t('Pastas com fotos e vídeos')}
-          value={`${files.files.length}`}
-          onPress={() => onNavigate('files')}
         />
         <MenuRow icon="teclado" title={t('Instalação do teclado')} subtitle={t('Android e iPhone')} onPress={() => onSection('install')} />
         <MenuRow testID="home-tutorial" icon="info" title={t('Tutorial do app')} subtitle={t('Tudo o que dá para fazer')} onPress={onOpenTutorial} />

@@ -3,7 +3,8 @@
  *
  *   GET ?f=<código do arquivo>             → abre o arquivo (redireciona para um link do R2 de 1 hora)
  *   GET ?f=<código>&download=1             → baixa com o nome do arquivo
- *   GET ?d=<código da pasta>[&sub=<id>]    → JSON com a pasta, as subpastas e os arquivos
+ *   GET ?f=<código>&info=1                 → JSON { name, mime, size, url, download } (a página /f/ do Locker web)
+ *   GET ?d=<código da pasta>[&sub=<id>]    → JSON com a pasta, as subpastas e os arquivos (com url e download)
  *
  * Quem tem o link de um ARQUIVO abre o arquivo (também se ele estiver numa pasta
  * privada: foi o próprio arquivo que a pessoa compartilhou). Uma PASTA só abre se
@@ -60,10 +61,20 @@ Deno.serve(async req => {
     if (!TOKEN.test(fileToken)) return notFound();
     const { data: file } = await db
       .from('locker_files')
-      .select('name, storage, object_key, url, trashed_at')
+      .select('name, kind, mime, size_bytes, storage, object_key, url, trashed_at, created_at')
       .eq('share_token', fileToken)
       .maybeSingle();
     if (!file || file.trashed_at) return notFound();
+    // A página do arquivo (Locker web): os dados e os dois links (ver e baixar)
+    if (params.get('info') === '1') {
+      const [url, download] = await Promise.all([viewUrl(file), viewUrl(file, true)]);
+      if (!url) return json({ error: 'unavailable' }, 503);
+      return json(
+        { name: file.name, kind: file.kind, mime: file.mime, size: Number(file.size_bytes) || 0, createdAt: file.created_at, url, download: download ?? url },
+        200,
+        { 'Cache-Control': 'no-store' },
+      );
+    }
     const target = await viewUrl(file, params.get('download') === '1');
     if (!target) return json({ error: 'unavailable' }, 503);
     return new Response(null, { status: 302, headers: { ...CORS, Location: target, 'Cache-Control': 'no-store' } });
@@ -124,8 +135,9 @@ Deno.serve(async req => {
         createdAt: f.created_at,
         // Link permanente do arquivo (o mesmo que o dono copia no app)
         link: `f/${f.share_token}`,
-        // Para a prévia na página (vale 1 hora)
+        // Para a prévia e para baixar com o nome certo (valem 1 hora)
         url: await viewUrl(f),
+        download: await viewUrl(f, true),
       });
     }
     return json(

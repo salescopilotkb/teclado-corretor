@@ -20,8 +20,10 @@ const src = path.join(root, 'src');
 const load = (p: string) => import(pathToFileURL(p).href);
 
 /** Constantes cujos textos a tela passa por t() (t(item.label), t(spec.label)...). */
-const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL', 'THEME_OPTIONS', 'EMOJI_CATEGORIES']);
-const TRANSLATED_PROPS = new Set(['label', 'placeholder', 'desc']);
+const TRANSLATED_CONSTANTS = new Set(['NAV_ITEMS', 'BUTTONS', 'FILTERS', 'AGENDA_FIELDS', 'LEAD_FIELDS', 'NEW_TAG_FIELD', 'FOLDER_FIELDS', 'TEXT_FIELDS', 'LINK_FIELDS', 'AUDIO_FIELDS', 'THEME_LABEL', 'THEME_OPTIONS', 'EMOJI_CATEGORIES',
+  // Locker web (locker/src)
+  'NAV', 'TYPE_FILTERS', 'DATE_FILTERS', 'OPTIONS']);
+const TRANSLATED_PROPS = new Set(['label', 'placeholder', 'desc', 'hint']);
 
 /**
  * Textos que chegam por fora do t() e são traduzidos na tela: erros do
@@ -92,7 +94,8 @@ function literals(node: ts.Expression): string[] | null {
   return null;
 }
 
-for (const file of walk(src)) {
+// O app (src) e o Locker web (locker/src), que usa as mesmas traduções
+for (const file of [...walk(src), ...walk(path.join(root, 'locker', 'src'))]) {
   const rel = path.relative(root, file).replace(/\\/g, '/');
   const sf = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const visit = (node: ts.Node) => {
@@ -107,6 +110,10 @@ for (const file of walk(src)) {
           dynamic.push(`${rel}:${line + 1}  ${name}(${arg.getText().slice(0, 60)})`);
         }
       }
+    }
+    // plural(n, 'um', 'vários') do Locker web: os dois textos passam por t()
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'plural') {
+      for (const a of node.arguments.slice(1, 3)) literals(a)?.forEach(text => add(text, rel));
     }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && TRANSLATED_CONSTANTS.has(node.name.text) && node.initializer) {
       const where = `${rel} (${node.name.text})`;

@@ -2,8 +2,11 @@
  * Termos de Uso e Política de Privacidade do KEYCON (pt, en, es).
  *
  * Os textos descrevem o que o app faz hoje: conta e perfil na nuvem
- * (Supabase), arquivos enviados em links públicos, catálogo/atalhos/clientes/
- * agenda/arquivos (a lista) só no aparelho, lista de espera do site (e-mail,
+ * (Supabase), Locker na nuvem (arquivos privados no Cloudflare R2, organização no
+ * Supabase, links permanentes só do que a pessoa compartilha, compartilhar com
+ * e-mails e equipes, lixeira de 30 dias, Locker web no navegador), fotos/vídeos/
+ * áudios do catálogo e dos atalhos em links públicos, catálogo/atalhos/clientes/
+ * agenda só no aparelho, lista de espera do site (e-mail,
  * celular e idioma), teclado que processa o que é
  * digitado só no aparelho. A IA saiu por enquanto (ver IMPLEMENTACOES-FUTURAS.md).
  * Mudou algo disso no app? Atualize aqui e a data em LEGAL_UPDATED.
@@ -23,7 +26,7 @@ export const LEGAL_INFO = {
 };
 
 /** Data da última atualização dos textos (AAAA-MM-DD). */
-export const LEGAL_UPDATED = '2026-10-30';
+export const LEGAL_UPDATED = '2026-10-31';
 
 export interface LegalSection {
   title: string;
@@ -79,7 +82,9 @@ export const TERMS: Docs = {
         title: '5. Seu conteúdo',
         paragraphs: [
           'Produtos, textos, fotos, vídeos, áudios, links e demais conteúdos que você cadastra continuam sendo seus. Você declara ter os direitos necessários sobre eles e nos concede uma licença limitada, apenas para armazená-los, processá-los e exibi-los na medida necessária para prestar o serviço a você.',
-          'Fotos, vídeos e áudios enviados para a nuvem ficam acessíveis por um link público: qualquer pessoa que tenha o link pode abrir o arquivo. Não envie arquivos que não possam ser vistos por quem receber o link.',
+          'Os arquivos do Locker (a área de arquivos do app, do teclado e do site locker.keyconapp.com) ficam privados. Quem você escolher pode abri-los: quem recebe o link de um arquivo, quem recebe o link de uma pasta que você deixou como "com o link" ou "pública", e as pessoas e equipes com quem você compartilha. Você é responsável por esses compartilhamentos.',
+          'As fotos, vídeos e áudios do catálogo de produtos e dos atalhos ficam acessíveis por um link público, para que o teclado consiga enviá-los: qualquer pessoa que tenha o link pode abrir o arquivo.',
+          'O espaço do Locker depende do seu plano (por exemplo, 5 GB no plano Basic) e cada arquivo tem um tamanho máximo (foto 16 MB, vídeo 64 MB, outros 10 MB). O que vai para a lixeira do Locker fica lá por 30 dias e depois é apagado para sempre. Não use o Locker para guardar conteúdo ilegal ou que viole direitos de terceiros; podemos remover esse conteúdo e suspender a conta.',
         ],
       },
       {
@@ -164,7 +169,9 @@ export const TERMS: Docs = {
         title: '5. Your content',
         paragraphs: [
           'Products, texts, photos, videos, audios, links and other content you add remain yours. You confirm that you hold the necessary rights to them and grant us a limited license only to store, process and display them as needed to provide the service to you.',
-          'Photos, videos and audios uploaded to the cloud are available through a public link: anyone who has the link can open the file. Do not upload files that should not be seen by whoever receives the link.',
+          'Locker files (the files area of the app, the keyboard and the locker.keyconapp.com website) are private. Only the people you choose can open them: whoever receives the link to a file, whoever receives the link to a folder you set as "with the link" or "public", and the people and teams you share with. You are responsible for what you share.',
+          'Photos, videos and audios in your product catalog and shortcuts are available through a public link so the keyboard can send them: anyone who has the link can open the file.',
+          'Locker storage depends on your plan (for example, 5 GB on the Basic plan) and each file has a maximum size (photo 16 MB, video 64 MB, others 10 MB). Items moved to the Locker trash stay there for 30 days and are then deleted forever. Do not use the Locker to store illegal content or content that infringes the rights of others; we may remove such content and suspend the account.',
         ],
       },
       {
@@ -249,7 +256,9 @@ export const TERMS: Docs = {
         title: '5. Tu contenido',
         paragraphs: [
           'Los productos, textos, fotos, videos, audios, enlaces y demás contenido que registras siguen siendo tuyos. Declaras tener los derechos necesarios sobre ellos y nos concedes una licencia limitada, solo para almacenarlos, procesarlos y mostrarlos en la medida necesaria para prestarte el servicio.',
-          'Las fotos, videos y audios subidos a la nube quedan accesibles mediante un enlace público: cualquier persona que tenga el enlace puede abrir el archivo. No subas archivos que no deban ver quienes reciban el enlace.',
+          'Los archivos del Locker (el área de archivos de la app, del teclado y del sitio locker.keyconapp.com) son privados. Solo pueden abrirlos quienes tú elijas: quien reciba el enlace de un archivo, quien reciba el enlace de una carpeta que dejaste "con el enlace" o "pública", y las personas y equipos con quienes compartas. Eres responsable de lo que compartes.',
+          'Las fotos, videos y audios del catálogo de productos y de los accesos rápidos quedan accesibles mediante un enlace público, para que el teclado pueda enviarlos: cualquier persona que tenga el enlace puede abrir el archivo.',
+          'El espacio del Locker depende de tu plan (por ejemplo, 5 GB en el plan Basic) y cada archivo tiene un tamaño máximo (foto 16 MB, video 64 MB, otros 10 MB). Lo que va a la papelera del Locker queda ahí 30 días y luego se elimina para siempre. No uses el Locker para guardar contenido ilegal o que viole derechos de terceros; podemos eliminar ese contenido y suspender la cuenta.',
         ],
       },
       {
@@ -319,7 +328,10 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'Conta: e-mail e senha. A senha é guardada de forma protegida pelo nosso provedor de autenticação; nós não temos acesso a ela.',
           'Perfil: seu nome, nome do negócio, WhatsApp, ramo do negócio, idioma e país onde você vende. Eles aparecem nas suas mensagens prontas e ajustam o app ao seu negócio.',
-          'Arquivos que você envia: fotos, vídeos e áudios que você escolhe adicionar ao catálogo, aos atalhos ou à seção Arquivos. Eles ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.',
+          'Locker: os arquivos que você envia (fotos, vídeos, áudios, PDFs e documentos), com nome, tipo, tamanho e datas, e a organização deles (pastas, ordem, o que aparece no teclado, estrela e lixeira). A organização fica no nosso banco de dados e sincroniza o app, o teclado e o site locker.keyconapp.com; os arquivos ficam guardados de forma privada no nosso provedor de armazenamento e são abertos por links temporários.',
+          'Compartilhamento no Locker: os e-mails das pessoas com quem você compartilha pastas ou arquivos, as equipes que você cria (nome e e-mails dos participantes) e quem pode ver cada pasta. Quem recebe um compartilhamento vê o seu e-mail como dono.',
+          'Fotos, vídeos e áudios do catálogo de produtos e dos atalhos: ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.',
+          'Plano do Locker: o seu plano de armazenamento e o espaço usado.',
           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
           'Lista de espera do site: se você se inscrever para ser avisado do lançamento, guardamos seu e-mail, o tipo de celular que você escolheu (iPhone ou Android) e o idioma da página. Usamos esses dados só para avisar quando o KEYCON estiver disponível no seu celular.',
         ],
@@ -327,7 +339,8 @@ export const PRIVACY: Docs = {
       {
         title: '3. Dados que ficam só no seu aparelho',
         paragraphs: [
-          'Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações), compromissos da agenda, a organização das pastas de Arquivos e as suas preferências ficam guardados apenas no seu celular, compartilhados entre o app e o teclado KEYCON. Nós não recebemos esses dados.',
+          'Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações), compromissos da agenda e as suas preferências ficam guardados apenas no seu celular, compartilhados entre o app e o teclado KEYCON. Nós não recebemos esses dados.',
+          'No navegador, o Locker web guarda no seu aparelho a sua sessão, o idioma escolhido, uma cópia da organização para abrir sem internet e, se você marcar "Disponível sem internet", cópias desses arquivos. Ao sair da conta no Locker web, apagamos essas cópias. Não usamos cookies de publicidade nem ferramentas de rastreamento.',
         ],
       },
       {
@@ -347,27 +360,28 @@ export const PRIVACY: Docs = {
       {
         title: '6. Para que usamos os dados e bases legais',
         paragraphs: [
-          'Usamos os dados para criar e manter sua conta, prestar os recursos do KEYCON, enviar seus arquivos nas conversas, dar suporte, garantir a segurança e cumprir obrigações legais. As bases legais são a execução do contrato com você, o cumprimento de obrigação legal, o nosso legítimo interesse em manter o serviço seguro e, para o microfone, o seu consentimento.',
+          'Usamos os dados para criar e manter sua conta, prestar os recursos do KEYCON (inclusive guardar e sincronizar o Locker entre o app, o teclado e o site, e os compartilhamentos que você fizer), enviar seus arquivos nas conversas, dar suporte, garantir a segurança e cumprir obrigações legais. As bases legais são a execução do contrato com você, o cumprimento de obrigação legal, o nosso legítimo interesse em manter o serviço seguro e, para o microfone, o seu consentimento.',
         ],
       },
       {
         title: '7. Com quem compartilhamos',
         paragraphs: [
-          'Com provedores que nos ajudam a prestar o serviço: hospedagem, banco de dados, autenticação e armazenamento de arquivos (Supabase). Eles só podem usar os dados para prestar esses serviços. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
+          'Com provedores que nos ajudam a prestar o serviço: banco de dados, autenticação e armazenamento (Supabase), armazenamento dos arquivos do Locker (Cloudflare) e hospedagem do site. Eles só podem usar os dados para prestar esses serviços. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
+          'Com quem você escolher, no Locker: as pessoas e equipes com quem você compartilha e quem recebe os links que você envia.',
           'Esses provedores podem manter servidores fora do Brasil. Nesses casos, adotamos as garantias previstas na LGPD para a transferência internacional.',
         ],
       },
       {
         title: '8. Por quanto tempo guardamos',
         paragraphs: [
-          'Guardamos os dados da conta, do perfil e os arquivos enviados enquanto sua conta existir. Se você pedir a exclusão, apagamos esses dados em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
+          'Guardamos os dados da conta, do perfil, o Locker e os arquivos enviados enquanto sua conta existir. O que você manda para a lixeira do Locker é apagado para sempre depois de 30 dias (ou antes, se você esvaziar a lixeira). Se você pedir a exclusão da conta, apagamos esses dados, inclusive os arquivos do Locker, em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
           'Os dados da lista de espera ficam guardados até o aviso de lançamento ser enviado. Você pode pedir a remoção antes disso pelo e-mail {email}.',
         ],
       },
       {
         title: '9. Segurança',
         paragraphs: [
-          'Os dados viajam com conexão criptografada e cada conta só acessa os próprios dados na nuvem. Lembre-se de que os arquivos enviados podem ser abertos por quem tiver o link. Nenhum sistema é 100% seguro; se ocorrer um incidente relevante, avisaremos você e as autoridades, como manda a lei.',
+          'Os dados viajam com conexão criptografada e cada conta só acessa os próprios dados na nuvem, além do que outras pessoas compartilharem com ela. Os arquivos do Locker são privados e abertos por links que vencem; só ficam abertos a quem tiver o link os arquivos que você compartilha e as pastas que você deixa "com o link" ou "públicas". As fotos, vídeos e áudios do catálogo e dos atalhos podem ser abertos por quem tiver o link. Nenhum sistema é 100% seguro; se ocorrer um incidente relevante, avisaremos você e as autoridades, como manda a lei.',
         ],
       },
       {
@@ -410,7 +424,10 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'Account: email and password. The password is stored securely by our authentication provider; we do not have access to it.',
           'Profile: your name, business name, WhatsApp, line of business, language and the country where you sell. They appear in your ready-made messages and tailor the app to your business.',
-          'Files you upload: photos, videos and audios you choose to add to your catalog, shortcuts or the Files section. They are available through a public link so the keyboard can send them in your chats.',
+          'Locker: the files you upload (photos, videos, audios, PDFs and documents), with name, type, size and dates, and how they are organized (folders, order, what shows on the keyboard, stars and trash). The organization is kept in our database and syncs the app, the keyboard and the locker.keyconapp.com website; the files are stored privately with our storage provider and opened through temporary links.',
+          'Locker sharing: the email addresses of people you share folders or files with, the teams you create (name and members\' emails) and who can see each folder. People who receive a share see your email as the owner.',
+          'Photos, videos and audios in your product catalog and shortcuts: available through a public link so the keyboard can send them in your chats.',
+          'Locker plan: your storage plan and the space used.',
           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
           'Website waitlist: if you sign up to be notified about the launch, we keep your email, the type of phone you chose (iPhone or Android) and the language of the page. We use this data only to tell you when KEYCON is available for your phone.',
         ],
@@ -418,7 +435,8 @@ export const PRIVACY: Docs = {
       {
         title: '3. Data that stays only on your device',
         paragraphs: [
-          'Your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes), calendar appointments, the organization of your Files folders and your preferences are stored only on your phone and shared between the KEYCON app and keyboard. We do not receive this data.',
+          'Your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes), calendar appointments and your preferences are stored only on your phone and shared between the KEYCON app and keyboard. We do not receive this data.',
+          'In the browser, the Locker website keeps on your device your session, the language you chose, a copy of your Locker organization to open offline and, if you mark files as "Available offline", copies of those files. When you sign out of the Locker website, we delete these copies. We do not use advertising cookies or tracking tools.',
         ],
       },
       {
@@ -438,27 +456,28 @@ export const PRIVACY: Docs = {
       {
         title: '6. How we use data and legal bases',
         paragraphs: [
-          'We use data to create and maintain your account, provide KEYCON\'s features, send your files in chats, offer support, keep the service secure and meet legal obligations. The legal bases are performance of our contract with you, compliance with legal obligations, our legitimate interest in keeping the service secure and, for the microphone, your consent.',
+          'We use data to create and maintain your account, provide KEYCON\'s features (including storing and syncing your Locker across the app, keyboard and website, and the shares you make), send your files in chats, offer support, keep the service secure and meet legal obligations. The legal bases are performance of our contract with you, compliance with legal obligations, our legitimate interest in keeping the service secure and, for the microphone, your consent.',
         ],
       },
       {
         title: '7. Who we share data with',
         paragraphs: [
-          'With providers that help us run the service: hosting, database, authentication and file storage (Supabase). They may use the data only to provide those services. We may also share data when required by law or court order. We do not sell your data.',
+          'With providers that help us run the service: database, authentication and storage (Supabase), Locker file storage (Cloudflare) and website hosting. They may use the data only to provide those services. We may also share data when required by law or court order. We do not sell your data.',
+          'With whoever you choose in the Locker: the people and teams you share with and the people who receive the links you send.',
           'These providers may keep servers outside Brazil. In those cases we apply the safeguards required by the LGPD for international transfers.',
         ],
       },
       {
         title: '8. How long we keep data',
         paragraphs: [
-          'We keep account and profile data and uploaded files while your account exists. If you ask us to delete them, we delete this data within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.',
+          'We keep account and profile data, your Locker and uploaded files while your account exists. Items you move to the Locker trash are deleted forever after 30 days (or sooner, if you empty the trash). If you ask us to delete your account, we delete this data, including your Locker files, within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.',
           'Waitlist data is kept until the launch notice is sent. You can ask us to remove it before then by writing to {email}.',
         ],
       },
       {
         title: '9. Security',
         paragraphs: [
-          'Data travels over encrypted connections and each account can only access its own data in the cloud. Remember that uploaded files can be opened by anyone who has the link. No system is 100% secure; if a significant incident occurs, we will notify you and the authorities as required by law.',
+          'Data travels over encrypted connections and each account can only access its own data in the cloud, plus what other people share with it. Locker files are private and opened through links that expire; only the files you share and the folders you set as "with the link" or "public" are open to whoever has the link. Photos, videos and audios in your catalog and shortcuts can be opened by anyone who has the link. No system is 100% secure; if a significant incident occurs, we will notify you and the authorities as required by law.',
         ],
       },
       {
@@ -501,7 +520,10 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'Cuenta: correo y contraseña. La contraseña la guarda de forma protegida nuestro proveedor de autenticación; no tenemos acceso a ella.',
           'Perfil: tu nombre, nombre del negocio, WhatsApp, rubro, idioma y país donde vendes. Aparecen en tus mensajes listos y adaptan la app a tu negocio.',
-          'Archivos que subes: fotos, videos y audios que eliges agregar al catálogo, a los accesos rápidos o a la sección Archivos. Quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.',
+          'Locker: los archivos que subes (fotos, videos, audios, PDF y documentos), con nombre, tipo, tamaño y fechas, y su organización (carpetas, orden, lo que aparece en el teclado, destacados y papelera). La organización se guarda en nuestra base de datos y sincroniza la app, el teclado y el sitio locker.keyconapp.com; los archivos se guardan de forma privada en nuestro proveedor de almacenamiento y se abren mediante enlaces temporales.',
+          'Compartir en el Locker: los correos de las personas con quienes compartes carpetas o archivos, los equipos que creas (nombre y correos de los miembros) y quién puede ver cada carpeta. Quien recibe algo compartido ve tu correo como dueño.',
+          'Fotos, videos y audios del catálogo de productos y de los accesos rápidos: quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.',
+          'Plan del Locker: tu plan de almacenamiento y el espacio usado.',
           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',
           'Lista de espera del sitio: si te inscribes para recibir el aviso del lanzamiento, guardamos tu correo, el tipo de celular que elegiste (iPhone o Android) y el idioma de la página. Usamos estos datos solo para avisarte cuando KEYCON esté disponible para tu celular.',
         ],
@@ -509,7 +531,8 @@ export const PRIVACY: Docs = {
       {
         title: '3. Datos que quedan solo en tu dispositivo',
         paragraphs: [
-          'Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas), citas de la agenda, la organización de las carpetas de Archivos y tus preferencias se guardan solo en tu celular y se comparten entre la app y el teclado KEYCON. No recibimos estos datos.',
+          'Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas), citas de la agenda y tus preferencias se guardan solo en tu celular y se comparten entre la app y el teclado KEYCON. No recibimos estos datos.',
+          'En el navegador, el Locker web guarda en tu dispositivo tu sesión, el idioma elegido, una copia de la organización para abrir sin conexión y, si marcas archivos como "Disponible sin conexión", copias de esos archivos. Al cerrar sesión en el Locker web, borramos esas copias. No usamos cookies de publicidad ni herramientas de rastreo.',
         ],
       },
       {
@@ -529,27 +552,28 @@ export const PRIVACY: Docs = {
       {
         title: '6. Para qué usamos los datos y bases legales',
         paragraphs: [
-          'Usamos los datos para crear y mantener tu cuenta, prestar las funciones de KEYCON, enviar tus archivos en las conversaciones, dar soporte, mantener la seguridad y cumplir obligaciones legales. Las bases legales son la ejecución del contrato contigo, el cumplimiento de obligaciones legales, nuestro interés legítimo en mantener el servicio seguro y, para el micrófono, tu consentimiento.',
+          'Usamos los datos para crear y mantener tu cuenta, prestar las funciones de KEYCON (incluido guardar y sincronizar el Locker entre la app, el teclado y el sitio, y lo que compartas), enviar tus archivos en las conversaciones, dar soporte, mantener la seguridad y cumplir obligaciones legales. Las bases legales son la ejecución del contrato contigo, el cumplimiento de obligaciones legales, nuestro interés legítimo en mantener el servicio seguro y, para el micrófono, tu consentimiento.',
         ],
       },
       {
         title: '7. Con quién compartimos',
         paragraphs: [
-          'Con proveedores que nos ayudan a prestar el servicio: alojamiento, base de datos, autenticación y almacenamiento de archivos (Supabase). Solo pueden usar los datos para prestar esos servicios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
+          'Con proveedores que nos ayudan a prestar el servicio: base de datos, autenticación y almacenamiento (Supabase), almacenamiento de los archivos del Locker (Cloudflare) y alojamiento del sitio. Solo pueden usar los datos para prestar esos servicios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
+          'Con quien tú elijas en el Locker: las personas y equipos con quienes compartes y quienes reciben los enlaces que envías.',
           'Estos proveedores pueden tener servidores fuera de Brasil. En esos casos, aplicamos las garantías que exige la LGPD para la transferencia internacional.',
         ],
       },
       {
         title: '8. Cuánto tiempo guardamos los datos',
         paragraphs: [
-          'Guardamos los datos de la cuenta, del perfil y los archivos subidos mientras exista tu cuenta. Si pides la eliminación, borramos estos datos en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
+          'Guardamos los datos de la cuenta, del perfil, el Locker y los archivos subidos mientras exista tu cuenta. Lo que mandas a la papelera del Locker se elimina para siempre después de 30 días (o antes, si vacías la papelera). Si pides la eliminación de la cuenta, borramos estos datos, incluidos los archivos del Locker, en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
           'Los datos de la lista de espera se guardan hasta enviar el aviso de lanzamiento. Puedes pedir que los borremos antes escribiendo a {email}.',
         ],
       },
       {
         title: '9. Seguridad',
         paragraphs: [
-          'Los datos viajan con conexión cifrada y cada cuenta solo accede a sus propios datos en la nube. Recuerda que los archivos subidos pueden abrirlos quienes tengan el enlace. Ningún sistema es 100% seguro; si ocurre un incidente relevante, te avisaremos a ti y a las autoridades, como exige la ley.',
+          'Los datos viajan con conexión cifrada y cada cuenta solo accede a sus propios datos en la nube, además de lo que otras personas compartan con ella. Los archivos del Locker son privados y se abren con enlaces que vencen; solo quedan abiertos a quien tenga el enlace los archivos que compartes y las carpetas que dejas "con el enlace" o "públicas". Las fotos, videos y audios del catálogo y de los accesos rápidos pueden abrirlos quienes tengan el enlace. Ningún sistema es 100% seguro; si ocurre un incidente relevante, te avisaremos a ti y a las autoridades, como exige la ley.',
         ],
       },
       {

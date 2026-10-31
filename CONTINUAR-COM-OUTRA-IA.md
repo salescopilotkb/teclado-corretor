@@ -82,7 +82,7 @@ Você vai continuar o desenvolvimento do **KEYCON**, um app de vendas com teclad
 - A tradução real usa a Translator API do Chrome 138+ no computador (`Translator.web.ts`).
 - Produto com foto ("Use") e envio de arquivos chegam na conversa de teste como mensagem de imagem com legenda, igual ao WhatsApp (`sendMedia` no `KeyboardBridge.web.ts`).
 - Cliente de exemplo, **Jessica Miller**: abre com 2 mensagens e responde 3 vezes, uma depois de cada mensagem do vendedor, com "typing…" no topo.
-- Pacote para o HostGator: monte `hostgator/` com o conteúdo de `landing/` (sem `three.min.js`) mais `dist/` dentro de `hostgator/app/`, e compacte em `keyconapp-public_html.zip` na raiz do projeto. As duas pastas estão no `.gitignore`. O usuário sobe o .zip em public_html e extrai.
+- Pacotes para o HostGator: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_hostgator_zips.ps1` gera `keyconapp-public_html.zip` (landing sem `three.min.js` + `dist/` em `app/`; vai em public_html) e `locker-public_html.zip` (Locker web, `dist-locker/`; vai na pasta do subdomínio locker.keyconapp.com), com "/" nos caminhos. Pastas geradas e zips estão no `.gitignore`. O usuário sobe e extrai. Para ligar o Locker do zero: `docs/LOCKER-DEPLOY.md`.
 
 ## Locker (30/10/2026)
 - A seção Arquivos vai virar o **Locker**: um "Google Drive" do KEYCON em locker.keyconapp.com, com o mesmo login, sincronizado em tempo real com o app e o teclado. Planos de 5, 20 e 100 GB por usuário.

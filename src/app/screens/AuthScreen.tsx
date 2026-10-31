@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { AuthError, signIn, signUp } from '../../services/auth';
+import { AuthError, requestPasswordReset, signIn, signUp } from '../../services/auth';
 import type { SegmentId } from '../../types';
 import { SegmentPicker } from '../components/SegmentPicker';
 import { KeyconLogo } from '../../keyboard/components/KeyconLogo';
@@ -31,6 +31,8 @@ export function AuthScreen({ onSuccess }: Props) {
   const colors = useColors();
   const styles = useStyles();
   const [isRegister, setIsRegister] = useState(false);
+  /** Tela de "Esqueci a senha" (só o e-mail). */
+  const [forgot, setForgot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -46,6 +48,28 @@ export function AuthScreen({ onSuccess }: Props) {
   const chooseLanguage = (lang: Lang) => {
     setLanguage(lang);
     if (!marketTouched) setMarket(defaultMarketFor(lang));
+  };
+
+  const sendReset = async () => {
+    const clean = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      Alert.alert(t('Atenção'), t('Informe um e-mail válido.'));
+      return;
+    }
+    setLoading(true);
+    try {
+      await requestPasswordReset(clean);
+      Alert.alert(
+        t('Confira seu e-mail'),
+        `${t('Se existir uma conta com {email}, o link para criar a senha nova chega em alguns minutos. Olhe também a caixa de spam.', { email: clean })}\n\n${t('O link abre uma página da KEYCON no navegador, onde você cria a senha nova. Depois, volte e entre aqui com ela.')}`,
+      );
+      setForgot(false);
+      setPassword('');
+    } catch (e) {
+      Alert.alert(t('Não foi possível continuar'), e instanceof AuthError ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -130,116 +154,154 @@ export function AuthScreen({ onSuccess }: Props) {
 
         <View style={styles.header}>
           <Text style={styles.title}>
-            {isRegister ? t('Crie sua conta') : t('Entre na sua conta')}
+            {forgot ? t('Esqueci a senha') : isRegister ? t('Crie sua conta') : t('Entre na sua conta')}
           </Text>
           <Text style={styles.subtitle}>
-            {t('Seus produtos, fotos e atalhos ficam sincronizados com o teclado.')}</Text>
+            {forgot
+              ? t('Digite o e-mail da sua conta. Vamos mandar um link para você criar uma senha nova.')
+              : t('Seus produtos, fotos e atalhos ficam sincronizados com o teclado.')}
+          </Text>
         </View>
 
-        <View style={styles.tabToggle}>
-          <Pressable
-            style={[styles.toggleBtn, !isRegister && styles.toggleBtnActive]}
-            onPress={() => setIsRegister(false)}>
-            <Text style={[styles.toggleText, !isRegister && styles.toggleTextActive]}>
-              {t('Entrar')}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toggleBtn, isRegister && styles.toggleBtnActive]}
-            onPress={() => setIsRegister(true)}>
-            <Text style={[styles.toggleText, isRegister && styles.toggleTextActive]}>
-              {t('Criar conta')}</Text>
-          </Pressable>
-        </View>
+        {forgot ? (
+          <View style={styles.formCard}>
+            <Text style={styles.label}>{t('E-mail')}</Text>
+            <TextInput
+              testID="forgot-email"
+              style={styles.input}
+              placeholder={t('seu@email.com.br')}
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <Pressable
+              testID="forgot-send"
+              style={({ pressed }) => [styles.submitBtn, pressed && styles.submitBtnPressed, loading && styles.submitBtnDisabled]}
+              disabled={loading}
+              onPress={sendReset}>
+              <CoralSheen />
+              {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.submitBtnText}>{t('Enviar o link')}</Text>}
+            </Pressable>
+            <Pressable accessibilityRole="button" hitSlop={8} style={styles.linkBtnCenter} onPress={() => setForgot(false)}>
+              <Text style={styles.linkText}>{t('Voltar para Entrar')}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={styles.tabToggle}>
+              <Pressable
+                style={[styles.toggleBtn, !isRegister && styles.toggleBtnActive]}
+                onPress={() => setIsRegister(false)}>
+                <Text style={[styles.toggleText, !isRegister && styles.toggleTextActive]}>
+                  {t('Entrar')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.toggleBtn, isRegister && styles.toggleBtnActive]}
+                onPress={() => setIsRegister(true)}>
+                <Text style={[styles.toggleText, isRegister && styles.toggleTextActive]}>
+                  {t('Criar conta')}</Text>
+              </Pressable>
+            </View>
 
-        <View style={styles.formCard}>
-          {isRegister && (
-            <>
-              <Text style={styles.label}>{t('Nome Completo')}</Text>
+            <View style={styles.formCard}>
+              {isRegister && (
+                <>
+                  <Text style={styles.label}>{t('Nome Completo')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('Ex: Ana Souza')}
+                    placeholderTextColor={colors.textMuted}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </>
+              )}
+
+              <Text style={styles.label}>{t('E-mail')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('Ex: Ana Souza')}
+                placeholder={t('seu@email.com.br')}
                 placeholderTextColor={colors.textMuted}
-                value={name}
-                onChangeText={setName}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
               />
-            </>
-          )}
 
-          <Text style={styles.label}>{t('E-mail')}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t('seu@email.com.br')}
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-
-          <Text style={styles.label}>{t('Senha')}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={isRegister ? t('Crie uma senha (mínimo 6 caracteres)') : t('Sua senha de acesso')}
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          {isRegister && (
-            <>
-              <Text style={styles.label}>{t('Nome do negócio (opcional)')}</Text>
+              <Text style={styles.label}>{t('Senha')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('Ex: Bella Store')}
+                placeholder={isRegister ? t('Crie uma senha (mínimo 6 caracteres)') : t('Sua senha de acesso')}
                 placeholderTextColor={colors.textMuted}
-                value={business}
-                onChangeText={setBusiness}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
               />
+              {!isRegister ? (
+                <Pressable testID="forgot-open" accessibilityRole="button" hitSlop={8} style={styles.linkBtn} onPress={() => setForgot(true)}>
+                  <Text style={styles.linkText}>{t('Esqueci a senha')}</Text>
+                </Pressable>
+              ) : null}
 
-              <Text style={styles.label}>{t('Telefone com WhatsApp')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('Ex: {phone}', { phone: getMarket(market).phoneExample })}
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-              />
+              {isRegister && (
+                <>
+                  <Text style={styles.label}>{t('Nome do negócio (opcional)')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('Ex: Bella Store')}
+                    placeholderTextColor={colors.textMuted}
+                    value={business}
+                    onChangeText={setBusiness}
+                  />
 
-              <Text style={styles.label}>{t('Onde você vende?')}</Text>
-              <Text style={styles.hint}>
-                {t('Define a moeda dos preços e o idioma das mensagens que vão para os seus clientes.')}
-              </Text>
-              <MarketPicker
-                value={market}
-                onChange={id => {
-                  setMarket(id);
-                  setMarketTouched(true);
-                }}
-              />
+                  <Text style={styles.label}>{t('Telefone com WhatsApp')}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t('Ex: {phone}', { phone: getMarket(market).phoneExample })}
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
 
-              <Text style={styles.label}>{t('Qual é o seu ramo?')}</Text>
-              <Text style={styles.hint}>
-                {t('O app se adapta ao seu negócio: nomes, campos dos produtos e funil de clientes. Dá para trocar depois na tela Conta.')}</Text>
-              <SegmentPicker value={segment} onChange={setSegment} />
-            </>
-          )}
+                  <Text style={styles.label}>{t('Onde você vende?')}</Text>
+                  <Text style={styles.hint}>
+                    {t('Define a moeda dos preços e o idioma das mensagens que vão para os seus clientes.')}
+                  </Text>
+                  <MarketPicker
+                    value={market}
+                    onChange={id => {
+                      setMarket(id);
+                      setMarketTouched(true);
+                    }}
+                  />
 
-          <Pressable
-            style={({ pressed }) => [styles.submitBtn, pressed && styles.submitBtnPressed, loading && styles.submitBtnDisabled]}
-            disabled={loading}
-            onPress={handleSubmit}>
-            <CoralSheen />
-            {loading ? (
-              <ActivityIndicator color={colors.onPrimary} />
-            ) : (
-              <Text style={styles.submitBtnText}>
-                {isRegister ? t('Criar conta e entrar') : t('Entrar')}
-              </Text>
-            )}
-          </Pressable>
-        </View>
+                  <Text style={styles.label}>{t('Qual é o seu ramo?')}</Text>
+                  <Text style={styles.hint}>
+                    {t('O app se adapta ao seu negócio: nomes, campos dos produtos e funil de clientes. Dá para trocar depois na tela Conta.')}</Text>
+                  <SegmentPicker value={segment} onChange={setSegment} />
+                </>
+              )}
+
+              <Pressable
+                style={({ pressed }) => [styles.submitBtn, pressed && styles.submitBtnPressed, loading && styles.submitBtnDisabled]}
+                disabled={loading}
+                onPress={handleSubmit}>
+                <CoralSheen />
+                {loading ? (
+                  <ActivityIndicator color={colors.onPrimary} />
+                ) : (
+                  <Text style={styles.submitBtnText}>
+                    {isRegister ? t('Criar conta e entrar') : t('Entrar')}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        )}
       </View>
     </ScrollView>
   );
@@ -339,6 +401,9 @@ const useStyles = makeStyles(colors => ({
   submitBtnDisabled: {
     opacity: 0.7,
   },
+  linkBtn: { alignSelf: 'flex-end', paddingVertical: spacing.xs },
+  linkBtnCenter: { alignSelf: 'center', paddingVertical: spacing.sm, marginTop: spacing.xs },
+  linkText: { fontSize: 14, fontWeight: '600', color: colors.primaryText },
   submitBtnText: {
     ...onCoralText,
     color: colors.onPrimary,

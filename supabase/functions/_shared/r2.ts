@@ -19,6 +19,8 @@ export interface R2 {
   ): Promise<string>;
   /** Chamada direta (apagar, enviar do servidor). */
   fetch(key: string, init: RequestInit): Promise<Response>;
+  /** Cópia dentro do bucket, sem baixar o arquivo ("Fazer uma cópia" no Locker web). */
+  copy(from: string, to: string): Promise<Response>;
 }
 
 /** null = as chaves do R2 ainda não foram configuradas. */
@@ -43,6 +45,10 @@ export function r2FromEnv(): R2 | null {
     },
     fetch(key, init) {
       return client.fetch(objectUrl(key), init);
+    },
+    copy(from, to) {
+      const source = `/${bucket}/${from.split('/').map(encodeURIComponent).join('/')}`;
+      return client.fetch(objectUrl(to), { method: 'PUT', headers: { 'x-amz-copy-source': source } });
     },
   };
 }

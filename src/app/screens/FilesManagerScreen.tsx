@@ -4,7 +4,7 @@
  * foi feito pelo teclado nesse meio-tempo.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, AppState, Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, AppState, Image, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import { t } from '../../i18n';
 import { useAppBack } from '../../navigation/back';
 import {
@@ -24,25 +24,26 @@ import {
   lockerDeleteFolder,
   lockerFileLink,
   lockerFolderLink,
+  lockerReplaceFile,
   lockerSaveFile,
   lockerSaveFolder,
   onLockerChange,
-  openLockerWeb,
   setFolderVisibility,
   uploadToLocker,
 } from '../../files/locker';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { ChoiceRow } from '../../keyboard/components/KeyboardForm';
-import { Icon } from '../../keyboard/components/Icon';
+import { fileIcon, Icon } from '../../keyboard/components/Icon';
 import { makeStyles, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { canUseCamera, captureWithCamera, pickPhotoOrVideo } from '../../native/MediaPicker';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
 import type { LocalMedia } from '../../services/mediaUpload';
 import { Repo } from '../../storage/storage';
-import { DEMO_MODE } from '../../config/demo';
 import type { FileFolder, FilesData, FolderVisibility, SavedFile } from '../../types';
 import { normalizeUrl } from '../../utils/formatters';
 import { SourceButtons, UploadStatus, useUploader } from '../components/MediaUpload';
+import { LockerUsageCard } from '../components/LockerUsageCard';
+import { LockerKeyboardPreview } from './LockerKeyboardPreview';
 import { Button, Card, CardText, CardTitle, EmptyState, MenuGroup, MenuRow, Page, ScreenTitle, SubHeader } from '../components/ui';
 
 type Mode = null | 'add' | 'link' | 'new-folder' | 'rename-folder' | 'move-folder';
@@ -58,7 +59,9 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   const uploader = useUploader();
 
   const reload = useCallback(() => setData(Repo.getFiles()), []);
-  const [openingWeb, setOpeningWeb] = useState(false);
+  /** Prévia do teclado aberta (organizar o que aparece e a ordem). */
+  const [organizing, setOrganizing] = useState(false);
+  useAppBack(() => setOrganizing(false), organizing);
   // Mudou no Locker (outro aparelho, o Locker web ou o teclado): mostra na hora
   useEffect(() => onLockerChange(reload), [reload]);
   useEffect(() => {
@@ -74,6 +77,10 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   useEffect(() => {
     if (folderId && !folder) setFolderId(null);
   }, [folderId, folder]);
+
+  if (organizing) {
+    return <LockerKeyboardPreview data={data} onBack={() => setOrganizing(false)} onChanged={reload} />;
+  }
 
   const file = fileId ? data.files.find(f => f.id === fileId) : undefined;
   if (file) {
@@ -157,21 +164,17 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       )}
       {folder && path.length > 1 ? <Text style={styles.path}>{t('Em {folder}', { folder: parentLabel })}</Text> : null}
 
-      {/* Locker no navegador (locker.keyconapp.com), já logado: o app gera um link de entrada de uso único.
-          Na demonstração ainda não aparece: o Locker de exemplo vem na tarefa 13 */}
-      {!folder && !mode && !DEMO_MODE ? (
+      {/* Quanto já usou do plano (some ao abrir uma pasta) */}
+      {!folder && !mode ? <LockerUsageCard refreshKey={data} /> : null}
+
+      {/* O Locker no navegador (já logado) abre pela barra de endereço da moldura (LockerFrame) */}
+      {!folder && !mode ? (
         <Button
-          testID="locker-open-web"
-          label={t('Abrir o Locker no navegador')}
+          testID="locker-organize-keyboard"
+          label={t('Organizar o teclado')}
           variant="secondary"
-          icon="globo"
-          loading={openingWeb}
-          onPress={() => {
-            setOpeningWeb(true);
-            openLockerWeb()
-              .catch(() => Alert.alert(t('Erro'), t('Não foi possível abrir o Locker no navegador.')))
-              .finally(() => setOpeningWeb(false));
-          }}
+          icon="teclado"
+          onPress={() => setOrganizing(true)}
         />
       ) : null}
 
@@ -249,6 +252,20 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
               <SmallAction icon="lixeira" label={t('Excluir')} danger onPress={deleteFolder} />
             </View>
           )}
+          {folder && (
+            <Card>
+              <KeyboardToggle
+                testID="folder-in-keyboard"
+                value={folder.inKeyboard !== false}
+                label={t('Mostrar esta pasta no teclado')}
+                hint={t('Desligado, a pasta e o que tem dentro saem do teclado, mas continuam no Locker.')}
+                onChange={v => {
+                  lockerSaveFolder({ ...folder, inKeyboard: v });
+                  reload();
+                }}
+              />
+            </Card>
+          )}
           {folder && <FolderSharing folder={folder} onChanged={reload} />}
         </View>
       )}
@@ -258,7 +275,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       {folders.length > 0 && (
         <MenuGroup>
           {folders.map(f => (
-            <MenuRow key={f.id} testID={`ffolder-${f.id}`} icon="pasta" title={f.name} subtitle={folderSummary(data, f.id)} onPress={() => open(f.id)} />
+            <MenuRow key={f.id} testID={`ffolder-${f.id}`} icon="pasta" title={f.name} subtitle={f.inKeyboard === false ? `${folderSummary(data, f.id)} · ${t('fora do teclado')}` : folderSummary(data, f.id)} onPress={() => open(f.id)} />
           ))}
         </MenuGroup>
       )}
@@ -287,6 +304,27 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
 }
 
 // ── Peças ───────────────────────────────────────────────────────────────
+
+/** "Mostrar no teclado": o que estiver desligado continua no Locker, mas sai do teclado. */
+function KeyboardToggle({ value, label, hint, onChange, testID }: { value: boolean; label: string; hint: string; onChange: (v: boolean) => void; testID?: string }) {
+  const colors = useColors();
+  const styles = useStyles();
+  return (
+    <View style={styles.toggleRow}>
+      <View style={styles.flex}>
+        <Text style={styles.toggleLabel}>{label}</Text>
+        <Text style={styles.toggleHint}>{hint}</Text>
+      </View>
+      <Switch
+        testID={testID}
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ false: colors.surfaceAlt, true: colors.primary }}
+        thumbColor={colors.scheme === 'dark' ? '#F5F6F8' : '#FFFFFF'}
+      />
+    </View>
+  );
+}
 
 const VISIBILITY_OPTIONS: Array<{ value: FolderVisibility; label: string; hint: string }> = [
   { value: 'private', label: 'Privada', hint: 'Só você vê esta pasta. Os links de cada arquivo continuam abrindo para quem os recebeu.' },
@@ -362,7 +400,7 @@ function NameInput({ value, onChange, onSubmit, placeholder }: { value: string; 
   );
 }
 
-function SmallAction({ icon, label, onPress, danger }: { icon: 'editar' | 'mover' | 'lixeira'; label: string; onPress: () => void; danger?: boolean }) {
+function SmallAction({ icon, label, onPress, danger }: { icon: 'editar' | 'mover' | 'lixeira' | 'galeria'; label: string; onPress: () => void; danger?: boolean }) {
   const colors = useColors();
   const styles = useStyles();
   return (
@@ -382,13 +420,18 @@ function Thumb({ file, onPress }: { file: SavedFile; onPress: () => void }) {
         <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
       ) : (
         <View style={[styles.thumbImage, styles.video]}>
-          <Icon name="video" size={28} color={colors.textSecondary} />
+          <Icon name={fileIcon(file.type)} size={28} color={colors.textSecondary} />
           {file.duration ? <Text style={styles.duration}>{file.duration}</Text> : null}
         </View>
       )}
       <Text style={styles.thumbTitle} numberOfLines={1}>
         {file.title}
       </Text>
+      {file.inKeyboard === false ? (
+        <Text style={styles.offKeyboard} numberOfLines={1}>
+          {t('fora do teclado')}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -509,6 +552,17 @@ function FileDetail({
   const [title, setTitle] = useState(file.title);
   const [moving, setMoving] = useState(false);
   const changed = title.trim() && title.trim() !== file.title;
+  /** Trocar por uma nova versão (o mesmo arquivo: links e teclado continuam). */
+  const replacer = useUploader();
+  const replace = () =>
+    replacer.run(
+      pickPhotoOrVideo,
+      (uploaded, media) => {
+        lockerReplaceFile(file, media, uploaded);
+        onChanged();
+      },
+      uploadToLocker,
+    );
 
   const remove = () =>
     Alert.alert(t('Excluir arquivo'), t('Excluir "{name}" do app e do teclado?', { name: file.title }), [
@@ -532,7 +586,7 @@ function FileDetail({
         <Image source={{ uri: file.url }} style={styles.preview} resizeMode="contain" />
       ) : (
         <View style={[styles.preview, styles.video]}>
-          <Icon name="video" size={40} color={colors.textSecondary} />
+          <Icon name={fileIcon(file.type)} size={40} color={colors.textSecondary} />
           {file.duration ? <Text style={styles.duration}>{file.duration}</Text> : null}
         </View>
       )}
@@ -574,8 +628,20 @@ function FileDetail({
           <CardText>{t('Em {folder}', { folder: moveTargets(data).find(m => m.id === file.folderId)?.label ?? LOCKER_NAME })}</CardText>
           <View style={styles.row}>
             <SmallAction icon="mover" label={t('Mover')} onPress={() => setMoving(true)} />
+            <SmallAction icon="galeria" label={t('Trocar arquivo')} onPress={replace} />
             <SmallAction icon="lixeira" label={t('Excluir')} danger onPress={remove} />
           </View>
+          <UploadStatus uploading={replacer.uploading} error={replacer.error} />
+          <KeyboardToggle
+            testID="file-in-keyboard"
+            value={file.inKeyboard !== false}
+            label={t('Mostrar no teclado')}
+            hint={t('Desligado, o arquivo sai do teclado, mas continua no Locker.')}
+            onChange={v => {
+              lockerSaveFile({ ...file, inKeyboard: v });
+              onChanged();
+            }}
+          />
           {/* Link permanente do Locker: quem tiver abre o arquivo sem login */}
           <CopyLinkButton testID="file-copy-link" link={lockerFileLink(file)} label={t('Copiar link do arquivo')} />
         </Card>
@@ -589,6 +655,10 @@ const useStyles = makeStyles(colors => ({
   pressed: { opacity: 0.7 },
   path: { fontSize: 13, color: colors.textMuted, marginTop: -spacing.md },
   actions: { gap: spacing.sm },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  toggleLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
+  toggleHint: { fontSize: 12, lineHeight: 17, color: colors.textMuted, marginTop: 2 },
+  offKeyboard: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
   row: { flexDirection: 'row', gap: spacing.sm },
   label: { ...typography.label, color: colors.textSecondary },
   input: {

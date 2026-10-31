@@ -1,0 +1,14 @@
+{
+  "name": "Locker · KEYCON",
+  "short_name": "Locker",
+  "description": "Seus arquivos de vendas, no app, no teclado e no navegador.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F4F6FA",
+  "theme_color": "#F17860",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
