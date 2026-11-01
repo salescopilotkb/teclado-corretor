@@ -64,6 +64,7 @@ targets:
       # Vídeo e fotos (seletor de imagens): o React Native 0.77 não liga mais esses sozinho
       - sdk: AVFoundation.framework
       - sdk: Photos.framework
+      - sdk: CoreMedia.framework
     settings:
       base:
         PRODUCT_NAME: CorretorKeyboard
@@ -96,6 +97,7 @@ targets:
     dependencies:
       - sdk: AVFoundation.framework
       - sdk: Photos.framework
+      - sdk: CoreMedia.framework
     settings:
       base:
         PRODUCT_NAME: CorretorKeyboardExtension
