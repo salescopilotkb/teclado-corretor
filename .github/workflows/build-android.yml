@@ -121,6 +121,29 @@ jobs:
           name: gradle-build-log
           path: build.log
 
+      # Google Play (Android 15+): todo arquivo nativo (.so) de 64 bits precisa estar
+      # alinhado a páginas de 16 KB. Confere cada um dentro do AAB e avisa quais não estão.
+      - name: Conferir páginas de 16 KB (Google Play)
+        if: success()
+        run: |
+          rm -rf /tmp/aab && mkdir -p /tmp/aab
+          unzip -q android/app/build/outputs/bundle/release/app-release.aab -d /tmp/aab
+          bad=0; total=0
+          while IFS= read -r so; do
+            total=$((total+1))
+            # Menor alinhamento dos segmentos LOAD: 2**14 (16 KB) ou mais
+            align=$(objdump -p "$so" | awk '/LOAD/{print $NF}' | sed 's/2\*\*//' | sort -n | head -1)
+            if [ -z "$align" ] || [ "$align" -lt 14 ]; then
+              bad=$((bad+1))
+              echo "::warning::Sem 16 KB: $(basename "$so") (alinhamento 2**$align)"
+            fi
+          done < <(find /tmp/aab \( -path "*/lib/arm64-v8a/*.so" -o -path "*/lib/x86_64/*.so" \))
+          if [ "$bad" -eq 0 ]; then
+            echo "::notice::16 KB: os $total arquivos nativos de 64 bits estão prontos para a Google Play."
+          else
+            echo "::warning::16 KB: $bad de $total arquivos nativos ainda não estão prontos."
+          fi
+
       - name: Renomear AAB e APK para KEYCON
         if: success()
         run: |

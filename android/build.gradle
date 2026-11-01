@@ -5,8 +5,9 @@ buildscript {
         minSdkVersion = 24
         compileSdkVersion = 36
         targetSdkVersion = 36
-        ndkVersion = "26.1.10909125"
-        kotlinVersion = "1.9.22"
+        // React Native 0.77: NDK 27 e Kotlin 2.0 (bibliotecas nativas em páginas de 16 KB)
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.0.21"
     }
     repositories {
         google()
@@ -20,3 +21,16 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Google Play: as bibliotecas nativas compiladas aqui (ex.: MMKV, em C++) também saem
+// prontas para celulares com páginas de memória de 16 KB (Android 15+). As do React
+// Native já vêm assim do 0.77.
+subprojects {
+    afterEvaluate { project ->
+        def android = project.extensions.findByName("android")
+        def cmake = android?.defaultConfig?.externalNativeBuild?.cmake
+        if (cmake != null) {
+            cmake.arguments "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+        }
+    }
+}

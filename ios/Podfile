@@ -1,3 +1,7 @@
+# React Native 0.76+ liga a arquitetura nova por padrão no iOS. O teclado usa a antiga
+# (RCTBridge/RCTRootView na extensão), a mesma do Android (newArchEnabled=false).
+ENV['RCT_NEW_ARCH_ENABLED'] = '0'
+
 # Resolve react_native_pods.rb with node to allow for hoisting
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
