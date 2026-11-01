@@ -42,6 +42,8 @@ interface KeyboardBridgeNative {
   requestMicPermission?(): Promise<MicPermission>;
   /** Android: o "voltar" do celular volta uma tela no teclado (true) ou fecha o teclado (false). */
   setBackEnabled?(enabled: boolean): void;
+  /** Android (app): cor atrás das barras do sistema, que o app não cobre mais (API 35+). */
+  setAppBackground?(color: string): void;
   setAutofillArea?(x: number, y: number, width: number, height: number, color: number): void;
 }
 
@@ -248,6 +250,8 @@ export const KeyboardBridge = {
   },
   /** Alguma tela do teclado tem para onde voltar? (o Android então entrega o "voltar" ao JS) */
   setBackEnabled: (enabled: boolean) => Native?.setBackEnabled?.(enabled),
+  /** Android (app): a cor atrás da barra de status e da de navegação segue o tema do app. */
+  setAppBackground: (color: string) => Native?.setAppBackground?.(color),
   /**
    * Onde fica a faixa do corretor (dp, relativo ao teclado) e a cor dela: o Android
    * mostra ali as sugestões do preenchimento automático (e-mails, endereços).

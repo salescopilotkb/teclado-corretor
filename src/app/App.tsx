@@ -49,6 +49,7 @@ import type { PlanScreen } from '../plans/plan';
 import { PlansScreen } from './screens/PlansScreen';
 import { KeepFilesScreen } from './screens/KeepFilesScreen';
 import { CompanyScreen } from './screens/CompanyScreen';
+import { KeyboardBridge } from '../native/KeyboardBridge';
 import { CompanyBlocked } from './components/PlanLocked';
 import { dependentNotice, getPlan } from '../plans/plan';
 import { usePlan } from '../plans/usePlan';
@@ -83,6 +84,10 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   const colors = useColors();
   const styles = useStyles();
   const barStyle = colors.scheme === 'dark' ? 'light-content' : 'dark-content';
+  // Android 15+: o app fica entre as barras do sistema; a cor atrás delas segue o tema
+  useEffect(() => {
+    KeyboardBridge.setAppBackground(colors.canvas);
+  }, [colors.canvas]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => Repo.isLoggedIn());
   // Idioma: a área logada é recriada no idioma novo; o login/cadastro só redesenha
   // (para não perder o que já foi digitado)

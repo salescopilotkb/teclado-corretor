@@ -104,6 +104,24 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
         UiThreadUtil.runOnUiThread { CustomKeyboardService.instance?.jsHandlesBack = enabled }
     }
 
+    /**
+     * App (não o teclado): a cor de fundo atrás da barra de status e da de navegação (o app
+     * fica entre elas, ver MainActivity) e os ícones claros ou escuros conforme essa cor.
+     */
+    @ReactMethod
+    fun setAppBackground(color: String) {
+        val activity = reactApplicationContext.currentActivity ?: return
+        UiThreadUtil.runOnUiThread {
+            val parsed = try { android.graphics.Color.parseColor(color) } catch (e: IllegalArgumentException) { return@runOnUiThread }
+            activity.findViewById<android.view.View>(android.R.id.content)?.setBackgroundColor(parsed)
+            val light = androidx.core.graphics.ColorUtils.calculateLuminance(parsed) > 0.5
+            androidx.core.view.WindowInsetsControllerCompat(activity.window, activity.window.decorView).apply {
+                isAppearanceLightStatusBars = light
+                isAppearanceLightNavigationBars = light
+            }
+        }
+    }
+
     /** Teclado em tela grande (CRM) ou de volta ao tamanho normal. */
     @ReactMethod
     fun setExpanded(expanded: Boolean, promise: Promise) =

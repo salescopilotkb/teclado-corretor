@@ -258,6 +258,7 @@ export const KeyboardBridge = {
   },
   /** Web: não há preenchimento automático do Android. */
   setAutofillArea: (_area: { x: number; y: number; width: number; height: number; color: number } | null) => {},
+  setAppBackground: (_color: string) => undefined,
   setBackEnabled: (enabled: boolean) => {
     backEnabled = enabled;
   },

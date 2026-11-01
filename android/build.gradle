@@ -1,9 +1,10 @@
 buildscript {
     ext {
-        buildToolsVersion = "34.0.0"
+        // API 36 (Android 16): a Google Play exige para enviar versões novas
+        buildToolsVersion = "36.0.0"
         minSdkVersion = 24
-        compileSdkVersion = 34
-        targetSdkVersion = 34
+        compileSdkVersion = 36
+        targetSdkVersion = 36
         ndkVersion = "26.1.10909125"
         kotlinVersion = "1.9.22"
     }
