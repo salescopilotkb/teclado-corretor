@@ -260,6 +260,10 @@ export const KeyboardBridge = {
   setAutofillArea: (_area: { x: number; y: number; width: number; height: number; color: number } | null) => {},
   setAppBackground: (_color: string) => undefined,
   setKeyboardBackground: (_color: string) => undefined,
+  canUseClipboard: false,
+  getClipboard: (): Promise<null> => Promise.resolve(null),
+  pasteClipboard: (): Promise<boolean> => Promise.resolve(false),
+  onClipboard: (_cb: (clip: never) => void) => () => undefined,
   setBackEnabled: (enabled: boolean) => {
     backEnabled = enabled;
   },

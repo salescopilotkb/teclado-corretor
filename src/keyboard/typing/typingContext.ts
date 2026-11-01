@@ -212,9 +212,13 @@ export class TypingContext {
     this.apply(this.before.slice(0, this.before.length - count) + text, text.length - count);
   }
 
+  /** Edições feitas pelo teclado (letras, espaço, apagar), nunca as do campo relido. */
+  edits = 0;
+
   private apply(next: string, delta: number) {
     this.before = next.slice(-MAX_CONTEXT);
     this.version++;
+    this.edits++;
     if (this.cursor !== null) {
       this.cursor += delta;
       this.expected.push(this.cursor);

@@ -2,7 +2,7 @@ import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, u
 import { Platform, Text, View } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent, NativeTouchEvent } from 'react-native';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
-import type { InputContext } from '../../native/KeyboardBridge';
+import type { ClipInfo, InputContext } from '../../native/KeyboardBridge';
 import { makeStyles, onCoralText, radius, useColors } from '../theme';
 import { buildLexicon, isKnownWord, needsFullSuggest, predictNext, suggest } from '../typing/lexicon';
 import type { Suggestions } from '../typing/lexicon';
@@ -123,6 +123,11 @@ const LONG_PRESS_MS = 350;
 /** Dois toques no shift dentro deste tempo travam as maiúsculas. */
 const DOUBLE_TAP_MS = 350;
 const DOUBLE_SPACE_MS = 450;
+
+/** Ao abrir o teclado, a prévia da cópia aparece se ela tem até 5 minutos (cópia nova: sempre). */
+const CLIP_FRESH_MS = 5 * 60 * 1000;
+/** A cópia que a pessoa já colou ou dispensou (ou começou a digitar por cima): não volta. */
+let dismissedClipAt = 0;
 const REPEAT_DELAY_MS = 400;
 const REPEAT_INTERVAL_MS = 60;
 /** Trava de segurança: nenhuma repetição do ⌫ dura mais que isso. */
@@ -324,7 +329,55 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
   const [context] = useState(
     () => new TypingContext(() => refresh.current(), () => out.current.getInputContext()),
   );
+
+  // ── Área de transferência (Android, digitando em outro app) ─────────────
+  // Uma cópia recente aparece na faixa do corretor, SOZINHA, até a pessoa digitar
+  // qualquer coisa, colar ou dispensar. Depois a faixa volta a ser só do corretor.
+  const [clip, setClip] = useState<ClipInfo | null>(null);
+  const clipRef = useRef<ClipInfo | null>(null);
+  clipRef.current = clip;
+  /** Edições do teclado quando a prévia apareceu: a próxima a esconde. */
+  const clipEdits = useRef(0);
+  const dismissClip = useCallback(() => {
+    if (clipRef.current) dismissedClipAt = clipRef.current.at;
+    clipRef.current = null;
+    setClip(null);
+  }, []);
+  const offerClip = useCallback(
+    (c: ClipInfo | null, fresh: boolean) => {
+      if (!c || c.at === dismissedClipAt) return;
+      if (!fresh && Date.now() - c.at > CLIP_FRESH_MS) return;
+      clipEdits.current = context.edits;
+      setClip(c);
+    },
+    [context],
+  );
+  useEffect(() => {
+    if (internal || !KeyboardBridge.canUseClipboard) return;
+    const check = () => {
+      KeyboardBridge.getClipboard()
+        .then(c => offerClip(c, false))
+        .catch(() => {});
+    };
+    check();
+    const offShow = KeyboardBridge.onKeyboardShow(check);
+    const offCopy = KeyboardBridge.onClipboard(c => offerClip(c, true));
+    return () => {
+      offShow();
+      offCopy();
+    };
+  }, [internal, offerClip]);
+  const pasteClip = useCallback(() => {
+    dismissClip();
+    KeyboardBridge.pasteClipboard()
+      .catch(() => false)
+      // O texto entrou por fora do teclado: relê o campo (maiúscula e sugestões certas)
+      .finally(() => setTimeout(() => context.resync(), 150));
+  }, [context, dismissClip]);
+
   refresh.current = () => {
+    // A pessoa digitou depois que a prévia apareceu: ela some e o corretor volta
+    if (clipRef.current && context.edits !== clipEdits.current) dismissClip();
     const sentenceStart = context.atSentenceStart();
     if (shiftRef.current !== 'lock') setShift(sentenceStart ? 'once' : 'off');
     // Campo vazio (nova mensagem ou campo limpo após envio): garante retorno ao teclado de letras
@@ -909,7 +962,14 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
 
   return (
     <View style={styles.container} testID="typing-keyboard">
-      <SuggestionBar ref={suggestionBar} onPick={pickSuggestion} autofill={!internal} />
+      <SuggestionBar
+        ref={suggestionBar}
+        onPick={pickSuggestion}
+        autofill={!internal}
+        clip={internal ? null : clip}
+        onPasteClip={pasteClip}
+        onDismissClip={dismissClip}
+      />
 
       <View ref={areaRef} style={styles.keysArea} onLayout={measureOrigin} {...responder}>
         {/* As teclas só desenham: quem recebe o toque é a área inteira */}

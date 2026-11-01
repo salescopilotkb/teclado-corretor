@@ -4,6 +4,9 @@ import android.content.ClipDescription
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.content.ClipboardManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
 import android.inputmethodservice.InputMethodService
@@ -47,7 +50,9 @@ import com.facebook.react.ReactInstanceManager
 import com.facebook.react.ReactRootView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
+import java.io.File
 import java.lang.ref.WeakReference
 
 /**
@@ -238,6 +243,10 @@ class CustomKeyboardService : InputMethodService() {
     override fun onCreate() {
         super.onCreate()
         instanceRef = WeakReference(this)
+        // Área de transferência: avisa o JS a cada cópia (a prévia aparece na faixa do corretor)
+        try {
+            clipboard.addPrimaryClipChangedListener(clipListener)
+        } catch (_: Throwable) {}
 
         // Começa a carregar o JS já na criação do serviço, antes do primeiro campo pedir o teclado
         try {
@@ -281,7 +290,8 @@ class CustomKeyboardService : InputMethodService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
                 val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout())
-                (view as KeyboardRootFrameLayout).setSystemInsets(bars.left, bars.right, bars.bottom)
+                // O dobro da altura informada: com só ela, a barra ainda cobria parte da última fileira
+                (view as KeyboardRootFrameLayout).setSystemInsets(bars.left, bars.right, bars.bottom * 2)
                 insets
             }
         }
@@ -432,6 +442,9 @@ class CustomKeyboardService : InputMethodService() {
 
     override fun onDestroy() {
         mainHandler.removeCallbacks(loadTimeout)
+        try {
+            clipboard.removePrimaryClipChangedListener(clipListener)
+        } catch (_: Throwable) {}
         try {
             reactRootView?.unmountReactApplication()
         } catch (_: Throwable) {}
@@ -944,6 +957,77 @@ class CustomKeyboardService : InputMethodService() {
         val dialogWindow = window?.window ?: return
         val light = androidx.core.graphics.ColorUtils.calculateLuminance(color) > 0.5
         WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView).isAppearanceLightNavigationBars = light
+    }
+
+    // -----------------------------------------------------------------------
+    // Área de transferência: a prévia do que foi copiado, na faixa do corretor
+    // -----------------------------------------------------------------------
+
+    private val clipboard by lazy { getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
+
+    private val clipListener = ClipboardManager.OnPrimaryClipChangedListener {
+        clipboardSnapshot()?.let { emitToJs("onClipboard", it) }
+    }
+
+    /**
+     * O que está copiado agora: { kind: "text" | "image", text?, preview? (miniatura,
+     * file://), sensitive, at (quando foi copiado, ms) }. null = nada copiado. Como teclado
+     * em uso, o KEYCON pode ler a área de transferência sem o aviso do Android. Nada sai
+     * do celular. Conteúdo marcado como sensível (senha copiada) não tem prévia.
+     */
+    fun clipboardSnapshot(): WritableMap? {
+        val clip = try { clipboard.primaryClip } catch (_: Throwable) { null } ?: return null
+        if (clip.itemCount == 0) return null
+        val description = clip.description
+        val item = clip.getItemAt(0)
+        val map = Arguments.createMap()
+        val at = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) description.timestamp else System.currentTimeMillis()
+        map.putDouble("at", at.toDouble())
+        val sensitive = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            description.extras?.getBoolean(ClipDescription.EXTRA_IS_SENSITIVE) == true
+        map.putBoolean("sensitive", sensitive)
+        val uri = item.uri
+        val isImage = uri != null && (0 until description.mimeTypeCount).any { description.getMimeType(it).startsWith("image/") }
+        if (isImage) {
+            map.putString("kind", "image")
+            if (!sensitive) clipPreview(uri!!, at)?.let { map.putString("preview", it) }
+        } else {
+            val text = try { item.coerceToText(this)?.toString()?.trim() } catch (_: Throwable) { null }
+            if (text.isNullOrEmpty()) return null
+            map.putString("kind", "text")
+            map.putString("text", if (sensitive) "" else text.take(2000))
+        }
+        return map
+    }
+
+    /** Miniatura da imagem copiada (até 256 px) no cache do app. */
+    private fun clipPreview(uri: Uri, at: Long): String? = try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        var sample = 1
+        while (bounds.outWidth / sample > 256 || bounds.outHeight / sample > 256) sample *= 2
+        val bitmap = contentResolver.openInputStream(uri)?.use {
+            BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
+        }
+        if (bitmap == null) {
+            null
+        } else {
+            // Um arquivo por cópia (a imagem na tela troca junto); as antigas saem
+            cacheDir.listFiles { f -> f.name.startsWith("clip-preview-") }?.forEach { it.delete() }
+            val file = File(cacheDir, "clip-preview-$at.jpg")
+            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 80, it) }
+            "file://${file.absolutePath}"
+        }
+    } catch (_: Throwable) {
+        null
+    }
+
+    /** Cola o que foi copiado, como o "Colar" do Android (texto, ou imagem onde o app aceita). */
+    fun pasteClipboard(): Boolean {
+        val ic = currentInputConnection ?: return false
+        if (ic.performContextMenuAction(android.R.id.paste)) return true
+        val text = try { clipboard.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() } catch (_: Throwable) { null }
+        return !text.isNullOrEmpty() && ic.commitText(text, 1)
     }
 
     private fun emitToJs(event: String, params: Any) {

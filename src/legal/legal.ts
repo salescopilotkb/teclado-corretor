@@ -398,6 +398,7 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'O que você digita com o teclado KEYCON é processado somente no seu aparelho, para corrigir palavras e sugerir as próximas. Não guardamos, não registramos e não enviamos o texto que você digita. Em campos de senha, e-mail e link o teclado desliga as sugestões e a correção automática.',
           'Ditado por voz (Android): quando você toca no microfone do teclado, a sua fala é transformada em texto pelo serviço de reconhecimento de voz do próprio Android (em geral, do Google), sem internet quando o idioma está baixado no celular. O KEYCON não grava, não guarda e não recebe o áudio; só o texto reconhecido vai para o campo em que você está escrevendo.',
+          'Área de transferência (Android): quando você copia um texto ou uma imagem, o teclado mostra uma prévia na faixa de sugestões para você colar com um toque. O teclado só lê o que foi copiado para mostrar essa prévia e colar; nada disso é guardado nem sai do seu celular. Conteúdo marcado como sensível, como uma senha copiada, aparece escondido.',
         ],
       },
       {
@@ -498,6 +499,7 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'What you type with the KEYCON keyboard is processed only on your device, to correct words and suggest the next ones. We do not store, log or send the text you type. In password, email and link fields the keyboard turns off suggestions and autocorrect.',
           'Voice typing (Android): when you tap the keyboard microphone, your speech is turned into text by Android\'s own speech recognition service (usually Google\'s), offline when the language is downloaded on your phone. KEYCON does not record, store or receive the audio; only the recognized text goes into the field you are typing in.',
+          'Clipboard (Android): when you copy text or an image, the keyboard shows a preview in the suggestion strip so you can paste it with one tap. The keyboard reads what you copied only to show this preview and paste it; none of it is stored or leaves your phone. Content marked as sensitive, such as a copied password, is hidden.',
         ],
       },
       {
@@ -598,6 +600,7 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'Lo que escribes con el teclado KEYCON se procesa solo en tu dispositivo, para corregir palabras y sugerir las siguientes. No guardamos, no registramos y no enviamos el texto que escribes. En campos de contraseña, correo y enlace el teclado desactiva las sugerencias y la corrección automática.',
           'Dictado por voz (Android): cuando tocas el micrófono del teclado, tu voz se convierte en texto con el servicio de reconocimiento de voz del propio Android (en general, de Google), sin internet cuando el idioma está descargado en el celular. KEYCON no graba, no guarda ni recibe el audio; solo el texto reconocido va al campo en el que estás escribiendo.',
+          'Portapapeles (Android): cuando copias un texto o una imagen, el teclado muestra una vista previa en la franja de sugerencias para que la pegues con un toque. El teclado solo lee lo que copiaste para mostrar esa vista previa y pegarlo; nada de eso se guarda ni sale de tu celular. El contenido marcado como sensible, como una contraseña copiada, aparece oculto.',
         ],
       },
       {

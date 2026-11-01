@@ -108,6 +108,16 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
      * App (não o teclado): a cor de fundo atrás da barra de status e da de navegação (o app
      * fica entre elas, ver MainActivity) e os ícones claros ou escuros conforme essa cor.
      */
+    /** O que está copiado agora (prévia na faixa do corretor); null = nada. */
+    @ReactMethod
+    fun getClipboard(promise: Promise) =
+        withService(promise) { it.clipboardSnapshot() }
+
+    /** Cola o que foi copiado no campo da conversa. */
+    @ReactMethod
+    fun pasteClipboard(promise: Promise) =
+        withService(promise) { it.pasteClipboard() }
+
     @ReactMethod
     fun setKeyboardBackground(color: String) {
         UiThreadUtil.runOnUiThread {

@@ -46,6 +46,9 @@ interface KeyboardBridgeNative {
   setAppBackground?(color: string): void;
   /** Android (teclado): cor da faixa embaixo do teclado, atrás da barra de navegação (API 35+). */
   setKeyboardBackground?(color: string): void;
+  /** Android: o que está copiado (prévia na faixa do corretor) e colar no campo. */
+  getClipboard?(): Promise<ClipInfo | null>;
+  pasteClipboard?(): Promise<boolean>;
   setAutofillArea?(x: number, y: number, width: number, height: number, color: number): void;
 }
 
@@ -63,6 +66,18 @@ export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 
 
 /** Resposta do pedido do microfone (blocked = negou com "não perguntar de novo"). */
 export type MicPermission = 'granted' | 'denied' | 'blocked';
+
+/** O que está na área de transferência (Android). */
+export interface ClipInfo {
+  kind: 'text' | 'image';
+  /** Texto copiado (vazio quando é sensível, como uma senha) */
+  text?: string;
+  /** Miniatura da imagem copiada (file://) */
+  preview?: string;
+  sensitive: boolean;
+  /** Quando foi copiado (ms): identifica a cópia */
+  at: number;
+}
 
 /**
  * sent = foto entregue na conversa; unsupported = o app só aceita texto (ou outro formato);
@@ -256,6 +271,14 @@ export const KeyboardBridge = {
   setAppBackground: (color: string) => Native?.setAppBackground?.(color),
   /** Android (teclado): a faixa embaixo do teclado (barra de navegação) na cor do teclado. */
   setKeyboardBackground: (color: string) => Native?.setKeyboardBackground?.(color),
+  /** Área de transferência (Android): a cópia de agora, para a prévia na faixa do corretor. */
+  canUseClipboard: !!Native?.getClipboard,
+  getClipboard: (): Promise<ClipInfo | null> => (Native?.getClipboard ? Native.getClipboard() : Promise.resolve(null)),
+  pasteClipboard: (): Promise<boolean> => (Native?.pasteClipboard ? Native.pasteClipboard() : Promise.resolve(false)),
+  onClipboard(cb: (clip: ClipInfo) => void) {
+    const sub = emitter?.addListener('onClipboard', cb);
+    return () => sub?.remove();
+  },
   /**
    * Onde fica a faixa do corretor (dp, relativo ao teclado) e a cor dela: o Android
    * mostra ali as sugestões do preenchimento automático (e-mails, endereços).

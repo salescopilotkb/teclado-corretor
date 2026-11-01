@@ -25,12 +25,16 @@ const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
 const query = new URLSearchParams(location.search);
 /** Chegou pelo link de redefinir a senha. */
 const cameToReset = hash.get('type') === 'recovery';
+/** Veio do botão Abrir do app ou do teclado: o código de entrada (troca pela sessão aqui). */
+const handoff = query.get('entrar');
 /** O link do e-mail venceu ou já foi usado. */
 const linkExpired = !!hash.get('error_code') && query.has('redefinir');
 
 export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [resetting, setResetting] = useState(cameToReset);
+  /** Trocando o código de entrada do app pela sessão. */
+  const [entering, setEntering] = useState(!!handoff);
   /** O plano da conta: o que pode usar aqui (grátis e dependente bloqueado não usam o Locker web). */
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   // Troca de idioma: a página toda redesenha
@@ -53,6 +57,15 @@ export function App() {
       if (s && location.hash.includes('access_token')) history.replaceState(null, '', location.pathname + location.search);
     });
     if (linkExpired) history.replaceState(null, '', location.pathname);
+    // Entrada pelo app: a página troca o código pela sessão (o código some do endereço)
+    if (handoff) {
+      history.replaceState(null, '', location.pathname);
+      supabase.auth
+        .verifyOtp({ token_hash: handoff, type: 'magiclink' })
+        .then(({ data: d }) => d.session && setSession(d.session))
+        .catch(() => {})
+        .finally(() => setEntering(false));
+    }
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -73,7 +86,7 @@ export function App() {
     }
     return <Drive session={demoSession} plan={OPEN} />;
   }
-  if (session === undefined || (session && !resetting && !plan)) {
+  if (session === undefined || entering || (session && !resetting && !plan)) {
     return (
       <div className="splash" aria-busy="true">
         <span className="spinner" />

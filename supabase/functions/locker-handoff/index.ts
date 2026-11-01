@@ -1,10 +1,12 @@
 /**
  * Supabase Edge Function: abre o Locker web (locker.keyconapp.com) já logado.
  *
- * O app pede aqui um link de entrada de USO ÚNICO para a própria conta (o "link
- * mágico" do Supabase, sem mandar e-mail) e abre no navegador. O Supabase confere
- * o link e devolve a pessoa ao Locker com a sessão; o link não serve de novo e
- * vence sozinho. Nada de senha ou token no endereço do Locker.
+ * O app pede aqui uma entrada de USO ÚNICO para a própria conta (o "link mágico" do
+ * Supabase, sem mandar e-mail) e abre no navegador: locker.keyconapp.com/?entrar=<código>.
+ * É a PÁGINA do Locker que troca o código pela sessão (verifyOtp), no navegador da
+ * pessoa. Assim, o celular abrir o endereço "por baixo" (prévia do link) não gasta a
+ * entrada, o que acontecia com o link do Supabase direto (erro otp_expired). O código
+ * não serve de novo e vence sozinho. Nada de senha no endereço.
  *
  * Publicar (uma vez):
  *   supabase secrets set LOCKER_URL=https://locker.keyconapp.com
@@ -14,7 +16,7 @@
  * Só aceita usuários logados (verify_jwt). Usa a chave service_role, que existe só
  * no servidor (SUPABASE_SERVICE_ROLE_KEY), para gerar o link.
  *
- * Entrada: { path?: "/pasta/123" }  Saída: { url: "https://<projeto>.supabase.co/auth/v1/verify?..." }
+ * Entrada: { path?: "/pasta/123" }  Saída: { url: "https://locker.keyconapp.com/?entrar=<código>" }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
@@ -56,9 +58,9 @@ Deno.serve(async req => {
     email,
     options: { redirectTo: `${lockerUrl}${path}` },
   });
-  const actionLink = data?.properties?.action_link;
-  if (error || !actionLink) return json({ error: 'link_failed' }, 502);
-  return json({ url: actionLink });
+  const hashed = data?.properties?.hashed_token;
+  if (error || !hashed) return json({ error: 'link_failed' }, 502);
+  return json({ url: `${lockerUrl}${path}?entrar=${encodeURIComponent(hashed)}` });
 });
 
 function json(body: unknown, status = 200): Response {

@@ -1,6 +1,10 @@
 import React, { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Platform, Pressable, processColor, Text, View } from 'react-native';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
+import type { ClipInfo } from '../../native/KeyboardBridge';
+import { t } from '../../i18n';
+import { Image } from 'react-native';
+import { Icon } from './Icon';
 import { makeStyles, useColors } from '../theme';
 
 /**
@@ -28,6 +32,13 @@ export interface SuggestionBarHandle {
 
 interface Props {
   onPick: (item: SuggestionItem) => void;
+  /**
+   * Cópia recente para colar: enquanto existe, a faixa mostra SÓ ela (o corretor
+   * volta assim que a pessoa digita, cola ou dispensa). As duas nunca se misturam.
+   */
+  clip?: ClipInfo | null;
+  onPasteClip?: () => void;
+  onDismissClip?: () => void;
   /** Teclado digitando no app (não num formulário do KEYCON): mostra ali o preenchimento automático. */
   autofill?: boolean;
 }
@@ -36,7 +47,7 @@ interface Props {
 const WEB_NO_PRESS_DELAY = Platform.OS === 'web' ? ({ delayPressIn: 0 } as object) : {};
 
 export const SuggestionBar = memo(
-  forwardRef<SuggestionBarHandle, Props>(({ onPick, autofill = false }, ref) => {
+  forwardRef<SuggestionBarHandle, Props>(({ onPick, autofill = false, clip, onPasteClip, onDismissClip }, ref) => {
     const colors = useColors();
     const styles = useStyles();
     const [items, setItems] = useState<SuggestionItem[]>([]);
@@ -64,6 +75,39 @@ export const SuggestionBar = memo(
     // Em destaque: a marcada (a que entra com o espaço) ou a primeira sugestão de verdade
     const marked = items.findIndex(i => i.best);
     const highlighted = marked >= 0 ? marked : items.findIndex(i => !i.literal);
+
+    if (clip) {
+      const label = clip.sensitive ? '••••••' : clip.kind === 'image' ? t('Imagem copiada') : (clip.text ?? '').replace(/\s+/g, ' ');
+      return (
+        <View ref={barRef} style={styles.bar} testID="suggestion-bar" onLayout={reportArea}>
+          <Pressable
+            {...WEB_NO_PRESS_DELAY}
+            testID="clipboard-paste"
+            accessibilityRole="button"
+            accessibilityLabel={t('Colar: {text}', { text: clip.sensitive ? t('conteúdo copiado') : label })}
+            onPress={onPasteClip}
+            android_ripple={{ color: colors.surfaceActive }}
+            style={({ pressed }) => [styles.clip, pressed && styles.cellPressed]}>
+            <Icon name="notas" size={16} color={colors.primaryText} />
+            {clip.kind === 'image' && clip.preview && !clip.sensitive ? <Image source={{ uri: clip.preview }} style={styles.clipThumb} /> : null}
+            <Text numberOfLines={1} style={styles.clipText}>
+              {label}
+            </Text>
+            <Text style={styles.clipAction}>{t('Colar')}</Text>
+          </Pressable>
+          <Pressable
+            {...WEB_NO_PRESS_DELAY}
+            testID="clipboard-dismiss"
+            accessibilityRole="button"
+            accessibilityLabel={t('Dispensar')}
+            hitSlop={8}
+            onPress={onDismissClip}
+            style={({ pressed }) => [styles.clipClose, pressed && styles.cellPressed]}>
+            <Icon name="fechar" size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
+      );
+    }
 
     return (
       <View ref={barRef} style={styles.bar} testID="suggestion-bar" onLayout={reportArea}>
@@ -126,4 +170,19 @@ const useStyles = makeStyles(colors => ({
   textLiteral: {
     color: colors.textMuted,
   },
+  clip: {
+    flex: 1,
+    height: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    marginLeft: 4,
+    borderRadius: 17,
+    backgroundColor: colors.primarySoft,
+  },
+  clipThumb: { width: 26, height: 26, borderRadius: 5 },
+  clipText: { flex: 1, color: colors.text, fontSize: 14 },
+  clipAction: { color: colors.primaryText, fontSize: 13, fontWeight: '600' },
+  clipClose: { width: 36, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
 }));
