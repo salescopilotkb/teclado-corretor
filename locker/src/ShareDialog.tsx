@@ -23,6 +23,7 @@ const OPTIONS: Array<{ id: Visibility; label: string; hint: string; icon: IconNa
 
 export function ShareDialog({
   target,
+  allowLinks = true,
   userId,
   userEmail,
   onClose,
@@ -30,6 +31,8 @@ export function ShareDialog({
   onCopied,
 }: {
   target: { kind: 'folder'; folder: LockerFolder } | { kind: 'file'; file: LockerFile };
+  /** Pasta por link ou pública: só nos planos com vitrine (Plus e Pro) */
+  allowLinks?: boolean;
   userId: string;
   userEmail: string;
   onClose: () => void;
@@ -212,8 +215,14 @@ export function ShareDialog({
           <fieldset className="share-access" disabled={saving}>
             <legend>{t('Acesso geral')}</legend>
             {OPTIONS.map(o => (
-              <label key={o.id} className={`share-option ${visibility === o.id ? 'on' : ''}`}>
-                <input type="radio" name="visibility" checked={visibility === o.id} onChange={() => choose(o.id)} />
+              <label key={o.id} className={`share-option ${visibility === o.id ? 'on' : ''} ${!allowLinks && o.id !== 'private' ? 'locked' : ''}`}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  checked={visibility === o.id}
+                  disabled={!allowLinks && o.id !== 'private'}
+                  onChange={() => choose(o.id)}
+                />
                 <span className="share-icon">
                   <Icon name={o.icon} size={18} />
                 </span>
@@ -223,6 +232,7 @@ export function ShareDialog({
                 </span>
               </label>
             ))}
+            {allowLinks ? null : <p className="muted share-note">{t('Pasta por link ou pública: no plano Plus ou no Pro.')}</p>}
           </fieldset>
         ) : (
           <div className="share-option on static">

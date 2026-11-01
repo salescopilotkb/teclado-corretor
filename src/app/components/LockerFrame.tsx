@@ -47,6 +47,7 @@ export function LockerFrame({ children }: { children: React.ReactNode }) {
           </Text>
         </View>
         {/* Na demonstração abre o Locker web de exemplo */}
+        {/* Dependente: abre o Locker da empresa, só para ver e baixar */}
         {plan.limits.locker && (
 
           <Pressable

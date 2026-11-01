@@ -61,6 +61,9 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
   const [mode, setMode] = useState<Mode>(null);
   const [name, setName] = useState('');
   const uploader = useUploader();
+  // Dependente da conta empresa: o Locker da empresa, só para ver e baixar
+  const plan = usePlan();
+  const readOnly = plan.role === 'dependent';
 
   const reload = useCallback(() => setData(Repo.getFiles()), []);
   /** Prévia do teclado aberta (organizar o que aparece e a ordem). */
@@ -92,6 +95,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       <FileDetail
         file={file}
         data={data}
+        readOnly={readOnly}
         onBack={() => setFileId(null)}
         onChanged={reload}
         onMoved={to => setFolderId(to)}
@@ -176,11 +180,21 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
       {folder && path.length > 1 ? <Text style={styles.path}>{t('Em {folder}', { folder: parentLabel })}</Text> : null}
 
       {/* Quanto já usou do plano (some ao abrir uma pasta) */}
-      {!folder && !mode ? <OverLimitBanner /> : null}
-      {!folder && !mode ? <LockerUsageCard refreshKey={data} /> : null}
+      {!folder && !mode && readOnly ? (
+        <Card>
+          <CardTitle>{t('Locker da empresa')}</CardTitle>
+          <CardText>
+            {plan.companyName
+              ? t('Estes são os arquivos de {company}. Você pode ver, baixar e mandar pelo teclado; quem muda é a empresa.', { company: plan.companyName })
+              : t('Estes são os arquivos da empresa. Você pode ver, baixar e mandar pelo teclado; quem muda é a empresa.')}
+          </CardText>
+        </Card>
+      ) : null}
+      {!folder && !mode && !readOnly ? <OverLimitBanner /> : null}
+      {!folder && !mode && !readOnly ? <LockerUsageCard refreshKey={data} /> : null}
 
       {/* O Locker no navegador (já logado) abre pela barra de endereço da moldura (LockerFrame) */}
-      {!folder && !mode ? (
+      {!folder && !mode && !readOnly ? (
         <Button
           testID="locker-organize-keyboard"
           label={t('Organizar o teclado')}
@@ -241,7 +255,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
             reload();
           }}
         />
-      ) : (
+      ) : readOnly ? null : (
         <View style={styles.actions}>
           <View style={styles.row}>
             <View style={styles.flex}>
@@ -561,12 +575,15 @@ function LinkForm({ onCancel, onSave }: { onCancel: () => void; onSave: (title: 
 function FileDetail({
   file,
   data,
+  readOnly,
   onBack,
   onChanged,
   onMoved,
 }: {
   file: SavedFile;
   data: FilesData;
+  /** Dependente: só ver, baixar e copiar o link */
+  readOnly: boolean;
   onBack: () => void;
   onChanged: () => void;
   onMoved: (folderId: string | null) => void;
@@ -637,8 +654,9 @@ function FileDetail({
             placeholderTextColor={colors.textMuted}
             value={title}
             onChangeText={setTitle}
+            editable={!readOnly}
           />
-          {changed ? (
+          {changed && !readOnly ? (
             <Button
               testID="file-save-title"
               label={t('Salvar nome')}
@@ -650,12 +668,15 @@ function FileDetail({
             />
           ) : null}
           <CardText>{t('Em {folder}', { folder: moveTargets(data).find(m => m.id === file.folderId)?.label ?? LOCKER_NAME })}</CardText>
-          <View style={styles.row}>
-            <SmallAction icon="mover" label={t('Mover')} onPress={() => setMoving(true)} />
-            <SmallAction icon="galeria" label={t('Trocar arquivo')} onPress={replace} />
-            <SmallAction icon="lixeira" label={t('Excluir')} danger onPress={remove} />
-          </View>
+          {readOnly ? null : (
+            <View style={styles.row}>
+              <SmallAction icon="mover" label={t('Mover')} onPress={() => setMoving(true)} />
+              <SmallAction icon="galeria" label={t('Trocar arquivo')} onPress={replace} />
+              <SmallAction icon="lixeira" label={t('Excluir')} danger onPress={remove} />
+            </View>
+          )}
           <UploadStatus uploading={replacer.uploading} error={replacer.error} />
+          {readOnly ? null : (
           <KeyboardToggle
             testID="file-in-keyboard"
             value={file.inKeyboard !== false}
@@ -666,6 +687,7 @@ function FileDetail({
               onChanged();
             }}
           />
+          )}
           {/* Link permanente do Locker: quem tiver abre o arquivo sem login */}
           <CopyLinkButton testID="file-copy-link" link={lockerFileLink(file)} label={t('Copiar link do arquivo')} />
         </Card>

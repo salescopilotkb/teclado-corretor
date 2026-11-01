@@ -36,8 +36,20 @@ export const EMPTY_SHARED: SharedData = { folders: [], files: [], shares: [] };
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const isEmail = (text: string) => EMAIL.test(text.trim());
 
+/** O erro já em palavras (os limites do plano vêm do banco: supabase/plans.sql). */
 const fail = (error: unknown) => {
-  if (error) throw new Error(t('Não foi possível salvar. Confira a internet e tente de novo.'));
+  if (!error) return;
+  const message = (error as { message?: string }).message ?? '';
+  if (message.includes('plan_limit:share_people')) {
+    throw new Error(t('Seu plano compartilha com até 3 pessoas. Mude para o Plus ou o Pro para compartilhar com mais.'));
+  }
+  if (message.includes('plan_limit:teams')) throw new Error(t('Seu plano chegou ao limite de equipes. Mude de plano para criar mais.'));
+  if (message.includes('plan_limit:team_member_not_dependent')) {
+    throw new Error(t('Só entram nas equipes as pessoas da sua empresa. Crie o acesso dela no app KEYCON: Conta › Equipe da empresa.'));
+  }
+  if (message.includes('plan_limit:dependents')) throw new Error(t('Seu plano chegou ao limite de pessoas. Mude de plano para adicionar mais.'));
+  if (message.includes('plan_limit:locker')) throw new Error(t('Compartilhar está nos planos pagos. Assine no app KEYCON.'));
+  throw new Error(t('Não foi possível salvar. Confira a internet e tente de novo.'));
 };
 
 /** Tabelas de compartilhar ainda não criadas (rodar o locker.sql de novo). */

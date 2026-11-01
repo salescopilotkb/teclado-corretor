@@ -24,12 +24,21 @@ export const MAX_PICK_BYTES = LOCKER_FILE_LIMITS.video;
 export const lockerKindOf = (mime: string | undefined): LockerKind =>
   mime?.startsWith('image/') ? 'image' : mime?.startsWith('video/') ? 'video' : 'other';
 
+/** Limite de cada tipo no plano (supabase/plans.sql); sem valor, o padrão acima. */
+export type LockerSizeLimits = Partial<Record<'maxImageBytes' | 'maxVideoBytes' | 'maxOtherBytes', number | null>>;
+
 /** Mensagem pronta quando o arquivo passa do limite do tipo dele (null = cabe). */
-export function lockerSizeError(mime: string | undefined, size: number | undefined): string | null {
+export function lockerSizeError(mime: string | undefined, size: number | undefined, plan?: LockerSizeLimits): string | null {
   const kind = lockerKindOf(mime);
-  const limit = LOCKER_FILE_LIMITS[kind];
+  const fromPlan = kind === 'image' ? plan?.maxImageBytes : kind === 'video' ? plan?.maxVideoBytes : plan?.maxOtherBytes;
+  const limit = fromPlan ?? LOCKER_FILE_LIMITS[kind];
   if (!size || size <= limit) return null;
   const mb = Math.round(limit / MB);
+  if (mb >= 1024) {
+    const gb = Math.round(mb / 1024);
+    if (kind === 'video') return t('O vídeo passa de {gb} GB. Grave um mais curto ou mande o link.', { gb });
+    return t('O arquivo passa de {gb} GB. Escolha um menor.', { gb });
+  }
   if (kind === 'image') return t('A foto passa de {mb} MB. Escolha uma menor.', { mb });
   if (kind === 'video') return t('O vídeo passa de {mb} MB. Grave um mais curto ou mande o link.', { mb });
   return t('O arquivo passa de {mb} MB. Escolha um menor.', { mb });

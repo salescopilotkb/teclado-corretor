@@ -12,6 +12,13 @@
  */
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../../src/config/supabase';
 import { lockerSizeError } from '../../src/files/limits';
+import type { LockerSizeLimits } from '../../src/files/limits';
+
+/** Tamanho máximo de cada tipo no plano da conta (o Drive informa ao abrir). */
+let sizeLimits: LockerSizeLimits = {};
+export function setUploadLimits(limits: LockerSizeLimits) {
+  sizeLimits = limits;
+}
 import { t } from '../../src/i18n';
 import { callLocker, fileType, supabase } from './data';
 import type { LockerFile } from './data';
@@ -201,7 +208,8 @@ async function toR2(jobId: string, file: File, mime: string): Promise<Stored | n
       return null;
     }
     if (reply.error === 'quota_exceeded') throw new UploadFail(t('Seu Locker está cheio. Libere espaço ou mude de plano para enviar mais arquivos.'));
-    if (reply.error === 'file_too_large') throw new UploadFail(lockerSizeError(mime, file.size) ?? t('O arquivo é grande demais para o Locker.'));
+    if (reply.error === 'file_too_large') throw new UploadFail(lockerSizeError(mime, file.size, sizeLimits) ?? t('O arquivo é grande demais para o Locker.'));
+    if (reply.error === 'plan_limit') throw new UploadFail(t('Seu plano não permite enviar mais arquivos. Mude de plano no app KEYCON.'));
     if (reply.status === 401) throw new UploadFail(t('Sessão expirada. Entre na conta de novo para enviar arquivos.'));
     throw new Offline(t('Sem conexão com a internet. Verifique e tente de novo.'));
   }
@@ -276,7 +284,7 @@ export async function startUploads(picked: PickedFile[], target: string | null, 
     const id = `up-${Date.now()}-${rand()}${rand()}`;
     const mime = mimeOf(file);
     const folderId = folders.get(dirs.join('/')) ?? target;
-    const tooBig = lockerSizeError(mime, file.size);
+    const tooBig = lockerSizeError(mime, file.size, sizeLimits);
     add({ id, name: file.name, size: file.size, mime, status: tooBig ? 'error' : 'waiting', progress: 0, error: tooBig ?? undefined });
     if (tooBig) continue;
 
@@ -337,7 +345,7 @@ export async function replaceUpload(target: LockerFile, file: File, onSaved: () 
   const session = data.session;
   if (!session) return t('Sessão expirada. Entre na conta de novo para enviar arquivos.');
   const mime = mimeOf(file);
-  const tooBig = lockerSizeError(mime, file.size);
+  const tooBig = lockerSizeError(mime, file.size, sizeLimits);
   if (tooBig) return tooBig;
 
   const id = `up-${Date.now()}-${rand()}${rand()}`;

@@ -32,7 +32,8 @@ import { deleteUploadedMedia } from '../../services/mediaUpload';
 import { Repo } from '../../storage/storage';
 import type { FilesData, SavedFile } from '../../types';
 import { UploadStatus, useUploader } from '../../app/components/MediaUpload';
-import { limitError } from '../../plans/plan';
+import { daysUntil, limitError, overLimitDeadline } from '../../plans/plan';
+import { usePlan } from '../../plans/usePlan';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, useColors } from '../theme';
 import { CoralSheen } from './Glass';
 import { fileIcon, Icon } from './Icon';
@@ -75,6 +76,13 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
   const [folderId, setFolderId] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'browse' });
   const uploader = useUploader();
+  // Dependente da conta empresa: o Locker da empresa, só para mandar
+  const plan = usePlan();
+  const readOnly = plan.role === 'dependent';
+  // Passou do limite do plano: o mesmo aviso do app (a escolha é feita no app)
+  const deadline = plan.overLimit ? overLimitDeadline(plan) : null;
+  const daysLeft = deadline ? daysUntil(deadline) : null;
+  const styles = useStyles();
 
   // A pasta aberta foi excluída (no app ou aqui): volta para a mais próxima que existe
   const folder = folderId ? files.folders.find(f => f.id === folderId) : undefined;
@@ -285,6 +293,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
       return (
         <FileDetail
           file={file}
+          readOnly={readOnly}
           onBack={browse}
           onSend={() => send(file)}
           onSendLink={() => onInsert(fileLink(file))}
@@ -306,8 +315,18 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
   return (
     <View style={{ flex: 1 }}>
       {onCollapse && <ResizeHandle id="files" onCollapse={onCollapse} />}
+      {plan.overLimit && !readOnly ? (
+        <Text style={styles.planNotice} numberOfLines={2}>
+          {daysLeft === null
+            ? t('Você passou do limite do seu plano. Abra o app para escolher o que manter.')
+            : daysLeft <= 1
+              ? t('Falta 1 dia para você perder seus arquivos. Abra o app para escolher o que manter.')
+              : t('Faltam {days} dias para você perder seus arquivos. Abra o app para escolher o que manter.', { days: daysLeft })}
+        </Text>
+      ) : null}
     <Browser
       files={files}
+      readOnly={readOnly}
       folderId={folder ? folderId : null}
       uploader={uploader}
       onOpenFolder={setFolderId}
@@ -334,6 +353,7 @@ function Browser({
   files,
   folderId,
   uploader,
+  readOnly,
   onOpenFolder,
   onUp,
   onOpenFile,
@@ -347,6 +367,7 @@ function Browser({
   files: FilesData;
   folderId: string | null;
   uploader: ReturnType<typeof useUploader>;
+  readOnly: boolean;
   onOpenFolder: (id: string) => void;
   onUp: () => void;
   onOpenFile: (id: string) => void;
@@ -389,9 +410,13 @@ function Browser({
         ) : (
           <Text style={[styles.barTitle, styles.barTitleRoot]}>{LOCKER_NAME}</Text>
         )}
-        {current && <BarButton testID="files-folder-options" icon="editar" label={t('Editar pasta')} onPress={onFolderOptions} />}
-        <BarButton testID="files-new-folder" icon="novaPasta" label={current ? t('Nova subpasta') : t('Nova pasta')} onPress={onNewFolder} />
-        <BarButton testID="files-add" icon="adicionar" label={t('Novo arquivo')} primary showLabel onPress={onAdd} disabled={!!uploader.uploading} />
+        {current && !readOnly && <BarButton testID="files-folder-options" icon="editar" label={t('Editar pasta')} onPress={onFolderOptions} />}
+        {readOnly ? null : (
+          <BarButton testID="files-new-folder" icon="novaPasta" label={current ? t('Nova subpasta') : t('Nova pasta')} onPress={onNewFolder} />
+        )}
+        {readOnly ? null : (
+          <BarButton testID="files-add" icon="adicionar" label={t('Novo arquivo')} primary showLabel onPress={onAdd} disabled={!!uploader.uploading} />
+        )}
       </View>
       <SearchLauncher testID="files-search-open" placeholder={t('Buscar pastas e arquivos')} onPress={onSearch} />
 
@@ -517,6 +542,7 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
 
 function FileDetail({
   file,
+  readOnly,
   onBack,
   onSend,
   onSendLink,
@@ -526,6 +552,7 @@ function FileDetail({
   onDelete,
 }: {
   file: SavedFile;
+  readOnly: boolean;
   onBack: () => void;
   onSend: () => void;
   onSendLink: () => void;
@@ -567,7 +594,7 @@ function FileDetail({
           </View>
         </View>
 
-        {confirming ? (
+        {readOnly ? null : confirming ? (
           <ConfirmDelete
             testID="file-delete-confirm"
             message={t('Excluir este arquivo do app e do teclado?')}
@@ -707,6 +734,17 @@ function NameForm({
 const THUMB = 76;
 
 const useStyles = makeStyles(colors => ({
+  planNotice: {
+    color: colors.text,
+    backgroundColor: colors.primarySoft,
+    fontSize: 12,
+    lineHeight: 16,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    marginHorizontal: spacing.sm,
+    marginBottom: 4,
+    borderRadius: radius.sm,
+  },
   flex: { flex: 1 },
   pressed: { opacity: 0.7 },
   bar: {

@@ -139,6 +139,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   useLanguage();
   const styles = useStyles();
   const plan = usePlan();
+  // Dependente com a assinatura da empresa vencida: a área de vendas fica pausada (o ABC continua)
+  const salesOpen = loggedIn && plan.status !== 'blocked';
 
   useEffect(() => {
     applyProfileLanguages(data.seller);
@@ -516,7 +518,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
         {!translating && tab === 'keyboard' && <TypingKeyboard key={`typing-${moreVisit}`} />}
         {/* Sem login no app, a área de vendas fica bloqueada (o ABC continua livre) */}
         {!translating && tab !== 'keyboard' && !loggedIn && <LoginRequiredPanel />}
-        {!translating && loggedIn && tab === 'products' && (
+        {!translating && tab !== 'keyboard' && loggedIn && plan.status === 'blocked' && <PlanLockedPanel feature="blocked" />}
+        {!translating && salesOpen && tab === 'products' && (
           <ProductsTab
             folders={data.folders}
             segment={segment}
@@ -529,10 +532,10 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onChanged={onDataChanged}
           />
         )}
-        {!translating && loggedIn && tab === 'shortcuts' && (
+        {!translating && salesOpen && tab === 'shortcuts' && (
           <ShortcutsTab shortcuts={data.shortcuts} seller={data.seller} onInsert={insert} onShare={shareMedia} onHeightChange={setHeightMode} onCollapse={collapseToKeyboard} onChanged={onDataChanged} />
         )}
-        {!translating && loggedIn && tab === 'files' && (
+        {!translating && salesOpen && tab === 'files' && (
           <FilesTab
             // Só o que a pessoa marcou para o teclado, na ordem que ela escolheu
             files={keyboardFiles}
@@ -545,9 +548,9 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
           />
         )}
         {/* Plano grátis: sem Agenda e sem CRM */}
-        {!translating && loggedIn && tab === 'agenda' && !plan.limits.agenda && <PlanLockedPanel feature="agenda" />}
-        {!translating && loggedIn && tab === 'crm' && !plan.limits.crm && <PlanLockedPanel feature="crm" />}
-        {!translating && loggedIn && tab === 'agenda' && plan.limits.agenda && (
+        {!translating && salesOpen && tab === 'agenda' && !plan.limits.agenda && <PlanLockedPanel feature="agenda" />}
+        {!translating && salesOpen && tab === 'crm' && !plan.limits.crm && <PlanLockedPanel feature="crm" />}
+        {!translating && salesOpen && tab === 'agenda' && plan.limits.agenda && (
           <KeyboardAgenda
             agenda={data.agenda}
             leads={data.crm}
@@ -558,7 +561,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onCollapse={collapseToKeyboard}
           />
         )}
-        {!translating && loggedIn && tab === 'crm' && plan.limits.crm && (
+        {!translating && salesOpen && tab === 'crm' && plan.limits.crm && (
           <KeyboardCRM
             segment={segment}
             leads={data.crm}
@@ -574,7 +577,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             onCollapse={collapseToKeyboard}
           />
         )}
-        {!translating && loggedIn && tab === 'more' && (
+        {!translating && salesOpen && tab === 'more' && (
           <MoreTab
             key={moreVisit}
             theme={data.theme}

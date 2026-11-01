@@ -10,16 +10,24 @@ import { KeyconMark } from './KeyconLogo';
  * No lugar da Agenda e do CRM do teclado quando o plano não inclui (plano grátis).
  * A assinatura é feita no app (as lojas não deixam comprar dentro do teclado).
  */
-export function PlanLockedPanel({ feature }: { feature: 'agenda' | 'crm' }) {
+export function PlanLockedPanel({ feature }: { feature: 'agenda' | 'crm' | 'blocked' }) {
   const styles = useStyles();
   return (
     <View style={styles.container} testID={`plan-locked-${feature}`}>
       <KeyconMark size={36} />
       <Text style={styles.title}>
-        {feature === 'agenda' ? t('A Agenda está nos planos pagos') : t('Os Clientes estão nos planos pagos')}
+        {feature === 'blocked'
+          ? t('Seu acesso está pausado')
+          : feature === 'agenda'
+            ? t('A Agenda está nos planos pagos')
+            : t('Os Clientes estão nos planos pagos')}
       </Text>
-      <Text style={styles.desc}>{t('Assine no app KEYCON para usar aqui no teclado. O botão ABC continua disponível para digitar.')}</Text>
-      {KeyboardBridge.canOpenApp ? (
+      <Text style={styles.desc}>
+        {feature === 'blocked'
+          ? t('A assinatura da sua empresa venceu. O acesso volta assim que ela renovar. O botão ABC continua disponível para digitar.')
+          : t('Assine no app KEYCON para usar aqui no teclado. O botão ABC continua disponível para digitar.')}
+      </Text>
+      {KeyboardBridge.canOpenApp && feature !== 'blocked' ? (
         <Pressable
           testID="plan-locked-open-app"
           style={({ pressed }) => [styles.btn, pressed && styles.pressed]}

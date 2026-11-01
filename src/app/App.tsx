@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { appBack, useAppBack } from '../navigation/back';
 import {
+  Alert,
   AppState,
   BackHandler,
   Platform,
@@ -47,6 +48,9 @@ import { onOpenPlans, refreshPlan } from '../plans/plan';
 import type { PlanScreen } from '../plans/plan';
 import { PlansScreen } from './screens/PlansScreen';
 import { KeepFilesScreen } from './screens/KeepFilesScreen';
+import { CompanyScreen } from './screens/CompanyScreen';
+import { CompanyBlocked } from './components/PlanLocked';
+import { dependentNotice, getPlan } from '../plans/plan';
 import { usePlan } from '../plans/usePlan';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
@@ -122,7 +126,18 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   const plan = usePlan();
   // Tela de planos: abre de qualquer lugar (Conta, avisos de limite, telas bloqueadas)
   const [planScreen, setPlanScreen] = useState<PlanScreen | null>(null);
-  useEffect(() => onOpenPlans(setPlanScreen), []);
+  useEffect(
+    () =>
+      onOpenPlans(screen => {
+        // Dependente: a assinatura é da empresa (não vê planos nem dados dela)
+        if (screen !== 'keep' && getPlan().role === 'dependent') {
+          Alert.alert(t('Conta da empresa'), dependentNotice());
+          return;
+        }
+        setPlanScreen(screen);
+      }),
+    [],
+  );
   const showPlans = planScreen !== null;
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -229,8 +244,19 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
       <View style={styles.screenBody}>
         {planScreen === 'plans' && <PlansScreen onBack={() => setPlanScreen(null)} />}
         {planScreen === 'keep' && <KeepFilesScreen onBack={() => setPlanScreen(null)} />}
+        {planScreen === 'company' && <CompanyScreen onBack={() => setPlanScreen(null)} />}
+        {/* Dependente com a assinatura da empresa vencida: acesso parado até ela renovar */}
+        {plan.status === 'blocked' && (
+          <CompanyBlocked
+            company={plan.companyName}
+            onLogout={() => {
+              signOut().catch(() => {});
+              setIsAuthenticated(false);
+            }}
+          />
+        )}
         {/* Escondida (não desmontada) atrás dos planos: ao voltar, a tela está como estava */}
-        <View style={showPlans ? styles.hidden : styles.fill}>
+        <View style={showPlans || plan.status === 'blocked' ? styles.hidden : styles.fill}>
         {currentTab === 'home' && (
           <HomeScreen key={tabVisit} onNavigate={navigateFromHome} onOpenTutorial={() => setShowTutorial(true)} />
         )}

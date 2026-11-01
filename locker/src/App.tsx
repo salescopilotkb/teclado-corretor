@@ -6,7 +6,10 @@
 import React, { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { t } from '../../src/i18n';
-import { supabase } from './data';
+import { fetchPlan, supabase } from './data';
+import { PlanGate } from './PlanGate';
+import { OPEN } from '../../src/plans/planInfo';
+import type { PlanInfo } from '../../src/plans/planInfo';
 import { Drive } from './Drive';
 import { Login } from './Login';
 import { DEMO_USER, PREVIEW } from './demo';
@@ -28,6 +31,8 @@ const linkExpired = !!hash.get('error_code') && query.has('redefinir');
 export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [resetting, setResetting] = useState(cameToReset);
+  /** O plano da conta: o que pode usar aqui (grátis e dependente bloqueado não usam o Locker web). */
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
   // Troca de idioma: a página toda redesenha
   useLanguage();
 
@@ -35,6 +40,8 @@ export function App() {
   const userId = session?.user.id;
   useEffect(() => {
     if (userId) applyProfileLanguage(userId);
+    setPlan(null);
+    if (userId) fetchPlan().then(setPlan).catch(() => setPlan(OPEN));
   }, [userId]);
 
   useEffect(() => {
@@ -51,14 +58,22 @@ export function App() {
 
   if (route) return <PublicPage route={route} />;
 
-  // Prévia com o Locker de exemplo (só no desenvolvimento: ?preview, ?preview=entrar, ?preview=senha)
+  // Prévia com o Locker de exemplo (só no desenvolvimento: ?preview, ?preview=entrar, ?preview=senha,
+  // ?preview=gratis, ?preview=empresa, ?preview=limite)
   if (PREVIEW) {
     const which = query.get('preview');
     if (which === 'entrar') return <Login />;
     if (which === 'senha') return <Login initialMode="reset" />;
-    return <Drive session={{ user: { id: DEMO_USER.id, email: DEMO_USER.email } } as Session} />;
+    if (which === 'gratis') return <PlanGate kind="free" company="" userId={DEMO_USER.id} />;
+    const demoSession = { user: { id: DEMO_USER.id, email: DEMO_USER.email } } as Session;
+    if (which === 'empresa') return <Drive session={demoSession} plan={{ ...OPEN, role: 'dependent', companyName: 'Loja Central' }} />;
+    if (which === 'limite') {
+      const since = new Date(Date.now() - 12 * 86400000).toISOString();
+      return <Drive session={demoSession} plan={{ ...OPEN, status: 'expired', overLimit: true, overLimitSince: since }} />;
+    }
+    return <Drive session={demoSession} plan={OPEN} />;
   }
-  if (session === undefined) {
+  if (session === undefined || (session && !resetting && !plan)) {
     return (
       <div className="splash" aria-busy="true">
         <span className="spinner" />
@@ -78,5 +93,10 @@ export function App() {
     );
   }
   if (!session) return <Login initialMode={linkExpired ? 'forgot' : 'signin'} expired={linkExpired} />;
-  return <Drive session={session} />;
+  if (plan!.status === 'blocked') return <PlanGate kind="blocked" company={plan!.companyName} userId={session.user.id} />;
+  // Plano grátis: os 3 arquivos ficam no app e no teclado
+  if (plan!.role === 'owner' && plan!.status !== 'open' && !plan!.limits.locker) {
+    return <PlanGate kind="free" company="" userId={session.user.id} />;
+  }
+  return <Drive session={session} plan={plan!} />;
 }

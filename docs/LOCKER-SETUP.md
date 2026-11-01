@@ -162,6 +162,11 @@ Apagar o usuário no Supabase apaga as linhas do Locker (pastas, arquivos, compa
 equipes), mas **não** os arquivos guardados no R2 e no bucket "media". Por isso, nesta ordem:
 
 1. Supabase → **Authentication** → **Users** → procure o e-mail → copie o **User UID**.
+   - **Conta de empresa (Plus/Pro)?** Os dependentes também saem: no SQL Editor,
+     `select member_id, email from public.company_members where company_id = '<User UID>';`
+     e apague cada um em Authentication → Users (eles não têm arquivos próprios no Locker).
+   - **Assinatura:** excluir a conta não cancela a cobrança na loja. Lembre a pessoa de
+     cancelar na App Store ou na Google Play (a página de exclusão já avisa).
 2. Cloudflare → **R2** → bucket `keycon-locker` → abra a pasta com esse UID → selecione tudo → **Delete**.
 3. Supabase → **Storage** → bucket `media` → pasta com esse UID → selecione tudo → **Delete**.
 4. Supabase → **Authentication** → **Users** → o usuário → **Delete user**.
@@ -234,6 +239,24 @@ pasta só. Voltou a caber (apagou arquivos ou assinou): a data some sozinha.
   situação da assinatura, limites, o que já usou).
 
 A pessoa só consegue **ler** o próprio plano: quem muda é o servidor (chave service_role).
+
+## Conta empresa: dependentes (Plus e Pro)
+
+No app, **Conta → Equipe da empresa** (só para quem assina o Plus, o Pro ou o Enterprise): a
+empresa cria o acesso de cada pessoa (nome, e-mail e senha inicial), monta as equipes e remove
+quem sair. Plus: 1 equipe com até 5 pessoas; Pro: 5 equipes com até 50.
+
+- O dependente entra no app com o próprio e-mail. Vê e baixa o **Locker da empresa** (só
+  leitura, no app e no teclado); teclado, produtos, atalhos, clientes e agenda são só dele.
+  Não vê planos nem dados da empresa e não sai sozinho.
+- Assinatura da empresa vencida: os dependentes ficam **bloqueados** (nada é apagado) até
+  ela renovar.
+- Banco: `company_members` e as regras na seção 7 de `supabase/plans.sql`. Criar, remover e
+  trocar a senha passam pela função `company` (chave service_role):
+
+```bash
+supabase functions deploy company
+```
 
 ## Antes de ligar para todos
 

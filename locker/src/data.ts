@@ -7,7 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../../src/config/supabase';
 import { LOCKER_PLANS, isLockerPlan } from '../../src/files/limits';
 import type { LockerPlanId } from '../../src/files/limits';
-import { demoData, demoUsage, PREVIEW } from './demo';
+import { DEMO_USER, demoData, demoUsage, PREVIEW } from './demo';
+import { OPEN, planFromServer } from '../../src/plans/planInfo';
+import type { PlanInfo } from '../../src/plans/planInfo';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -78,6 +80,25 @@ export async function fetchLocker(userId: string): Promise<LockerData> {
   if (folders.error) throw folders.error;
   if (files.error) throw files.error;
   return { folders: (folders.data ?? []) as LockerFolder[], files: (files.data ?? []) as LockerFile[] };
+}
+
+/**
+ * O plano da conta (supabase/plans.sql → my_plan): o que pode usar aqui, se é a
+ * empresa ou um dependente, e o prazo de quem passou do limite. Sem os planos no
+ * servidor (ou na prévia): nada é limitado.
+ */
+export async function fetchPlan(): Promise<PlanInfo> {
+  if (PREVIEW) return OPEN;
+  const { data, error } = await supabase.rpc('my_plan');
+  if (error || !data) return OPEN;
+  return planFromServer(data as Record<string, unknown>);
+}
+
+/** Dependente: de quem é o Locker que ele vê (null = não é dependente ou a empresa está bloqueada). */
+export async function fetchCompanyId(): Promise<string | null> {
+  if (PREVIEW) return DEMO_USER.id;
+  const { data, error } = await supabase.rpc('locker_company_for_me');
+  return !error && typeof data === 'string' ? data : null;
 }
 
 /** Espaço usado e o plano (RPC locker_usage; sem resposta, soma o que está na tela). */

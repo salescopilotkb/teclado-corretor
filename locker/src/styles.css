@@ -2537,3 +2537,37 @@ button:disabled {
   text-decoration: none;
   background: var(--orange-grad);
 }
+
+/* Planos: aviso de quem passou do limite e opções que o plano não inclui */
+.plan-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--orange-soft);
+  color: var(--ink);
+  border: 1px solid var(--orange);
+}
+.plan-notice svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--orange-text);
+}
+.share-option.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.notice.with-icon {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.notice.with-icon svg {
+  flex: none;
+  margin-top: 2px;
+}
+.login.gate {
+  grid-template-columns: 1fr;
+}
+.login.gate .login-side {
+  grid-column: 1 / -1;
+}

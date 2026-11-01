@@ -434,3 +434,344 @@ begin
 end;
 $$;
 revoke all on function public.plan_scan_over_limit() from public, anon, authenticated;
+
+-- =============================================================================
+-- 7. Conta empresa: dependentes (Plus: 1 equipe com até 5 pessoas; Pro: 5 equipes
+--    com até 50 pessoas)
+-- -----------------------------------------------------------------------------
+-- A empresa (a conta que assina) cria o acesso de cada dependente: um login
+-- próprio, preso à empresa (não é uma conta comum). O dependente:
+--  - vê e baixa o Locker da empresa (só leitura) no app, no teclado e no Locker web;
+--  - tem teclado, produtos, atalhos, CRM e agenda só dele;
+--  - não vê assinaturas nem dados da empresa e não sai sozinho (só a empresa remove);
+--  - fica BLOQUEADO (nada é apagado) se a assinatura da empresa vencer, até renovar.
+-- As pessoas das equipes são os dependentes (locker_team_members segue sozinho).
+-- Quem cria e remove os logins é a função "company" (chave service_role).
+-- =============================================================================
+create table if not exists public.company_members (
+  member_id   uuid primary key references auth.users (id) on delete cascade,
+  company_id  uuid not null references auth.users (id) on delete cascade,
+  name        text not null default '',
+  email       text not null,
+  team_id     uuid references public.locker_teams (id) on delete set null,
+  created_at  timestamptz not null default now(),
+  constraint company_members_not_self check (member_id <> company_id)
+);
+create index if not exists company_members_company_idx on public.company_members (company_id);
+
+alter table public.company_members enable row level security;
+drop policy if exists "dependentes: empresa e o proprio veem" on public.company_members;
+create policy "dependentes: empresa e o proprio veem" on public.company_members
+  for select using (company_id = auth.uid() or member_id = auth.uid());
+-- A empresa muda o nome e a equipe (criar e remover é pela função "company")
+drop policy if exists "dependentes: empresa muda" on public.company_members;
+create policy "dependentes: empresa muda" on public.company_members
+  for update using (company_id = auth.uid()) with check (company_id = auth.uid());
+
+-- Empresa da conta (null = não é dependente)
+create or replace function public.company_of(uid uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select m.company_id from public.company_members m where m.member_id = uid;
+$$;
+revoke all on function public.company_of(uuid) from public, anon, authenticated;
+
+-- O plano do dependente é o da empresa
+create or replace function public.plan_of(uid uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select case when p.expires_at is null or p.expires_at > now() then p.plan else 'free' end
+       from public.locker_plans p where p.user_id = coalesce(public.company_of(uid), uid)),
+    'free');
+$$;
+revoke all on function public.plan_of(uuid) from public, anon, authenticated;
+
+create or replace function public.plan_limits_of(uid uuid)
+returns public.plan_limits
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select l.plan, l.name,
+         coalesce(l.limit_bytes, (select p.limit_bytes from public.locker_plans p where p.user_id = coalesce(public.company_of(uid), uid))),
+         l.max_image_bytes, l.max_video_bytes, l.max_other_bytes,
+         l.max_files, l.max_folders, l.max_products, l.max_product_folders, l.max_shortcuts_per_kind,
+         l.max_share_people, l.max_teams, l.max_dependents,
+         l.folder_links, l.offline_web, l.locker, l.agenda, l.crm,
+         l.trash_days, l.priority_support, l.updated_at
+    from public.plan_limits l
+   where l.plan = public.plan_of(uid);
+$$;
+revoke all on function public.plan_limits_of(uuid) from public, anon, authenticated;
+
+-- A assinatura da empresa vale e inclui dependentes? (Enterprise: sem limite)
+create or replace function public.company_active(company uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when l.max_dependents is null then l.plan = 'enterprise'
+    else l.max_dependents > 0
+  end
+  from public.plan_limits_of(company) l;
+$$;
+revoke all on function public.company_active(uuid) from public, anon, authenticated;
+
+-- O Locker que a pessoa vê como dependente (null = não é dependente ou a empresa está bloqueada)
+create or replace function public.locker_company_for_me()
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select x.c from (select public.company_of(auth.uid()) as c) x
+   where x.c is not null and coalesce(public.company_active(x.c), false);
+$$;
+grant execute on function public.locker_company_for_me() to authenticated;
+
+-- Leitura do Locker da empresa pelos dependentes (soma às outras regras de leitura)
+drop policy if exists "pastas da empresa (dependentes leem)" on public.locker_folders;
+create policy "pastas da empresa (dependentes leem)" on public.locker_folders
+  for select using (user_id = public.locker_company_for_me() and trashed_at is null);
+drop policy if exists "arquivos da empresa (dependentes leem)" on public.locker_files;
+create policy "arquivos da empresa (dependentes leem)" on public.locker_files
+  for select using (user_id = public.locker_company_for_me() and trashed_at is null);
+
+-- Dependente não guarda arquivos próprios no Locker (o Locker dele é o da empresa)
+create or replace function public.plan_check_not_dependent()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.company_of(new.user_id) is not null then
+    raise exception 'plan_limit:dependent' using errcode = 'P0001';
+  end if;
+  return null;
+end;
+$$;
+drop trigger if exists plan_check_not_dependent_files on public.locker_files;
+create trigger plan_check_not_dependent_files after insert on public.locker_files
+  for each row execute function public.plan_check_not_dependent();
+drop trigger if exists plan_check_not_dependent_folders on public.locker_folders;
+create trigger plan_check_not_dependent_folders after insert on public.locker_folders
+  for each row execute function public.plan_check_not_dependent();
+
+-- Quantos dependentes o plano da empresa permite (a função "company" também confere)
+create or replace function public.plan_check_dependents()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  l public.plan_limits := public.plan_limits_of(new.company_id);
+begin
+  if public.company_of(new.company_id) is not null or not coalesce(public.company_active(new.company_id), false) then
+    raise exception 'plan_limit:dependents' using errcode = 'P0001', hint = '0';
+  end if;
+  if l.max_dependents is not null
+     and (select count(*) from public.company_members where company_id = new.company_id) > l.max_dependents then
+    raise exception 'plan_limit:dependents' using errcode = 'P0001', hint = l.max_dependents::text;
+  end if;
+  return null;
+end;
+$$;
+drop trigger if exists plan_check_dependents on public.company_members;
+create trigger plan_check_dependents after insert on public.company_members
+  for each row execute function public.plan_check_dependents();
+
+-- A equipe do dependente tem de ser da empresa dele; e-mail sempre em minúsculas
+create or replace function public.company_member_team_check()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.team_id is not null
+     and not exists (select 1 from public.locker_teams t where t.id = new.team_id and t.owner_id = new.company_id) then
+    raise exception 'plan_limit:team' using errcode = 'P0001';
+  end if;
+  new.email := lower(trim(new.email));
+  return new;
+end;
+$$;
+drop trigger if exists company_member_team_check on public.company_members;
+create trigger company_member_team_check before insert or update on public.company_members
+  for each row execute function public.company_member_team_check();
+
+-- As equipes seguem os dependentes: locker_team_members (usado ao compartilhar) é
+-- mantido aqui, a partir de company_members.team_id
+create or replace function public.company_member_sync_team()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op in ('UPDATE', 'DELETE') and old.team_id is not null then
+    delete from public.locker_team_members where team_id = old.team_id and email = old.email;
+  end if;
+  if tg_op in ('INSERT', 'UPDATE') and new.team_id is not null then
+    insert into public.locker_team_members (team_id, email) values (new.team_id, new.email)
+    on conflict do nothing;
+  end if;
+  return null;
+end;
+$$;
+drop trigger if exists company_member_sync_team on public.company_members;
+create trigger company_member_sync_team after insert or update or delete on public.company_members
+  for each row execute function public.company_member_sync_team();
+
+-- Só dependentes da empresa entram nas equipes dela
+create or replace function public.plan_check_team_is_dependent()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  owner uuid := (select t.owner_id from public.locker_teams t where t.id = new.team_id);
+begin
+  if not exists (select 1 from public.company_members m where m.company_id = owner and m.email = lower(trim(new.email))) then
+    raise exception 'plan_limit:team_member_not_dependent' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists plan_check_team_is_dependent on public.locker_team_members;
+create trigger plan_check_team_is_dependent before insert on public.locker_team_members
+  for each row execute function public.plan_check_team_is_dependent();
+
+-- Dependente não cria equipes nem compartilha (quem organiza é a empresa)
+create or replace function public.plan_check_owner_not_dependent()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.company_of(new.owner_id) is not null then
+    raise exception 'plan_limit:dependent' using errcode = 'P0001';
+  end if;
+  return null;
+end;
+$$;
+drop trigger if exists plan_check_owner_not_dependent_teams on public.locker_teams;
+create trigger plan_check_owner_not_dependent_teams after insert on public.locker_teams
+  for each row execute function public.plan_check_owner_not_dependent();
+drop trigger if exists plan_check_owner_not_dependent_shares on public.locker_shares;
+create trigger plan_check_owner_not_dependent_shares after insert on public.locker_shares
+  for each row execute function public.plan_check_owner_not_dependent();
+
+-- O plano que o app lê, com o papel na empresa (owner ou dependent). Dependente com a
+-- empresa sem assinatura: status "blocked" (nada é apagado; volta quando ela renovar)
+create or replace function public.my_plan()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+  company uuid;
+  owner uuid;
+  p public.locker_plans;
+  l public.plan_limits;
+  used bigint;
+  n_files integer;
+  n_folders integer;
+  status text;
+  grace timestamptz;
+  over boolean;
+  company_name text;
+  n_dependents integer;
+begin
+  if uid is null then
+    return null;
+  end if;
+  company := public.company_of(uid);
+  owner := coalesce(company, uid);
+  select * into p from public.locker_plans where user_id = owner;
+  l := public.plan_limits_of(uid);
+
+  select coalesce(sum(f.size_bytes) filter (where f.storage <> 'link'), 0), count(*)
+    into used, n_files
+    from public.locker_files f where f.user_id = owner;
+  select count(*) into n_folders from public.locker_folders where user_id = owner;
+  select count(*) into n_dependents from public.company_members where company_id = owner;
+
+  -- free · trial (teste do Plus) · active · expired (vencida: arquivos guardados até grace_until)
+  if company is not null and not coalesce(public.company_active(company), false) then
+    status := 'blocked';
+  elsif p.user_id is null or p.plan = 'free' then
+    status := 'free';
+  elsif p.expires_at is not null and p.expires_at <= now() then
+    grace := p.expires_at + interval '30 days';
+    status := case when grace > now() then 'expired' else 'free' end;
+  elsif p.period = 'trial' then
+    status := 'trial';
+  else
+    status := 'active';
+  end if;
+
+  -- O dependente não guarda nada próprio: o limite é problema da empresa
+  over := company is null and (
+       (l.limit_bytes is not null and used > l.limit_bytes)
+    or (l.max_files is not null and n_files > l.max_files)
+    or (l.max_folders is not null and n_folders > l.max_folders));
+
+  if company is not null then
+    select coalesce(nullif(pr.agency, ''), nullif(pr.name, ''), '') into company_name from public.profiles pr where pr.id = company;
+  end if;
+
+  return jsonb_build_object(
+    'plan', l.plan,
+    'paid_plan', p.plan,
+    'status', status,
+    'role', case when company is null then 'owner' else 'dependent' end,
+    'company_name', company_name,
+    'dependents', n_dependents,
+    'store', case when company is null then coalesce(p.store, 'manual') else 'manual' end,
+    'expires_at', case when company is null then p.expires_at end,
+    'will_renew', company is null and coalesce(p.will_renew, false),
+    'grace_until', grace,
+    'over_limit', over,
+    'over_limit_since', case when company is null then p.over_limit_since end,
+    'used_bytes', used,
+    'files', n_files,
+    'folders', n_folders,
+    'limits', to_jsonb(l) - 'updated_at'
+  );
+end;
+$$;
+grant execute on function public.my_plan() to authenticated;
+
+-- Tempo real: o app da empresa vê a lista de dependentes mudar
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'company_members'
+  ) then
+    alter publication supabase_realtime add table public.company_members;
+  end if;
+end;
+$$;

@@ -17,7 +17,9 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ContextMenu } from './ContextMenu';
 import type { MenuEntry } from './ContextMenu';
 import type { Item, Layout, Sort } from './Browser';
-import { fetchLocker, fetchUsage, fileType, lockerLink, supabase, watchLocker } from './data';
+import { fetchCompanyId, fetchLocker, fetchUsage, fileType, lockerLink, supabase, watchLocker } from './data';
+import { daysUntil, overLimitDeadline } from '../../src/plans/planInfo';
+import type { PlanInfo } from '../../src/plans/planInfo';
 import type { FileType, LockerData, LockerFile, Usage } from './data';
 import { Icon } from './icons';
 import type { IconName } from './icons';
@@ -31,7 +33,7 @@ import { EMPTY_SHARED, fetchShared } from './sharing';
 import type { SharedData } from './sharing';
 import { TeamsView } from './TeamsView';
 import { clearOffline, loadLocalCopies, loadSnapshot, makeOffline, offlineList, refreshOffline, removeOffline, saveSnapshot, useOnline } from './offline';
-import { pickedFromDrop, pickedFromInput, replaceUpload, startUploads } from './upload';
+import { pickedFromDrop, pickedFromInput, replaceUpload, setUploadLimits, startUploads } from './upload';
 import type { PickedFile } from './upload';
 import { UploadPanel } from './UploadPanel';
 import { UsageMeter } from './UsageMeter';
@@ -113,8 +115,22 @@ function dateFrom(f: DateFilter): number {
 /** Para a busca: sem acento e sem diferença de maiúsculas ("cafe" acha "Café"). */
 const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 
-export function Drive({ session }: { session: Session }) {
+export function Drive({ session, plan }: { session: Session; plan: PlanInfo }) {
   const userId = session.user.id;
+  // Dependente da conta empresa: o Locker da empresa, só para ver e baixar
+  const company = plan.role === 'dependent';
+  const [ownerId, setOwnerId] = useState<string | null>(company ? null : userId);
+  useEffect(() => {
+    if (company) fetchCompanyId().then(setOwnerId);
+  }, [company]);
+  // Tamanho máximo de cada arquivo conforme o plano (Plus e Pro aceitam maiores)
+  useEffect(() => setUploadLimits(plan.limits), [plan]);
+  /** Seções do menu: o dependente só vê o Locker da empresa; o resto segue o plano. */
+  const nav = NAV.filter(n =>
+    company
+      ? n.section === 'drive' || n.section === 'recent' || (n.section === 'offline' && plan.limits.offlineWeb)
+      : (n.section !== 'teams' || plan.limits.maxTeams !== 0) && (n.section !== 'offline' || plan.limits.offlineWeb),
+  );
   const [data, setData] = useState<LockerData>({ folders: [], files: [] });
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -190,12 +206,13 @@ export function Drive({ session }: { session: Session }) {
   // Dados: carrega, ouve as mudanças em tempo real e atualiza o medidor
   // ---------------------------------------------------------------------------
   const reload = useCallback(async () => {
+    if (!ownerId) return;
     try {
-      const next = await fetchLocker(userId);
+      const next = await fetchLocker(ownerId);
       setData(next);
       setLoadError(false);
       setSavedCopyAt(null);
-      Promise.all([fetchShared(userId).catch(() => EMPTY_SHARED), fetchUsage(next)]).then(([sh, us]) => {
+      Promise.all([company ? EMPTY_SHARED : fetchShared(userId).catch(() => EMPTY_SHARED), fetchUsage(next)]).then(([sh, us]) => {
         setShared(sh);
         setUsage(us);
         // A cópia para quando a internet cair, e os arquivos guardados em dia
@@ -220,7 +237,7 @@ export function Drive({ session }: { session: Session }) {
     } finally {
       setLoaded(true);
     }
-  }, [userId, syncOfflineIds]);
+  }, [userId, ownerId, company, syncOfflineIds]);
 
   // Os arquivos guardados já aparecem nas miniaturas e na prévia
   useEffect(() => {
@@ -235,8 +252,9 @@ export function Drive({ session }: { session: Session }) {
   }, [online, reload]);
 
   useEffect(() => {
+    if (!ownerId) return;
     reload();
-    const stop = watchLocker(userId, reload);
+    const stop = watchLocker(ownerId, reload);
     // Voltou para a aba: confere se algo mudou enquanto estava fora
     const onFocus = () => document.visibilityState === 'visible' && reload();
     document.addEventListener('visibilitychange', onFocus);
@@ -328,10 +346,12 @@ export function Drive({ session }: { session: Session }) {
     }
     return out;
   }, [place, sharedFolderById, sharedRoots]);
-  /** Só ver e baixar (o que é de outra conta). */
-  const readOnly = place.section === 'shared' && !query.trim();
+  /** Vendo o que outras contas compartilharam comigo. */
+  const viewingShared = place.section === 'shared' && !query.trim();
+  /** Só ver e baixar (o que é de outra conta, ou o Locker da empresa para o dependente). */
+  const readOnly = company || viewingShared;
   /** De onde vêm os itens da tela (para a seleção, baixar e a prévia). */
-  const pool: LockerData = readOnly ? shared : data;
+  const pool: LockerData = viewingShared ? shared : data;
 
   const items: Item[] = useMemo(() => {
     const folders = data.folders.map<Item>(f => ({ kind: 'folder', folder: f }));
@@ -396,7 +416,7 @@ export function Drive({ session }: { session: Session }) {
   // ---------------------------------------------------------------------------
   const openItem = (item: Item) => {
     if (place.section === 'trash') return;
-    if (item.kind === 'folder') return go({ section: item.folder.user_id === userId ? 'drive' : 'shared', folderId: item.folder.id });
+    if (item.kind === 'folder') return go({ section: item.folder.user_id === (ownerId ?? userId) ? 'drive' : 'shared', folderId: item.folder.id });
     openPreview(item.file.id);
   };
 
@@ -415,7 +435,8 @@ export function Drive({ session }: { session: Session }) {
   /** Pasta aberta (fora do Meu Locker, os envios vão para o início). */
   const here = place.section === 'drive' && !query.trim() ? place.folderId : null;
   /** Onde dá para soltar arquivos: no meu Locker (não na lixeira, nem no que é de outra conta). */
-  const uploadsHere = place.section !== 'trash' && place.section !== 'shared' && place.section !== 'teams' && place.section !== 'keyboard' && place.section !== 'offline';
+  const uploadsHere =
+    !company && place.section !== 'trash' && place.section !== 'shared' && place.section !== 'teams' && place.section !== 'keyboard' && place.section !== 'offline';
 
   const upload = async (picked: PickedFile[], target: string | null) => {
     if (!picked.length || demoBlocked()) return;
@@ -674,7 +695,7 @@ export function Drive({ session }: { session: Session }) {
   /** Itens do menu: do que está selecionado, ou do fundo da página. */
   const menuEntries = (item: Item | null): MenuEntry[] => {
     if (!item) {
-      if (place.section !== 'drive' || query.trim()) return [];
+      if (company || place.section !== 'drive' || query.trim()) return [];
       return [
         { icon: 'folder', label: t('Nova pasta'), onClick: () => setCreating(true) },
         'sep',
@@ -694,7 +715,7 @@ export function Drive({ session }: { session: Session }) {
         ...(single ? [{ icon: 'open' as const, label: single.kind === 'file' ? t('Visualizar') : t('Abrir'), hint: 'Enter', onClick: () => openItem(single) }] : []),
         { icon: 'download', label: t('Baixar'), onClick: () => doDownload(selection) },
         ...(single?.kind === 'file' ? [{ icon: 'link' as const, label: t('Copiar link'), onClick: () => copyLink(single) }] : []),
-        offlineEntry(),
+        ...(plan.limits.offlineWeb ? [offlineEntry()] : []),
       ];
     }
     return [
@@ -706,7 +727,7 @@ export function Drive({ session }: { session: Session }) {
           ]
         : []),
       { icon: 'download', label: t('Baixar'), onClick: () => doDownload(selection) },
-      offlineEntry(),
+      ...(plan.limits.offlineWeb ? [offlineEntry()] : []),
       ...(single ? [{ icon: 'rename' as const, label: t('Renomear'), hint: 'F2', onClick: () => setRenaming(single) }] : []),
       ...(onlyFiles ? [{ icon: 'copy' as const, label: t('Fazer uma cópia'), onClick: () => doCopy(selection.files) }] : []),
       ...(single?.kind === 'file'
@@ -825,7 +846,7 @@ export function Drive({ session }: { session: Session }) {
       {/* ------------------------------------------------------------ menu lateral */}
       {menuOpen ? <div className="backdrop only-mobile" onClick={() => setMenuOpen(false)} /> : null}
       <nav className="sidebar" aria-label={t('Seções do Locker')}>
-        <div className="new-wrap">
+        <div className="new-wrap" hidden={company}>
           <button className="new-btn" aria-haspopup="menu" aria-expanded={newOpen} onClick={() => setNewOpen(v => !v)}>
             <Icon name="plus" size={22} />
             {t('Novo')}
@@ -871,8 +892,8 @@ export function Drive({ session }: { session: Session }) {
           ) : null}
         </div>
         <ul className="nav">
-          {NAV.map((n, i) => (
-            <li key={n.section} className={i > 0 && NAV[i - 1].group !== n.group ? 'nav-gap' : undefined}>
+          {nav.map((n, i) => (
+            <li key={n.section} className={i > 0 && nav[i - 1].group !== n.group ? 'nav-gap' : undefined}>
               <button
                 className={`nav-item ${place.section === n.section && !query ? 'active' : ''}`}
                 aria-current={place.section === n.section && !query ? 'page' : undefined}
@@ -883,7 +904,7 @@ export function Drive({ session }: { session: Session }) {
             </li>
           ))}
         </ul>
-        <UsageMeter usage={usage} />
+        {company ? null : <UsageMeter usage={usage} />}
       </nav>
 
       {/* ------------------------------------------------------------ área dos arquivos */}
@@ -1035,6 +1056,19 @@ export function Drive({ session }: { session: Session }) {
           </div>
         ) : null}
 
+        {company ? (
+          <div className="notice with-icon" role="status">
+            <Icon name="team" size={18} />
+            <span>
+              {plan.companyName
+                ? t('Locker de {company}: você pode ver e baixar os arquivos; quem muda é a empresa.', { company: plan.companyName })
+                : t('Locker da empresa: você pode ver e baixar os arquivos; quem muda é a empresa.')}
+            </span>
+          </div>
+        ) : plan.overLimit ? (
+          <OverLimitNotice plan={plan} />
+        ) : null}
+
         {!online || savedCopyAt ? (
           <div className="notice offline-notice" role="status">
             <Icon name="cloudOff" size={18} />
@@ -1144,7 +1178,7 @@ export function Drive({ session }: { session: Session }) {
       />
       <UploadPanel />
       {/* Celular: o "Novo" vira o botão + no canto, como no Drive */}
-      {place.section === 'drive' && !query.trim() && !count ? (
+      {place.section === 'drive' && !query.trim() && !count && !company ? (
         <button className="fab only-mobile" aria-label={t('Novo')} onClick={() => setMenu({ x: 0, y: 0, item: null })}>
           <Icon name="plus" size={26} />
         </button>
@@ -1193,6 +1227,7 @@ export function Drive({ session }: { session: Session }) {
       {sharing ? (
         <ShareDialog
           target={sharing}
+          allowLinks={plan.limits.folderLinks}
           userId={userId}
           userEmail={session.user.email ?? ''}
           onClose={() => {
@@ -1261,5 +1296,28 @@ function FilterChip({ label, active, onOpen, onClear }: { label: string; active:
         </button>
       ) : null}
     </span>
+  );
+}
+
+/** Passou do limite do plano: faltam X dias para escolher o que manter (o mesmo aviso do app). */
+function OverLimitNotice({ plan }: { plan: PlanInfo }) {
+  const deadline = overLimitDeadline(plan);
+  const days = deadline ? daysUntil(deadline) : null;
+  return (
+    <div className="notice plan-notice" role="alert">
+      <Icon name="cloudOff" size={18} />
+      <span>
+        <strong>
+          {days === null
+            ? t('Você passou do limite do seu plano.')
+            : days === 0
+              ? t('Hoje é o último dia para escolher seus arquivos.')
+              : days === 1
+                ? t('Falta 1 dia para você perder seus arquivos.')
+                : t('Faltam {days} dias para você perder seus arquivos.', { days })}
+        </strong>{' '}
+        {t('Escolha o que manter no app KEYCON (Locker › Escolher o que manter), ou apague arquivos aqui e esvazie a lixeira. Para manter tudo, mude de plano no app.')}
+      </span>
+    </div>
   );
 }

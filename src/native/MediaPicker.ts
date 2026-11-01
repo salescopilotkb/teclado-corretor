@@ -11,7 +11,8 @@ import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import type { Asset, ImagePickerResponse } from 'react-native-image-picker';
 import type { LocalMedia } from '../services/mediaUpload';
-import { MAX_PICK_BYTES } from '../files/limits';
+import { lockerSizeError, MAX_PICK_BYTES } from '../files/limits';
+import { getPlan } from '../plans/plan';
 
 export type MediaKind = 'image' | 'video';
 
@@ -42,8 +43,11 @@ function handle(response: ImagePickerResponse, kind: MediaKind): LocalMedia | nu
   const asset = response.assets?.[0];
   if (!asset) return null;
   const media = toLocal(asset, kind);
-  if (media.size && media.size > MAX_PICK_BYTES) {
-    throw new PickError(t('O arquivo passa de 64 MB. Grave um vídeo mais curto ou mande o link.'));
+  // O teto é o maior tipo do plano (Plus e Pro aceitam vídeos maiores); o tipo certo confere no envio
+  const limits = getPlan().limits;
+  const ceiling = Math.max(MAX_PICK_BYTES, limits.maxVideoBytes ?? 0);
+  if (media.size && media.size > ceiling) {
+    throw new PickError(lockerSizeError('video/mp4', media.size, limits) ?? t('O arquivo passa de 64 MB. Grave um vídeo mais curto ou mande o link.'));
   }
   return media;
 }

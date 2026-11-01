@@ -23,7 +23,7 @@
  *   { action: "usage" }                      → { used, limit, plan }
  *
  * Erros do plano: 413 file_too_large { max } · 413 quota_exceeded { used, limit, plan }
- * · 403 plan_limit { limit: "files", max }
+ * · 403 plan_limit { limit: "files", max } · 403 plan_limit { limit: "dependent" } (dependente só lê)
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { r2FromEnv } from '../_shared/r2.ts';
@@ -41,6 +41,7 @@ const FALLBACK: Plan = {
   files: 0,
   limit: 5 * 1024 * MB,
   maxFiles: null,
+  dependent: false,
   max: { image: 16 * MB, video: 64 * MB, other: 10 * MB },
 };
 /** Envio: o link vale 15 minutos. Download: 7 dias (o app guarda e renova antes de vencer). */
@@ -104,6 +105,8 @@ Deno.serve(async req => {
 
   /** Cabe no plano? (null = cabe; senão a resposta de erro pronta) */
   const refuse = (plan: Plan, bytes: number, count: number): Response | null => {
+    // Dependente da conta empresa só lê o Locker da empresa
+    if (plan.dependent) return json({ error: 'plan_limit', limit: 'dependent', plan: plan.plan }, 403);
     if (plan.limit !== null && plan.used + bytes > plan.limit) {
       return json({ error: 'quota_exceeded', used: plan.used, limit: plan.limit, plan: plan.plan }, 413);
     }
@@ -197,6 +200,8 @@ type Plan = {
   limit: number | null;
   /** Quantos arquivos a conta pode ter (null = sem limite) */
   maxFiles: number | null;
+  /** Dependente da conta empresa (não guarda arquivos próprios) */
+  dependent: boolean;
   /** Tamanho máximo de cada arquivo, por tipo */
   max: Record<'image' | 'video' | 'other', number>;
 };
@@ -210,7 +215,7 @@ async function planOf(supabase: ReturnType<typeof createClient>): Promise<Plan> 
     const usage = await usageOf(supabase);
     return usage ? { ...FALLBACK, used: usage.used, limit: usage.limit } : FALLBACK;
   }
-  const p = data as { plan: string; used_bytes: number; files: number; limits: Record<string, number | null> };
+  const p = data as { plan: string; role?: string; used_bytes: number; files: number; limits: Record<string, number | null> };
   const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   return {
     plan: p.plan,
@@ -218,6 +223,7 @@ async function planOf(supabase: ReturnType<typeof createClient>): Promise<Plan> 
     files: Number(p.files) || 0,
     limit: num(p.limits.limit_bytes),
     maxFiles: num(p.limits.max_files),
+    dependent: p.role === 'dependent',
     max: {
       image: num(p.limits.max_image_bytes) ?? FALLBACK.max.image,
       video: num(p.limits.max_video_bytes) ?? FALLBACK.max.video,

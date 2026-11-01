@@ -14,79 +14,14 @@
  * servidor confere de qualquer jeito.
  */
 import { t } from '../i18n';
-import { isLockerPlan } from '../files/limits';
-import type { LockerPlanId } from '../files/limits';
 import { supabase } from '../services/supabase';
 import { Repo, storage } from '../storage/storage';
 import type { ShortcutKind } from '../shortcuts/shortcuts';
 
-export type PlanId = LockerPlanId;
-
-/** free · trial (teste de 7 dias do Plus) · active · expired (vencida: 30 dias para salvar) · open (sem planos no servidor) */
-export type PlanStatus = 'free' | 'trial' | 'active' | 'expired' | 'open';
-
-/** O que o plano permite (null = sem limite). Os nomes seguem a tabela plan_limits. */
-export interface PlanLimits {
-  limitBytes: number | null;
-  maxFiles: number | null;
-  maxFolders: number | null;
-  maxProducts: number | null;
-  maxProductFolders: number | null;
-  maxShortcutsPerKind: number | null;
-  maxSharePeople: number | null;
-  maxTeams: number | null;
-  maxDependents: number | null;
-  folderLinks: boolean;
-  offlineWeb: boolean;
-  locker: boolean;
-  agenda: boolean;
-  crm: boolean;
-  trashDays: number;
-}
-
-export interface PlanInfo {
-  plan: PlanId;
-  status: PlanStatus;
-  store: 'app_store' | 'play_store' | 'manual';
-  expiresAt: string | null;
-  willRenew: boolean;
-  /** Assinatura vencida: até quando os arquivos ficam guardados */
-  graceUntil: string | null;
-  /** Passa do limite do plano (plano menor ou vencida) */
-  overLimit: boolean;
-  overLimitSince: string | null;
-  limits: PlanLimits;
-}
-
-const OPEN_LIMITS: PlanLimits = {
-  limitBytes: null,
-  maxFiles: null,
-  maxFolders: null,
-  maxProducts: null,
-  maxProductFolders: null,
-  maxShortcutsPerKind: null,
-  maxSharePeople: null,
-  maxTeams: null,
-  maxDependents: null,
-  folderLinks: true,
-  offlineWeb: true,
-  locker: true,
-  agenda: true,
-  crm: true,
-  trashDays: 30,
-};
-
-const OPEN: PlanInfo = {
-  plan: 'basic',
-  status: 'open',
-  store: 'manual',
-  expiresAt: null,
-  willRenew: false,
-  graceUntil: null,
-  overLimit: false,
-  overLimitSince: null,
-  limits: OPEN_LIMITS,
-};
+export type { PlanId, PlanStatus, PlanLimits, PlanInfo } from './planInfo';
+export { OVER_LIMIT_DAYS, daysUntil } from './planInfo';
+import { OPEN, overLimitDeadline as deadlineOf, planFromServer as fromServer } from './planInfo';
+import type { PlanInfo, PlanLimits } from './planInfo';
 
 const KEY = 'plan.info';
 
@@ -110,42 +45,6 @@ export function onPlanChange(fn: (plan: PlanInfo) => void): () => void {
   listeners.add(fn);
   return () => {
     listeners.delete(fn);
-  };
-}
-
-const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
-
-function fromServer(row: Record<string, unknown>): PlanInfo {
-  const l = (row.limits ?? {}) as Record<string, unknown>;
-  const plan = isLockerPlan(row.plan) ? row.plan : 'free';
-  const status = ['free', 'trial', 'active', 'expired'].includes(String(row.status)) ? (row.status as PlanStatus) : 'free';
-  const store = row.store === 'app_store' || row.store === 'play_store' ? row.store : 'manual';
-  return {
-    plan,
-    status,
-    store,
-    expiresAt: (row.expires_at as string | null) ?? null,
-    willRenew: row.will_renew === true,
-    graceUntil: (row.grace_until as string | null) ?? null,
-    overLimit: row.over_limit === true,
-    overLimitSince: (row.over_limit_since as string | null) ?? null,
-    limits: {
-      limitBytes: num(l.limit_bytes),
-      maxFiles: num(l.max_files),
-      maxFolders: num(l.max_folders),
-      maxProducts: num(l.max_products),
-      maxProductFolders: num(l.max_product_folders),
-      maxShortcutsPerKind: num(l.max_shortcuts_per_kind),
-      maxSharePeople: num(l.max_share_people),
-      maxTeams: num(l.max_teams),
-      maxDependents: num(l.max_dependents),
-      folderLinks: l.folder_links === true,
-      offlineWeb: l.offline_web === true,
-      locker: l.locker === true,
-      agenda: l.agenda === true,
-      crm: l.crm === true,
-      trashDays: num(l.trash_days) ?? 30,
-    },
   };
 }
 
@@ -193,8 +92,8 @@ async function doRefresh(): Promise<PlanInfo> {
 
 // ── Abrir a tela de planos de qualquer lugar do app ─────────────────────────
 
-/** plans = Planos e assinatura · keep = escolher o que manter (passou do limite) */
-export type PlanScreen = 'plans' | 'keep';
+/** plans = Planos e assinatura · keep = escolher o que manter (passou do limite) · company = equipe da empresa */
+export type PlanScreen = 'plans' | 'keep' | 'company';
 
 const openers = new Set<(screen: PlanScreen) => void>();
 
@@ -211,6 +110,24 @@ export function openPlans(): void {
   openers.forEach(fn => fn('plans'));
 }
 
+/** Abre a tela "Equipe da empresa" (Plus e Pro: os dependentes). */
+export function openCompany(): void {
+  openers.forEach(fn => fn('company'));
+}
+
+/** A conta tem equipe (Plus, Pro ou Enterprise) e é a que assina. */
+export function hasCompany(plan: PlanInfo = getPlan()): boolean {
+  if (plan.role !== 'owner' || plan.status === 'open') return false;
+  return plan.limits.maxDependents === null ? plan.plan === 'enterprise' : plan.limits.maxDependents > 0;
+}
+
+/** Dependente: a conta é da equipe de uma empresa (a assinatura e os dados ficam com ela). */
+export function dependentNotice(plan: PlanInfo = getPlan()): string {
+  return plan.companyName
+    ? t('Sua conta faz parte da equipe de {company}. A assinatura e os dados da empresa ficam com ela.', { company: plan.companyName })
+    : t('Sua conta faz parte da equipe de uma empresa. A assinatura e os dados da empresa ficam com ela.');
+}
+
 /** Abre a tela "Escolher o que manter" (passou do limite do plano). */
 export function openKeepFiles(): void {
   openers.forEach(fn => fn('keep'));
@@ -220,20 +137,9 @@ export const canOpenPlans = () => openers.size > 0;
 
 // ── Passou do limite: 30 dias para escolher o que manter ────────────────────
 
-const DAY = 24 * 60 * 60 * 1000;
-export const OVER_LIMIT_DAYS = 30;
-
 /** Até quando a pessoa pode escolher (null = não passou do limite ou ainda sem data). */
 export function overLimitDeadline(plan: PlanInfo = getPlan()): Date | null {
-  if (!plan.overLimit || plan.status === 'open') return null;
-  if (plan.overLimitSince) return new Date(Date.parse(plan.overLimitSince) + OVER_LIMIT_DAYS * DAY);
-  if (plan.graceUntil) return new Date(plan.graceUntil);
-  return null;
-}
-
-/** Dias que faltam (0 = hoje), arredondando para cima. */
-export function daysUntil(date: Date): number {
-  return Math.max(0, Math.ceil((date.getTime() - Date.now()) / DAY));
+  return deadlineOf(plan);
 }
 
 // ── O que a conta pode usar ─────────────────────────────────────────────────

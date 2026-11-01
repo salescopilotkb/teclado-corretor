@@ -25,7 +25,7 @@ import { getLanguage, t } from '../i18n';
 import { supabase } from '../services/supabase';
 import { deleteUploadedMedia, UploadError, uploadMedia } from '../services/mediaUpload';
 import { isLockerPlan, LOCKER_PLANS, lockerSizeError } from './limits';
-import { limitMessage } from '../plans/plan';
+import { getPlan, limitMessage } from '../plans/plan';
 import type { LockerPlanId } from './limits';
 import type { LocalMedia, UploadedMedia } from '../services/mediaUpload';
 import { Repo, storage } from '../storage/storage';
@@ -85,13 +85,14 @@ async function blobOf(media: LocalMedia): Promise<Blob> {
  */
 export async function uploadToLocker(media: LocalMedia, onProgress?: (fraction: number) => void): Promise<UploadedMedia> {
   if (DEMO_MODE) return uploadMedia(media, onProgress);
-  // Limite do tipo (foto 16 MB, vídeo 64 MB, outros 10 MB): antes de carregar o arquivo
-  const early = lockerSizeError(media.mimeType, media.size);
+    // Limite do plano (Plus e Pro aceitam arquivos maiores)
+  const sizes = getPlan().limits;
+  const early = lockerSizeError(media.mimeType, media.size, sizes);
   if (early) throw new UploadError(early);
   const blob = await blobOf(media);
   const size = media.size || blob.size;
   const mime = media.mimeType || blob.type || 'application/octet-stream';
-  const tooBig = lockerSizeError(mime, size);
+  const tooBig = lockerSizeError(mime, size, sizes);
   if (tooBig) throw new UploadError(tooBig);
 
   const reply = await callLocker<{ key: string; uploadUrl: string }>({ action: 'upload', name: media.name, mime, size });
@@ -100,7 +101,7 @@ export async function uploadToLocker(media: LocalMedia, onProgress?: (fraction: 
     if (reply.error === 'quota_exceeded') {
       throw new UploadError(t('Seu Locker está cheio. Libere espaço ou mude de plano para enviar mais arquivos.'));
     }
-    if (reply.error === 'file_too_large') throw new UploadError(lockerSizeError(mime, size) ?? t('O arquivo é grande demais para o Locker.'));
+    if (reply.error === 'file_too_large') throw new UploadError(lockerSizeError(mime, size, sizes) ?? t('O arquivo é grande demais para o Locker.'));
     // Plano grátis: até 3 arquivos (supabase/plans.sql)
     if (reply.error === 'plan_limit') throw new UploadError(limitMessage('files', reply.max ?? 3));
     if (reply.status === 401) throw new UploadError(t('Sessão expirada. Entre na conta de novo para enviar arquivos.'));
@@ -282,9 +283,27 @@ function readPending(): Op[] {
 
 const writePending = (ops: Op[]) => storage.set(PENDING_KEY, JSON.stringify(ops));
 
+/** Dependente da conta empresa: o Locker é o da empresa, só para ler (supabase/plans.sql, seção 7). */
+const isDependent = () => getPlan().role === 'dependent';
+
+/**
+ * De quem é o Locker que esta conta vê: o dela ou, no dependente, o da empresa
+ * (null = dependente com a empresa bloqueada). Guardado por login.
+ */
+let ownerCache: { userId: string; ownerId: string | null } | null = null;
+async function lockerOwner(userId: string): Promise<string | null> {
+  if (ownerCache?.userId === userId) return ownerCache.ownerId;
+  const { data, error } = await supabase.rpc('locker_company_for_me');
+  // Sem a função (plans.sql não rodou) ou sem empresa: o próprio Locker
+  const company = !error && typeof data === 'string' ? data : null;
+  const ownerId = company ?? (isDependent() ? null : userId);
+  ownerCache = { userId, ownerId };
+  return ownerId;
+}
+
 /** Entra na fila (a mudança mais nova do mesmo item substitui a anterior) e sobe logo. */
 function enqueue(op: Op) {
-  if (DEMO_MODE) return;
+  if (DEMO_MODE || isDependent()) return;
   const same = (o: Op) => o.id === op.id && (o.kind === 'folder' || o.kind === 'deleteFolder') === (op.kind === 'folder' || op.kind === 'deleteFolder');
   writePending([...readPending().filter(o => !same(o)), op]);
   scheduleFlush();
@@ -426,9 +445,14 @@ async function doPull(): Promise<void> {
   // O que mudou aqui sobe antes: a nuvem não pode desfazer uma mudança que ainda não chegou
   if (readPending().length && !(await flush())) return;
 
+  // Dependente: o Locker da empresa (bloqueada: fica o que estava, até ela renovar)
+  ownerCache = null;
+  const ownerId = await lockerOwner(userId);
+  if (!ownerId) return;
+
   const [folders, files] = await Promise.all([
-    supabase.from('locker_folders').select('id, parent_id, name, position, in_keyboard, created_at, visibility, share_token').eq('user_id', userId).is('trashed_at', null),
-    supabase.from('locker_files').select('id, folder_id, name, kind, mime, size_bytes, storage, object_key, url, duration, position, in_keyboard, created_at, share_token').eq('user_id', userId).is('trashed_at', null),
+    supabase.from('locker_folders').select('id, parent_id, name, position, in_keyboard, created_at, visibility, share_token').eq('user_id', ownerId).is('trashed_at', null),
+    supabase.from('locker_files').select('id, folder_id, name, kind, mime, size_bytes, storage, object_key, url, duration, position, in_keyboard, created_at, share_token').eq('user_id', ownerId).is('trashed_at', null),
   ]);
   const error = folders.error ?? files.error;
   if (error) {
@@ -490,17 +514,20 @@ export function startLockerSync(): () => void {
   users++;
   pullLocker().catch(() => {});
   if (users === 1) {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       const userId = data.session?.user.id;
       if (!userId || channel || users === 0) return;
+      // Dependente: acompanha o Locker da empresa
+      const ownerId = (await lockerOwner(userId)) ?? userId;
+      if (channel || users === 0) return;
       const later = () => {
         if (pullTimer) clearTimeout(pullTimer);
         pullTimer = setTimeout(() => pullLocker().catch(() => {}), 400);
       };
       channel = supabase
         .channel(`locker-${userId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'locker_folders', filter: `user_id=eq.${userId}` }, later)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'locker_files', filter: `user_id=eq.${userId}` }, later)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'locker_folders', filter: `user_id=eq.${ownerId}` }, later)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'locker_files', filter: `user_id=eq.${ownerId}` }, later)
         .subscribe();
     });
   }

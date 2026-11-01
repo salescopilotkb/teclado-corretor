@@ -22,7 +22,7 @@ import type { LegalDocument } from '../../legal/legal';
 import { KeyconLogo } from '../../keyboard/components/KeyconLogo';
 import { Button, Card, CardText, CardTitle, MenuGroup, MenuRow, Page, ScreenTitle, StatusChip, SubHeader } from '../components/ui';
 import { lockerPlanName } from '../../files/limits';
-import { openPlans } from '../../plans/plan';
+import { dependentNotice, hasCompany, openCompany, openPlans } from '../../plans/plan';
 import { usePlan } from '../../plans/usePlan';
 
 export type AccountSection =
@@ -196,14 +196,35 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
       </MenuGroup>
 
       <MenuGroup>
-        <MenuRow
-          testID="account-plan"
-          icon="favoritos"
-          title={t('Plano e assinatura')}
-          subtitle={t('Planos, restaurar compras e gerenciar')}
-          value={plan.status === 'open' ? undefined : lockerPlanName(plan.status === 'expired' ? 'free' : plan.plan)}
-          onPress={openPlans}
-        />
+        {plan.role === 'dependent' ? (
+          // Dependente: a conta é da equipe de uma empresa (sem planos nem dados dela)
+          <MenuRow
+            testID="account-company"
+            icon="clientes"
+            title={t('Conta da empresa')}
+            subtitle={plan.companyName || undefined}
+            onPress={() => Alert.alert(t('Conta da empresa'), dependentNotice(plan))}
+          />
+        ) : (
+          <MenuRow
+            testID="account-plan"
+            icon="favoritos"
+            title={t('Plano e assinatura')}
+            subtitle={t('Planos, restaurar compras e gerenciar')}
+            value={plan.status === 'open' ? undefined : lockerPlanName(plan.status === 'expired' ? 'free' : plan.plan)}
+            onPress={openPlans}
+          />
+        )}
+        {hasCompany(plan) ? (
+          <MenuRow
+            testID="account-company-team"
+            icon="clientes"
+            title={t('Equipe da empresa')}
+            subtitle={t('Pessoas e equipes que vendem com você')}
+            value={String(plan.dependents)}
+            onPress={openCompany}
+          />
+        ) : null}
       </MenuGroup>
 
       <MenuGroup>
