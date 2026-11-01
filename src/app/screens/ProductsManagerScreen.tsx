@@ -392,6 +392,22 @@ export function ProductsManagerScreen({ onBack }: { onBack?: () => void } = {}) 
             />
           </View>
 
+          {/* Link do produto (opcional): sai na mensagem como "Veja mais" */}
+          <View style={styles.fieldBlock}>
+            <Text style={styles.label}>{t('Link (opcional)')}</Text>
+            <TextInput
+              testID="product-link-input"
+              style={styles.input}
+              placeholder="https://"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              value={productForm.link}
+              onChangeText={link => setProductForm({ ...productForm, link })}
+            />
+          </View>
+
           {/* 5. Imagem do produto */}
           <View style={styles.fieldBlock}>
             <Text style={styles.label}>{t('Imagem do produto')}</Text>

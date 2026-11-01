@@ -363,7 +363,7 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
 
   /** A pessoa terminou a palavra: o teclado aprende o jeito dela escrever (ver userWords). */
   const learn = (word: string, prev: string | undefined, weight = 1) => {
-    if (context.allowsSuggestions()) learnWord(getTypingLanguage(), word, prev, weight);
+    if (context.allowsLearning()) learnWord(getTypingLanguage(), word, prev, weight);
   };
 
   /**
@@ -371,7 +371,7 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
    * palavras que a pessoa já desfez nem fora do modo de letras.
    */
   const applyAutocorrect = (trail: string): boolean => {
-    if (!context.allowsSuggestions() || modeRef.current !== 'alpha') return false;
+    if (!context.allowsAutoCorrect() || modeRef.current !== 'alpha') return false;
     const word = context.currentWord();
     if (!word) return false;
     const prev = context.previousWord();

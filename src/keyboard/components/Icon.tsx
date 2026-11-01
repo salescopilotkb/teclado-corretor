@@ -111,6 +111,8 @@ const ICONS = {
     { d: 'M12 9l6 6M18 9l-6 6' },
   ],
   globo: [{ circle: [12, 12, 10] }, { d: 'M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20' }],
+  // Locker no computador (locker.keyconapp.com)
+  nuvem: [{ d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' }],
   enter: [{ d: 'M9 10l-5 5 5 5' }, { d: 'M20 4v7a4 4 0 0 1-4 4H4' }],
   // Tecla de emojis: rosto só no traço, como os outros ícones (não o emoji colorido)
   emoji: [{ circle: [12, 12, 9.5] }, { d: 'M8.5 14.5a4.5 4.5 0 0 0 7 0' }, { d: 'M9 9.5h.01M15 9.5h.01' }],

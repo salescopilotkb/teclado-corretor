@@ -19,6 +19,7 @@ import { keyboardView } from '../files/files';
 import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
 import { PlanLockedPanel } from './components/PlanLockedPanel';
+import { DictationBar } from './components/DictationBar';
 import { refreshPlan } from '../plans/plan';
 import { usePlan } from '../plans/usePlan';
 import { KeyboardCRM } from './components/KeyboardCRM';
@@ -37,7 +38,7 @@ import { buildLexicon } from './typing/lexicon';
 import { useLanguage } from '../i18n/useLanguage';
 import { applyProfileLanguages } from '../i18n/profile';
 import { getSegment } from '../segments/segments';
-import { makeStyles, radius, ThemeProvider } from './theme';
+import { makeStyles, radius, ThemeProvider, useColors } from './theme';
 import { DEMO_MODE } from '../config/demo';
 
 /** Tamanho do teclado (usado fora do componente pela tradução). */
@@ -139,6 +140,13 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   useLanguage();
   const styles = useStyles();
   const plan = usePlan();
+  // Android 15+: a faixa embaixo do teclado (atrás da barra de navegação) na cor do teclado
+  const canvas = useColors().canvas;
+  useEffect(() => {
+    KeyboardBridge.setKeyboardBackground(canvas);
+    // A view do teclado pode ser criada depois (primeira abertura, celular girado)
+    return KeyboardBridge.onKeyboardShow(() => KeyboardBridge.setKeyboardBackground(canvas));
+  }, [canvas]);
   // Dependente com a assinatura da empresa vencida: a área de vendas fica pausada (o ABC continua)
   const salesOpen = loggedIn && plan.status !== 'blocked';
 
@@ -161,6 +169,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   const [menuOrder, setMenuOrder] = useState<MenuTab[]>(() => Repo.getMenuOrder());
   /** Tradução simultânea aberta (painel por cima do conteúdo). */
   const [translating, setTranslating] = useState(false);
+  /** Ditado por voz ligado: a faixa "Ouvindo…" acima das teclas de letras. */
+  const [dictating, setDictating] = useState(false);
   /** Tocou no 🌐 do menu: pergunta antes de sair do KEYCON. */
   const [confirmSwitch, setConfirmSwitch] = useState(false);
   /** CRM → "Agendar": a agenda abre já com o cliente. */
@@ -457,6 +467,8 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
   const handleTabChange = useCallback((newTab: MainSystemTab) => {
     setScheduleFor(null);
     setConfirmSwitch(false);
+    // Ir para outra seção encerra o ditado (ele escreve na conversa, com as letras à vista)
+    if (newTab !== 'keyboard') setDictating(false);
     // Tocar no menu fecha a tradução (o ícone do teclado volta para as letras)
     if (translatingRef.current) {
       setTranslating(false);
@@ -485,7 +497,21 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       onReorder={reorderMenu}
       catalogLabel={segment.terms.catalog}
       translating={translating}
-      onTranslate={() => setTranslating(v => !v)}
+      onTranslate={() => {
+        setDictating(false);
+        setTranslating(v => !v);
+      }}
+      dictating={dictating}
+      onDictate={() => {
+        if (dictating) {
+          setDictating(false);
+          return;
+        }
+        // Ditado: com as letras à vista, como no teclado normal
+        setTranslating(false);
+        setTab('keyboard');
+        setDictating(true);
+      }}
       onSwitchKeyboard={() => setConfirmSwitch(v => !v)}
     />
   );
@@ -515,6 +541,7 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
             }}
           />
         )}
+        {!translating && tab === 'keyboard' && dictating && <DictationBar onClose={() => setDictating(false)} />}
         {!translating && tab === 'keyboard' && <TypingKeyboard key={`typing-${moreVisit}`} />}
         {/* Sem login no app, a área de vendas fica bloqueada (o ABC continua livre) */}
         {!translating && tab !== 'keyboard' && !loggedIn && <LoginRequiredPanel />}

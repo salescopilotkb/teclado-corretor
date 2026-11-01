@@ -109,6 +109,14 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
      * fica entre elas, ver MainActivity) e os ícones claros ou escuros conforme essa cor.
      */
     @ReactMethod
+    fun setKeyboardBackground(color: String) {
+        UiThreadUtil.runOnUiThread {
+            val parsed = try { android.graphics.Color.parseColor(color) } catch (e: IllegalArgumentException) { return@runOnUiThread }
+            CustomKeyboardService.instance?.setBottomColor(parsed)
+        }
+    }
+
+    @ReactMethod
     fun setAppBackground(color: String) {
         val activity = reactApplicationContext.currentActivity ?: return
         UiThreadUtil.runOnUiThread {

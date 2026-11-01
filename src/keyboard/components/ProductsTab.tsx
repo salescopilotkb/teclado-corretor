@@ -69,6 +69,7 @@ let activeProductDraft: {
   title: string;
   price: string;
   desc: string;
+  link: string;
   imageUrl: string;
   imageStoragePath?: string;
 } | null = null;
@@ -511,6 +512,7 @@ function ProductForm({
         format: digits => formatMoney(moneyFromDigits(digits, market), market),
       },
       { key: 'desc', label: 'Descrição', placeholder: segment.examples.itemDescription || 'Opcional', kind: 'multiline' },
+      { key: 'link', label: 'Link (opcional)', placeholder: 'https://', kind: 'url' },
     ],
     [category, market, segment],
   );
@@ -520,9 +522,10 @@ function ProductForm({
         title: activeProductDraft!.title,
         price: activeProductDraft!.price,
         desc: activeProductDraft!.desc,
+        link: activeProductDraft!.link,
         newCategoryName: activeProductDraft!.newCategoryName,
       }
-    : { title: initial.title, price: initial.price, desc: initial.desc, newCategoryName: '' };
+    : { title: initial.title, price: initial.price, desc: initial.desc, link: initial.link, newCategoryName: '' };
 
   const form = useKeyboardForm(fields, initialValues);
   const activeSpec = fields.find(f => f.key === form.active) ?? fields[0];
@@ -537,6 +540,7 @@ function ProductForm({
       title: form.values.title ?? '',
       price: form.values.price ?? '',
       desc: form.values.desc ?? '',
+      link: form.values.link ?? '',
       imageUrl: image.url,
       imageStoragePath: image.storagePath,
     };
@@ -571,6 +575,7 @@ function ProductForm({
         title: form.values.title ?? '',
         price: form.values.price ?? '',
         desc: form.values.desc ?? '',
+        link: form.values.link ?? '',
         imageUrl: image.url,
         imageStoragePath: image.storagePath,
       },
@@ -621,6 +626,7 @@ function ProductForm({
         {field('title')}
         {field('price')}
         {field('desc')}
+        {field('link')}
 
         <Text style={styles.section}>{t('Imagem do produto')}</Text>
         <View style={styles.imageRow}>

@@ -44,6 +44,8 @@ interface KeyboardBridgeNative {
   setBackEnabled?(enabled: boolean): void;
   /** Android (app): cor atrás das barras do sistema, que o app não cobre mais (API 35+). */
   setAppBackground?(color: string): void;
+  /** Android (teclado): cor da faixa embaixo do teclado, atrás da barra de navegação (API 35+). */
+  setKeyboardBackground?(color: string): void;
   setAutofillArea?(x: number, y: number, width: number, height: number, color: number): void;
 }
 
@@ -252,6 +254,8 @@ export const KeyboardBridge = {
   setBackEnabled: (enabled: boolean) => Native?.setBackEnabled?.(enabled),
   /** Android (app): a cor atrás da barra de status e da de navegação segue o tema do app. */
   setAppBackground: (color: string) => Native?.setAppBackground?.(color),
+  /** Android (teclado): a faixa embaixo do teclado (barra de navegação) na cor do teclado. */
+  setKeyboardBackground: (color: string) => Native?.setKeyboardBackground?.(color),
   /**
    * Onde fica a faixa do corretor (dp, relativo ao teclado) e a cor dela: o Android
    * mostra ali as sugestões do preenchimento automático (e-mails, endereços).

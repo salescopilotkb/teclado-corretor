@@ -547,7 +547,7 @@ export { LOCKER_WEB_URL };
  * "locker-handoff") gera um link de entrada de uso único para a conta. Sem a
  * função publicada ou sem internet, abre a página de login do Locker.
  */
-export async function openLockerWeb(path = '/'): Promise<void> {
+export async function openLockerWeb(path = '/', open: (url: string) => Promise<unknown> = url => Linking.openURL(url)): Promise<void> {
   // Demonstração: o Locker web de exemplo, no idioma do app (sem conta)
   let target = DEMO_MODE ? `${LOCKER_WEB_URL}/?demo=1&lang=${getLanguage()}` : `${LOCKER_WEB_URL}${path}`;
   if (!DEMO_MODE) {
@@ -558,7 +558,7 @@ export async function openLockerWeb(path = '/'): Promise<void> {
       // abre sem a entrada automática
     }
   }
-  await Linking.openURL(target);
+  await open(target);
 }
 
 /**

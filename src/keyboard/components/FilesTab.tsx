@@ -25,7 +25,7 @@ import {
   subfolders,
   LOCKER_NAME,
 } from '../../files/files';
-import { lockerDeleteFile, lockerDeleteFolder, lockerReplaceFile, lockerSaveFile, lockerSaveFolder, uploadToLocker } from '../../files/locker';
+import { lockerDeleteFile, lockerDeleteFolder, lockerReplaceFile, lockerSaveFile, lockerSaveFolder, openLockerWeb, uploadToLocker } from '../../files/locker';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import type { KeyboardPickSource } from '../../native/KeyboardBridge';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
@@ -327,6 +327,7 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     <Browser
       files={files}
       readOnly={readOnly}
+      lockerWeb={plan.limits.locker}
       folderId={folder ? folderId : null}
       uploader={uploader}
       onOpenFolder={setFolderId}
@@ -354,6 +355,7 @@ function Browser({
   folderId,
   uploader,
   readOnly,
+  lockerWeb,
   onOpenFolder,
   onUp,
   onOpenFile,
@@ -368,6 +370,8 @@ function Browser({
   folderId: string | null;
   uploader: ReturnType<typeof useUploader>;
   readOnly: boolean;
+  /** O plano inclui o Locker no computador (o botão de nuvem) */
+  lockerWeb: boolean;
   onOpenFolder: (id: string) => void;
   onUp: () => void;
   onOpenFile: (id: string) => void;
@@ -411,6 +415,15 @@ function Browser({
           <Text style={[styles.barTitle, styles.barTitleRoot]}>{LOCKER_NAME}</Text>
         )}
         {current && !readOnly && <BarButton testID="files-folder-options" icon="editar" label={t('Editar pasta')} onPress={onFolderOptions} />}
+        {/* Locker no computador (planos pagos): abre o site já com a conta */}
+        {lockerWeb ? (
+          <BarButton
+            testID="files-open-web"
+            icon="nuvem"
+            label={t('Abrir o Locker no navegador')}
+            onPress={() => openLockerWeb('/', KeyboardBridge.openUrl).catch(() => uploader.fail(t('Não foi possível abrir o Locker no navegador.')))}
+          />
+        ) : null}
         {readOnly ? null : (
           <BarButton testID="files-new-folder" icon="novaPasta" label={current ? t('Nova subpasta') : t('Nova pasta')} onPress={onNewFolder} />
         )}

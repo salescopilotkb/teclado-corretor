@@ -8,6 +8,13 @@
     <!-- Gravar atalhos de áudio no app (pedida só na hora de gravar) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- Ditado por voz no teclado: o serviço de reconhecimento de voz do Android (API 30+ precisa declarar) -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:enableOnBackInvokedCallback="false"
         android:name=".MainApplication"

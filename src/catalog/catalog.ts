@@ -10,6 +10,7 @@ import { limitError } from '../plans/plan';
 import { deleteUploadedMedia } from '../services/mediaUpload';
 import { Repo } from '../storage/storage';
 import type { MediaItem, Product, ProductFolder } from '../types';
+import { normalizeUrl } from '../utils/formatters';
 
 /** Formulário do produto: id null = produto novo. */
 export interface ProductDraft {
@@ -23,10 +24,12 @@ export interface ProductDraft {
   desc: string;
   imageUrl: string;
   imageStoragePath?: string;
+  /** Link da página do produto (loja, catálogo, Drive...), opcional: vai na mensagem. */
+  link: string;
 }
 
 export function emptyDraft(folderId = ''): ProductDraft {
-  return { id: null, folderId, newCategoryName: '', title: '', price: '', desc: '', imageUrl: '' };
+  return { id: null, folderId, newCategoryName: '', title: '', price: '', desc: '', imageUrl: '', link: '' };
 }
 
 export function draftFromProduct(p: Product, folderId: string): ProductDraft {
@@ -41,6 +44,7 @@ export function draftFromProduct(p: Product, folderId: string): ProductDraft {
     desc: p.shortDescription,
     imageUrl: photo?.url ?? '',
     imageStoragePath: photo?.storagePath,
+    link: p.datasheetUrl ?? '',
   };
 }
 
@@ -58,6 +62,11 @@ export function saveProductDraft(draft: ProductDraft, segment: SegmentProfile, n
 
   const price = moneyFromDigits(draft.price, currentMarketInfo());
   if (!(price > 0) && !segment.price.optional) return { ok: false, error: t('Informe o preço.') };
+
+  // Link opcional: em branco não tem; preenchido tem de ser um endereço válido
+  const linkText = (draft.link ?? '').trim();
+  const link = linkText ? normalizeUrl(linkText) : '';
+  if (link === null) return { ok: false, error: t('O link não parece válido. Ex: https://seusite.com.br/pagina') };
 
   const folders = Repo.getFolders();
   // Plano grátis: até 3 produtos (supabase/plans.sql); editar um que já existe sempre pode
@@ -92,7 +101,6 @@ export function saveProductDraft(draft: ProductDraft, segment: SegmentProfile, n
     : [];
 
   const product: Product = {
-    datasheetUrl: '',
     attributes: [],
     videos: [],
     ...existing,
@@ -100,6 +108,7 @@ export function saveProductDraft(draft: ProductDraft, segment: SegmentProfile, n
     title,
     price,
     shortDescription: draft.desc.trim(),
+    datasheetUrl: link,
     photos: [...cover, ...others],
   };
 

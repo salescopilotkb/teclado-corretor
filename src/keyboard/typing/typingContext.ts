@@ -19,6 +19,10 @@ const LETTER = /[A-Za-zÀ-ÖØ-öø-ÿ]/;
 // Tipos de campo do Android (EditorInfo.inputType)
 const CLASS_TEXT = 0x1;
 const NO_ASSIST_VARIATIONS = new Set([0x10, 0x20, 0x80, 0x90, 0xb0, 0xd0, 0xe0]); // link, e-mail, busca, senhas
+/** Link, e-mail e senhas: o que se digita tem de ficar exato (sem sugestões nem correção). */
+const EXACT_VARIATIONS = new Set([0x10, 0x20, 0x80, 0x90, 0xd0, 0xe0]);
+/** Busca (filtro): sugere, mas não troca a palavra sozinho. */
+const VARIATION_FILTER = 0xb0;
 const FLAG_NO_SUGGESTIONS = 0x80000;
 /** Campo de nome: cada palavra começa com maiúscula ("Joana Lima"). */
 const FLAG_CAP_WORDS = 0x2000;
@@ -166,8 +170,28 @@ export class TypingContext {
     return (t & 0xf) === CLASS_TEXT && !NO_ASSIST_VARIATIONS.has(t & 0xff0);
   }
 
+  /**
+   * Faixa de sugestões: em todo campo de texto, menos link, e-mail e senha. Vale também
+   * nos campos que o app marca como "sem sugestões": muitos apps marcam assim campos
+   * comuns, e o corretor sumia neles (visto no Chrome e no Instagram).
+   */
   allowsSuggestions(): boolean {
-    return this.allowsAutoCapital() && (this.inputType & FLAG_NO_SUGGESTIONS) === 0;
+    const t = this.inputType;
+    if (t === 0) return true;
+    return (t & 0xf) === CLASS_TEXT && !EXACT_VARIATIONS.has(t & 0xff0);
+  }
+
+  /** Correção automática (troca a palavra no espaço): como as sugestões, menos na busca. */
+  allowsAutoCorrect(): boolean {
+    return this.allowsSuggestions() && (this.inputType & 0xff0) !== VARIATION_FILTER;
+  }
+
+  /**
+   * Aprender as palavras da pessoa: só em campos comuns. Nos marcados "sem sugestões" e
+   * na busca costumam ir nomes de usuário, códigos e termos soltos.
+   */
+  allowsLearning(): boolean {
+    return this.allowsAutoCorrect() && (this.inputType & FLAG_NO_SUGGESTIONS) === 0;
   }
 
   // ── Edições feitas pelo próprio teclado ───────────────────────────────

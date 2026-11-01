@@ -397,12 +397,13 @@ export const PRIVACY: Docs = {
         title: '4. O teclado e o que você digita',
         paragraphs: [
           'O que você digita com o teclado KEYCON é processado somente no seu aparelho, para corrigir palavras e sugerir as próximas. Não guardamos, não registramos e não enviamos o texto que você digita. Em campos de senha, e-mail e link o teclado desliga as sugestões e a correção automática.',
+          'Ditado por voz (Android): quando você toca no microfone do teclado, a sua fala é transformada em texto pelo serviço de reconhecimento de voz do próprio Android (em geral, do Google), sem internet quando o idioma está baixado no celular. O KEYCON não grava, não guarda e não recebe o áudio; só o texto reconhecido vai para o campo em que você está escrevendo.',
         ],
       },
       {
         title: '5. Permissões do celular',
         paragraphs: [
-          'Microfone: usado apenas enquanto você grava um atalho de áudio, depois que você autoriza.',
+          'Microfone: usado apenas enquanto você grava um atalho de áudio ou usa o ditado por voz do teclado, depois que você autoriza.',
           'Fotos, vídeos e câmera: o KEYCON usa o seletor de arquivos e a câmera do próprio sistema; só recebe o arquivo que você escolher ou capturar.',
           'Internet e vibração: para enviar e receber dados e para a vibração ao reorganizar o menu do teclado.',
         ],
@@ -496,12 +497,13 @@ export const PRIVACY: Docs = {
         title: '4. The keyboard and what you type',
         paragraphs: [
           'What you type with the KEYCON keyboard is processed only on your device, to correct words and suggest the next ones. We do not store, log or send the text you type. In password, email and link fields the keyboard turns off suggestions and autocorrect.',
+          'Voice typing (Android): when you tap the keyboard microphone, your speech is turned into text by Android\'s own speech recognition service (usually Google\'s), offline when the language is downloaded on your phone. KEYCON does not record, store or receive the audio; only the recognized text goes into the field you are typing in.',
         ],
       },
       {
         title: '5. Phone permissions',
         paragraphs: [
-          'Microphone: used only while you record an audio shortcut, after you allow it.',
+          'Microphone: used only while you record an audio shortcut or use the keyboard voice typing, after you allow it.',
           'Photos, videos and camera: KEYCON uses the system\'s own file picker and camera; it only receives the file you choose or capture.',
           'Internet and vibration: to send and receive data and for the vibration when you rearrange the keyboard menu.',
         ],
@@ -595,12 +597,13 @@ export const PRIVACY: Docs = {
         title: '4. El teclado y lo que escribes',
         paragraphs: [
           'Lo que escribes con el teclado KEYCON se procesa solo en tu dispositivo, para corregir palabras y sugerir las siguientes. No guardamos, no registramos y no enviamos el texto que escribes. En campos de contraseña, correo y enlace el teclado desactiva las sugerencias y la corrección automática.',
+          'Dictado por voz (Android): cuando tocas el micrófono del teclado, tu voz se convierte en texto con el servicio de reconocimiento de voz del propio Android (en general, de Google), sin internet cuando el idioma está descargado en el celular. KEYCON no graba, no guarda ni recibe el audio; solo el texto reconocido va al campo en el que estás escribiendo.',
         ],
       },
       {
         title: '5. Permisos del celular',
         paragraphs: [
-          'Micrófono: se usa solo mientras grabas un acceso rápido de audio, después de que lo autorices.',
+          'Micrófono: se usa solo mientras grabas un acceso rápido de audio o usas el dictado por voz del teclado, después de que lo autorices.',
           'Fotos, videos y cámara: KEYCON usa el selector de archivos y la cámara del propio sistema; solo recibe el archivo que elijas o captures.',
           'Internet y vibración: para enviar y recibir datos y para la vibración al reorganizar el menú del teclado.',
         ],

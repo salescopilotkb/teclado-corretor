@@ -35,6 +35,9 @@ import androidx.autofill.inline.v1.InlineSuggestionUi
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
@@ -196,15 +199,35 @@ class CustomKeyboardService : InputMethodService() {
             set(value) {
                 if (field == value) return
                 field = value
-                minimumHeight = value
-                layoutParams?.let { it.height = value; layoutParams = it }
-                requestLayout()
+                applyHeight()
             }
 
+        /**
+         * Android 15+ (API 35/36): a janela do teclado vai até a borda da tela, por baixo
+         * da barra de navegação (botões ou o traço dos gestos). O teclado fica acima dela:
+         * a view ganha esse espaço embaixo (e dos lados, com o celular deitado).
+         */
+        private var insetBottomPx = 0
+
+        fun setSystemInsets(left: Int, right: Int, bottom: Int) {
+            if (insetBottomPx == bottom && paddingLeft == left && paddingRight == right) return
+            insetBottomPx = bottom
+            setPadding(left, 0, right, bottom)
+            applyHeight()
+        }
+
+        private fun applyHeight() {
+            val total = targetHeightPx + insetBottomPx
+            minimumHeight = total
+            layoutParams?.let { it.height = total; layoutParams = it }
+            requestLayout()
+        }
+
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-            val forcedHeightSpec = MeasureSpec.makeMeasureSpec(targetHeightPx, MeasureSpec.EXACTLY)
+            val total = targetHeightPx + insetBottomPx
+            val forcedHeightSpec = MeasureSpec.makeMeasureSpec(total, MeasureSpec.EXACTLY)
             super.onMeasure(widthMeasureSpec, forcedHeightSpec)
-            setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), targetHeightPx)
+            setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), total)
         }
     }
 
@@ -252,6 +275,15 @@ class CustomKeyboardService : InputMethodService() {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx)
             minimumHeight = heightPx
             setBackgroundColor(Color.parseColor("#1A1D24"))
+        }
+
+        // Android 15+: o teclado fica acima da barra de navegação (antes, o sistema já fazia isso)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
+                val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout())
+                (view as KeyboardRootFrameLayout).setSystemInsets(bars.left, bars.right, bars.bottom)
+                insets
+            }
         }
 
         // 1) Placeholder nativo imediato: garante visualização visível mesmo durante cold-start do JS
@@ -862,15 +894,15 @@ class CustomKeyboardService : InputMethodService() {
             return (customHeightDp * metrics.density).toInt().coerceIn(normalHeightPx(), maxHeightPx())
         }
         if (heightMode == HEIGHT_EXPANDED) {
-            return (metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt().coerceAtLeast(portraitPx)
+            return maxHeightPx()
         }
         if (heightMode == HEIGHT_TRANSLATE) {
             val translatePx = portraitPx + (TRANSLATE_EXTRA_DP * metrics.density).toInt()
             return translatePx.coerceAtMost((metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt())
         }
         if (heightMode == HEIGHT_TALL) {
-            val minTall = portraitPx + (TALL_EXTRA_DP * metrics.density).toInt()
-            return (metrics.heightPixels * TALL_SCREEN_FRACTION).toInt().coerceAtLeast(minTall)
+            val minTall = normalHeightPx() + (TALL_EXTRA_DP * metrics.density).toInt()
+            return (metrics.heightPixels * TALL_SCREEN_FRACTION).toInt().coerceAtLeast(minTall).coerceAtMost(maxHeightPx())
         }
         return normalHeightPx()
     }
@@ -887,9 +919,32 @@ class CustomKeyboardService : InputMethodService() {
         return fractionPx.coerceIn(minPx, portraitPx)
     }
 
-    /** O maior que o teclado pode ficar: deixa uma faixa do app visível em cima. */
-    private fun maxHeightPx(): Int =
-        (resources.displayMetrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt().coerceAtLeast(normalHeightPx())
+    /**
+     * O maior que o teclado pode ficar: deixa uma faixa do app visível em cima. Em pé,
+     * nunca menos que o teclado normal; deitado, nunca mais que a tela (era o que fazia
+     * as abas maiores passarem da tela e o teclado tremer).
+     */
+    private fun maxHeightPx(): Int {
+        val metrics = resources.displayMetrics
+        val fraction = (metrics.heightPixels * EXPANDED_SCREEN_FRACTION).toInt()
+        val portraitPx = (KEYBOARD_HEIGHT_DP * metrics.density).toInt()
+        return if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            fraction.coerceAtLeast(normalHeightPx())
+        } else {
+            fraction.coerceAtLeast(portraitPx)
+        }
+    }
+
+    /**
+     * Cor da faixa embaixo do teclado (atrás da barra de navegação do Android 15+), a mesma
+     * do fundo do teclado, e os ícones da barra claros ou escuros conforme essa cor.
+     */
+    fun setBottomColor(color: Int) {
+        rootContainer?.setBackgroundColor(color)
+        val dialogWindow = window?.window ?: return
+        val light = androidx.core.graphics.ColorUtils.calculateLuminance(color) > 0.5
+        WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView).isAppearanceLightNavigationBars = light
+    }
 
     private fun emitToJs(event: String, params: Any) {
         try {

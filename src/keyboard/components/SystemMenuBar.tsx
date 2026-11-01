@@ -9,6 +9,7 @@ import { makeStyles, radius, touchTarget, useColors } from '../theme';
 import type { IconName } from './Icon';
 import { Icon } from './Icon';
 import { KeyconLogo } from './KeyconLogo';
+import { VoiceTyping } from '../../native/VoiceTyping';
 
 const BUTTONS: Record<MenuTab, { label: string; icon: IconName }> = {
   // Locker é marca: o mesmo nome nos 3 idiomas (t() não tem tradução para ele)
@@ -39,6 +40,9 @@ interface Props {
   /** Tradução simultânea aberta (botão ao lado do ícone do teclado). */
   translating: boolean;
   onTranslate: () => void;
+  /** Ditado por voz ligado (botão do microfone, entre Traduzir e o teclado; só no Android). */
+  dictating: boolean;
+  onDictate: () => void;
   /** Botão 🌐: voltar ao teclado padrão do sistema (pergunta antes). */
   onSwitchKeyboard: () => void;
 }
@@ -55,7 +59,7 @@ interface Props {
  * Segurar um botão por 1 segundo: o teclado vibra, o botão descola do fundo
  * e acompanha o dedo; soltar em outra posição muda a ordem (fica salva).
  */
-export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate, onSwitchKeyboard }: Props) => {
+export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalogLabel, translating, onTranslate, dictating, onDictate, onSwitchKeyboard }: Props) => {
   const colors = useColors();
   const styles = useStyles();
   const keyboardActive = active === 'keyboard' && !translating;
@@ -213,6 +217,19 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
             onPress={onTranslate}
             style={({ pressed }) => [styles.keyboardBtn, pressed && styles.pressed]}>
             <Icon name="traduzir" size={22} color={translating ? colors.primary : colors.textMuted} />
+          </Pressable>
+        )}
+        {/* Ditado por voz: fala e o texto vai para a conversa (no iPhone, o ditado é o do sistema) */}
+        {VoiceTyping.canDictate && (
+          <Pressable
+            testID="system-btn-dictate"
+            accessibilityRole="button"
+            accessibilityLabel={dictating ? t('Parar ditado') : t('Ditar por voz')}
+            accessibilityState={{ selected: dictating }}
+            hitSlop={6}
+            onPress={onDictate}
+            style={({ pressed }) => [styles.keyboardBtn, pressed && styles.pressed]}>
+            <Icon name="audio" size={21} color={dictating ? colors.primary : colors.textMuted} />
           </Pressable>
         )}
         <Pressable

@@ -203,6 +203,7 @@ export function ShortcutsTab({ shortcuts, seller, onInsert, onShare, onHeightCha
           icon="adicionar"
           label={filter === 'text' ? t('Novo texto') : filter === 'audio' ? t('Novo áudio') : t('Novo link')}
           primary
+          showLabel
           onPress={() => setScreen({ name: 'form', kind: filter, id: null })}
         />
       </View>
