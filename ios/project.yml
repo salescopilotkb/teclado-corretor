@@ -61,6 +61,9 @@ targets:
         buildPhase: resources
     dependencies:
       - target: CorretorKeyboardExtension
+      # Vídeo e fotos (seletor de imagens): o React Native 0.77 não liga mais esses sozinho
+      - sdk: AVFoundation.framework
+      - sdk: Photos.framework
     settings:
       base:
         PRODUCT_NAME: CorretorKeyboard
@@ -89,6 +92,10 @@ targets:
       - path: CorretorKeyboardExtension
       - path: Fonts
         buildPhase: resources
+    # Os pods do app também entram no teclado (inclusive o seletor de imagens)
+    dependencies:
+      - sdk: AVFoundation.framework
+      - sdk: Photos.framework
     settings:
       base:
         PRODUCT_NAME: CorretorKeyboardExtension
