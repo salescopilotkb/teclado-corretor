@@ -25,12 +25,10 @@ apply plugin: "com.facebook.react.rootproject"
 // Google Play: as bibliotecas nativas compiladas aqui (ex.: MMKV, em C++) também saem
 // prontas para celulares com páginas de memória de 16 KB (Android 15+). As do React
 // Native já vêm assim do 0.77.
-subprojects {
-    afterEvaluate { project ->
-        def android = project.extensions.findByName("android")
-        def cmake = android?.defaultConfig?.externalNativeBuild?.cmake
-        if (cmake != null) {
-            cmake.arguments "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
-        }
+// (Assim que o plugin de biblioteca Android entra: o React Native avalia o app antes
+// dos outros projetos, e um afterEvaluate aqui chegaria tarde demais.)
+subprojects { sub ->
+    sub.plugins.withId("com.android.library") {
+        sub.android.defaultConfig.externalNativeBuild.cmake.arguments "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
     }
 }
