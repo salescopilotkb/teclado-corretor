@@ -185,6 +185,18 @@ function Chat({ visible }: { visible: boolean }) {
         textBeforeCursor() {
           return draftRef.current.slice(0, Math.min(caret.current, draftRef.current.length));
         },
+        // Espaço arrastado: anda caractere por caractere (emoji inteiro)
+        moveCursor(offset) {
+          const v = draftRef.current;
+          let p = Math.min(caret.current, v.length);
+          for (let i = 0; i < Math.abs(offset); i++) {
+            if (offset < 0 && p > 0) p -= p > 1 && /[\uDC00-\uDFFF]/.test(v[p - 1]) && /[\uD800-\uDBFF]/.test(v[p - 2]) ? 2 : 1;
+            else if (offset > 0 && p < v.length) p += /[\uD800-\uDBFF]/.test(v[p]) && p + 1 < v.length ? 2 : 1;
+          }
+          caret.current = p;
+          inputRef.current?.setSelectionRange(p, p);
+          return true;
+        },
       }),
     [update],
   );

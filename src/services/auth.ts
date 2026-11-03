@@ -11,7 +11,7 @@ import { isSegmentId } from '../segments/segments';
 import { isLang } from '../i18n';
 import { isMarketId } from '../i18n/markets';
 import { Repo } from '../storage/storage';
-import type { SellerProfile } from '../types';
+import type { SellerProfile, ThemePreference } from '../types';
 import { supabase } from './supabase';
 import { DEMO_MODE } from '../config/demo';
 import { LOCKER_WEB_URL } from '../files/files';
@@ -232,6 +232,32 @@ export async function pushProfile(profile: SellerProfile): Promise<void> {
     ({ error } = await supabase.from('profiles').upsert(basic));
   }
   if (error) fail(error);
+}
+
+const isThemePreference = (v: unknown): v is ThemePreference => v === 'dark' || v === 'light' || v === 'system';
+
+/**
+ * Grava o tema no perfil: o Locker web (no navegador) segue o mesmo do app e do
+ * teclado. Sem login ou banco sem a coluna (schema.sql não rodou): fica só no aparelho.
+ */
+export async function pushTheme(theme: ThemePreference): Promise<void> {
+  if (DEMO_MODE) return;
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user.id;
+  if (!userId) return;
+  await supabase.from('profiles').update({ theme }).eq('id', userId);
+}
+
+/** O tema guardado na conta (ao entrar num aparelho novo). null = sem tema na nuvem. */
+export async function pullTheme(): Promise<ThemePreference | null> {
+  if (DEMO_MODE) return null;
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user.id;
+  if (!userId) return null;
+  const { data: row, error } = await supabase.from('profiles').select('theme').eq('id', userId).maybeSingle();
+  if (error) return null;
+  const theme = (row as { theme?: string } | null)?.theme;
+  return isThemePreference(theme) ? theme : null;
 }
 
 /** E-mail da conta logada (tela de Conta). */

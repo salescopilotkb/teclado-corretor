@@ -1,7 +1,9 @@
 import { t } from '../../i18n';
 /**
- * Agenda no teclado expandido: calendário do mês, compromissos do dia e
- * cadastro de reunião ou tarefa. Grava no mesmo lugar que a Agenda do app.
+ * Agenda no teclado expandido: calendário do mês e, embaixo, as tarefas e reuniões
+ * (em abas) do mês inteiro. Tocar num dia mostra só as daquele dia; "Mês" volta
+ * para o mês todo. Cadastro de reunião ou tarefa. Grava no mesmo lugar que a
+ * Agenda do app.
  */
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
@@ -11,7 +13,9 @@ import {
   busyDays,
   confirmationMessage,
   formatDayLong,
+  formatDayShort,
   itemsOn,
+  monthName,
   newAgendaId,
   todayISO,
 } from '../../agenda/agenda';
@@ -25,6 +29,7 @@ import { Header } from './KeyboardCRM';
 import { ChoiceRow, KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
 import { MonthCalendar, monthOf } from './MonthCalendar';
+import type { CalendarMonth } from './MonthCalendar';
 import { ResizeHandle } from './ResizeHandle';
 
 interface Props {
@@ -39,8 +44,16 @@ interface Props {
   onCollapse?: () => void;
 }
 
+/** Dia do mês visto para um compromisso novo (hoje, se for o mês de hoje; senão o dia 1). */
+function newItemDate(view: CalendarMonth): string {
+  const today = todayISO();
+  const first = `${view.year}-${String(view.month + 1).padStart(2, '0')}-01`;
+  return today.startsWith(first.slice(0, 8)) ? today : first;
+}
+
 export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onChanged, presetClient, onCollapse }: Props) {
-  const [selected, setSelected] = useState(todayISO());
+  // null = o mês inteiro (ao abrir a aba); um dia = só os compromissos dele
+  const [day, setDay] = useState<string | null>(null);
   const [view, setView] = useState(() => monthOf(todayISO()));
   const [form, setForm] = useState<{ item: ScheduleItem | null } | null>(() => (presetClient ? { item: null } : null));
 
@@ -48,7 +61,7 @@ export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onC
     return (
       <AgendaForm
         item={form.item}
-        date={form.item?.date ?? selected}
+        date={form.item?.date ?? day ?? newItemDate(view)}
         leads={leads || []}
         presetClient={form.item ? null : presetClient ?? null}
         onCancel={() => setForm(null)}
@@ -59,7 +72,7 @@ export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onC
         onSaved={item => {
           Repo.saveAgendaItem(item);
           onChanged();
-          setSelected(item.date);
+          if (day) setDay(item.date);
           setView(monthOf(item.date));
           setForm(null);
         }}
@@ -74,10 +87,15 @@ export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onC
     <AgendaCalendar
       agenda={agenda || []}
       leads={leads || []}
-      selected={selected}
-      onSelect={setSelected}
+      day={day}
+      onSelectDay={iso => setDay(d => (d === iso ? null : iso))}
+      onMonth={() => setDay(null)}
       view={view}
-      onViewChange={setView}
+      onViewChange={v => {
+        // Outro mês: volta para a lista do mês inteiro
+        setView(v);
+        setDay(null);
+      }}
       onClose={onClose}
       onNew={() => setForm({ item: null })}
       onEdit={item => setForm({ item })}
@@ -94,8 +112,9 @@ export function KeyboardAgenda({ agenda = [], leads = [], onInsert, onClose, onC
 function AgendaCalendar({
   agenda = [],
   leads = [],
-  selected,
-  onSelect,
+  day,
+  onSelectDay,
+  onMonth,
   view,
   onViewChange,
   onClose,
@@ -106,8 +125,9 @@ function AgendaCalendar({
 }: {
   agenda: ScheduleItem[];
   leads: CRMLead[];
-  selected: string;
-  onSelect: (iso: string) => void;
+  day: string | null;
+  onSelectDay: (iso: string) => void;
+  onMonth: () => void;
   view: ReturnType<typeof monthOf>;
   onViewChange: (v: ReturnType<typeof monthOf>) => void;
   onClose: () => void;
@@ -120,7 +140,21 @@ function AgendaCalendar({
   const styles = useStyles();
   const safeAgenda = agenda || [];
   const busy = useMemo(() => busyDays(safeAgenda), [safeAgenda]);
-  const dayItems = itemsOn(safeAgenda, selected);
+  const [tab, setTab] = useState<AgendaKind>('task');
+  // O mês inteiro ou só o dia tocado, em ordem de dia e horário (dia todo primeiro)
+  const monthPrefix = `${view.year}-${String(view.month + 1).padStart(2, '0')}-`;
+  const scope = (day ? itemsOn(safeAgenda, day) : safeAgenda.filter(i => i.date.startsWith(monthPrefix))).sort(
+    (x, y) => x.date.localeCompare(y.date) || (x.time ?? '').localeCompare(y.time ?? ''),
+  );
+  const count = { task: scope.filter(i => i.kind === 'task').length, meeting: scope.filter(i => i.kind === 'meeting').length };
+  const shown = scope.filter(i => i.kind === tab);
+  const empty = day
+    ? tab === 'task'
+      ? t('Nenhuma tarefa neste dia. Toque em "Novo" para agendar.')
+      : t('Nenhuma reunião neste dia. Toque em "Novo" para agendar.')
+    : tab === 'task'
+      ? t('Nenhuma tarefa neste mês. Toque em "Novo" para agendar.')
+      : t('Nenhuma reunião neste mês. Toque em "Novo" para agendar.');
 
   const confirmMeeting = (item: ScheduleItem) => {
     const message = confirmationMessage(item);
@@ -137,17 +171,47 @@ function AgendaCalendar({
     <View style={styles.flex}>
       <Header title={t('Agenda')} onBack={onClose} actionLabel={t('Novo')} onAction={onNew} />
       <FlatList
-        data={dayItems}
+        data={shown}
         keyExtractor={i => i.id}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="always"
         ListHeaderComponent={
           <View style={styles.calendarBox}>
-            <MonthCalendar view={view} onViewChange={onViewChange} selected={selected} onSelect={onSelect} busy={busy} compact />
-            <Text style={styles.dayTitle}>{formatDayLong(selected)}</Text>
+            <MonthCalendar view={view} onViewChange={onViewChange} selected={day ?? ''} onSelect={onSelectDay} busy={busy} compact />
+            <View style={styles.scopeRow}>
+              <Text style={styles.dayTitle} numberOfLines={1}>
+                {day ? formatDayLong(day) : `${monthName(view.month)} ${view.year}`}
+              </Text>
+              {/* Dia escolhido: "Mês" volta para os compromissos do mês inteiro */}
+              {day ? (
+                <Pressable testID="agenda-month" accessibilityRole="button" hitSlop={8} style={styles.monthBtn} onPress={onMonth}>
+                  <Icon name="calendario" size={14} color={colors.primaryText} />
+                  <Text style={styles.monthBtnText}>{t('Mês')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            {/* Abas: tarefas e reuniões (com quantas há no mês ou no dia) */}
+            <View style={styles.tabs}>
+              {(['task', 'meeting'] as AgendaKind[]).map(k => {
+                const on = tab === k;
+                return (
+                  <Pressable
+                    key={k}
+                    testID={`agenda-tab-${k}`}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    style={[styles.tab, on && styles.tabOn]}
+                    onPress={() => setTab(k)}>
+                    <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>
+                      {k === 'task' ? t('Tarefas') : t('Reuniões')} ({count[k]})
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         }
-        ListEmptyComponent={<Text style={styles.empty}>{t('Nada marcado neste dia. Toque em "Novo" para agendar.')}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{empty}</Text>}
         renderItem={({ item }) => (
           <View style={[styles.item, item.done && styles.itemDone]}>
             <Pressable
@@ -163,8 +227,8 @@ function AgendaCalendar({
                 {item.title}
               </Text>
               <Text style={styles.itemMeta} numberOfLines={1}>
-                {item.kind === 'meeting' ? t('Reunião') : t('Tarefa')}
-                {item.time ? ` · ${item.time}` : t(' · dia todo')}
+                {day ? '' : `${formatDayShort(item.date)} · `}
+                {item.time ? item.time : t('Dia todo')}
                 {item.clientName ? ` · ${item.clientName}` : ''}
                 {item.clientPhone ? ` · ${item.clientPhone}` : ''}
               </Text>
@@ -310,7 +374,23 @@ const useStyles = makeStyles(colors => ({
   flex: { flex: 1 },
   list: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg, gap: spacing.sm },
   calendarBox: { backgroundColor: colors.surface, ...glassBorder(colors), borderRadius: radius.lg, padding: spacing.sm, marginBottom: spacing.xs },
-  dayTitle: { fontSize: 14, fontWeight: '600', color: colors.text, paddingHorizontal: spacing.sm, paddingTop: spacing.sm },
+  dayTitle: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
+  scopeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, paddingTop: spacing.sm, minHeight: 32 },
+  monthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    minHeight: 28,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+  },
+  monthBtnText: { fontSize: 12, fontWeight: '600', color: colors.primaryText },
+  tabs: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm, padding: 3, borderRadius: radius.md, backgroundColor: colors.surfaceAlt },
+  tab: { flex: 1, minHeight: 32, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm },
+  tabOn: { backgroundColor: colors.primary },
+  tabText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  tabTextOn: { color: colors.onPrimary },
   empty: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.lg },
   item: {
     flexDirection: 'row',

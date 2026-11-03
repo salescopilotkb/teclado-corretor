@@ -8,8 +8,8 @@
  * aparece na própria tela.
  */
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { t } from '../../i18n';
+import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { t, tSell } from '../../i18n';
 import { useKeyboardBack } from '../../navigation/back';
 import {
   descendantIds,
@@ -25,8 +25,10 @@ import {
   subfolders,
   LOCKER_NAME,
 } from '../../files/files';
-import { lockerDeleteFile, lockerDeleteFolder, lockerReplaceFile, lockerSaveFile, lockerSaveFolder, openLockerWeb, uploadToLocker } from '../../files/locker';
+import { lockerDeleteFile, lockerDeleteFolder, lockerFolderLink, lockerReplaceFile, lockerSaveFile, lockerSaveFolder, uploadToLocker } from '../../files/locker';
+import type { FileFolder } from '../../types';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
+import { LOCKER_APP_LINK, requestAppTab } from '../../navigation/appLink';
 import type { KeyboardPickSource } from '../../native/KeyboardBridge';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
 import { Repo } from '../../storage/storage';
@@ -46,6 +48,20 @@ import { Header } from './KeyboardCRM';
 import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, matches } from './KeyboardSearch';
 import { KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
+
+/** Abre o app KEYCON na aba Locker (Android: link keycon://locker; página de teste: direto). */
+async function openLockerInApp(): Promise<void> {
+  if (Platform.OS === 'web') {
+    requestAppTab('files');
+    await KeyboardBridge.openApp();
+    return;
+  }
+  try {
+    await KeyboardBridge.openUrl(LOCKER_APP_LINK);
+  } catch {
+    await KeyboardBridge.openApp();
+  }
+}
 
 interface Props {
   files: FilesData;
@@ -68,6 +84,8 @@ type Screen =
   | { name: 'add' }
   | { name: 'file'; id: string }
   | { name: 'folder-options' }
+  /** Enviar a pasta como link: aviso quando ainda é privada ou o plano não tem link de pasta */
+  | { name: 'folder-link'; id: string }
   | { name: 'move'; kind: 'file' | 'folder'; id: string }
   | { name: 'name'; kind: 'new-folder' | 'rename-folder' | 'rename-file'; id?: string };
 
@@ -117,6 +135,19 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
       // Arquivos vão para o Locker (Cloudflare R2)
       uploadToLocker,
     );
+  };
+
+  /** "[Pasta] Fotos do apartamento: locker.keyconapp.com/d/..." (no idioma de venda). */
+  const folderText = (f: FileFolder, link: string) => `[${tSell('Pasta')}] ${f.name}: ${link}`;
+
+  /** Ícone de link ao lado da pasta: com o link liberado vai direto; senão, avisa antes. */
+  const sendFolder = (f: FileFolder) => {
+    const link = lockerFolderLink(f);
+    if (plan.limits.folderLinks && (f.visibility ?? 'private') !== 'private' && link) {
+      onInsert(folderText(f, link));
+      return;
+    }
+    setScreen({ name: 'folder-link', id: f.id });
   };
 
   const send = (file: SavedFile) => {
@@ -287,6 +318,34 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     );
   };
 
+  if (screen.name === 'folder-link') {
+    const target = files.folders.find(x => x.id === screen.id);
+    if (target) {
+      return (
+        <FolderLinkNotice
+          folder={target}
+          allowed={plan.limits.folderLinks}
+          canChange={!readOnly}
+          onBack={browse}
+          onMakePublic={() => {
+            // "Só com o link": quem recebe o link vê e baixa os arquivos da pasta
+            lockerSaveFolder({ ...target, visibility: 'link' });
+            onChanged();
+            const link = lockerFolderLink(target);
+            if (link) {
+              onInsert(folderText(target, link));
+              browse();
+            } else {
+              uploader.fail(t('A pasta ainda está indo para a nuvem. Tente enviar de novo em instantes.'));
+              browse();
+            }
+          }}
+          onOpenApp={() => KeyboardBridge.openApp().catch(() => {})}
+        />
+      );
+    }
+  }
+
   if (screen.name === 'file') {
     const file = files.files.find(f => f.id === screen.id);
     if (file) {
@@ -327,10 +386,11 @@ export function FilesTab({ files, onSendImage, onShare, onInsert, onExpandedChan
     <Browser
       files={files}
       readOnly={readOnly}
-      lockerWeb={plan.limits.locker}
+      lockerWeb={plan.limits.locker && KeyboardBridge.canOpenApp}
       folderId={folder ? folderId : null}
       uploader={uploader}
       onOpenFolder={setFolderId}
+      onSendFolder={sendFolder}
       onUp={() => setFolderId(folder?.parentId ?? null)}
       onOpenFile={id => setScreen({ name: 'file', id })}
       onUseFile={send}
@@ -357,6 +417,7 @@ function Browser({
   readOnly,
   lockerWeb,
   onOpenFolder,
+  onSendFolder,
   onUp,
   onOpenFile,
   onUseFile,
@@ -373,6 +434,8 @@ function Browser({
   /** O plano inclui o Locker no computador (o botão de nuvem) */
   lockerWeb: boolean;
   onOpenFolder: (id: string) => void;
+  /** Envia a pasta inteira como link (ícone de link ao lado dela). */
+  onSendFolder: (folder: FileFolder) => void;
   onUp: () => void;
   onOpenFile: (id: string) => void;
   onUseFile: (file: SavedFile) => void;
@@ -415,13 +478,13 @@ function Browser({
           <Text style={[styles.barTitle, styles.barTitleRoot]}>{LOCKER_NAME}</Text>
         )}
         {current && !readOnly && <BarButton testID="files-folder-options" icon="editar" label={t('Editar pasta')} onPress={onFolderOptions} />}
-        {/* Locker no computador (planos pagos): abre o site já com a conta */}
+        {/* Locker (planos pagos): abre o app KEYCON direto na aba Locker */}
         {lockerWeb ? (
           <BarButton
-            testID="files-open-web"
+            testID="files-open-app"
             icon="nuvem"
-            label={t('Abrir o Locker no navegador')}
-            onPress={() => openLockerWeb('/', KeyboardBridge.openUrl).catch(() => uploader.fail(t('Não foi possível abrir o Locker no navegador.')))}
+            label={t('Abrir o Locker no app')}
+            onPress={() => openLockerInApp().catch(() => uploader.fail(t('Não foi possível abrir o app KEYCON.')))}
           />
         ) : null}
         {readOnly ? null : (
@@ -448,6 +511,7 @@ function Browser({
             meta={folderSummary(files, f.id)}
             icon="pasta"
             onPress={() => onOpenFolder(f.id)}
+            trailing={<FolderLinkButton folder={f} onPress={() => onSendFolder(f)} />}
           />
         ))}
 
@@ -470,6 +534,74 @@ function Browser({
             {current
               ? t('Pasta vazia. Toque em + para adicionar fotos e vídeos, ou crie uma subpasta.')
               : t('Organize aqui as fotos e vídeos que você usa no dia a dia. Crie uma pasta ou toque em + para adicionar.')}
+          </Text>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
+/** Ícone de link ao lado da pasta: envia a pasta inteira como link na conversa. */
+function FolderLinkButton({ folder, onPress }: { folder: FileFolder; onPress: () => void }) {
+  const colors = useColors();
+  const styles = useStyles();
+  return (
+    <Pressable
+      testID={`send-ffolder-${folder.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={t('Enviar a pasta {folder} como link', { folder: folder.name })}
+      hitSlop={6}
+      onPress={onPress}
+      style={({ pressed }) => [styles.folderLink, pressed && styles.pressed]}>
+      <Icon name="link" size={15} color={colors.primaryText} />
+      <Text style={styles.folderLinkText}>{t('Enviar')}</Text>
+    </Pressable>
+  );
+}
+
+/**
+ * A pasta ainda não tem o link liberado: explica e, para quem é dono, libera e envia
+ * num toque ("só com o link"). Plano sem link de pasta (grátis e Basic): avisa que é do
+ * Plus e do Pro.
+ */
+function FolderLinkNotice({
+  folder,
+  allowed,
+  canChange,
+  onBack,
+  onMakePublic,
+  onOpenApp,
+}: {
+  folder: FileFolder;
+  allowed: boolean;
+  canChange: boolean;
+  onBack: () => void;
+  onMakePublic: () => void;
+  onOpenApp: () => void;
+}) {
+  const styles = useStyles();
+  return (
+    <View style={styles.flex}>
+      <Header title={t('Enviar pasta')} onBack={onBack} />
+      <ScrollView contentContainerStyle={styles.noticeBody} keyboardShouldPersistTaps="always">
+        <Text style={styles.noticeTitle}>{folder.name}</Text>
+        {!allowed ? (
+          <>
+            <Text style={styles.noticeText}>
+              {t('Enviar a pasta inteira como link é dos planos Plus e Pro. Abra o app KEYCON para ver os planos.')}
+            </Text>
+            <ActionButton testID="folder-link-plans" icon="info" label={t('Abrir o app')} onPress={onOpenApp} />
+          </>
+        ) : canChange ? (
+          <>
+            <Text style={styles.noticeText}>
+              {t('Esta pasta é privada. Para enviar, libere o link da pasta: quem receber o link poderá ver e baixar os arquivos dela.')}
+            </Text>
+            <ActionButton testID="folder-link-public" icon="link" label={t('Liberar link e enviar')} onPress={onMakePublic} />
+          </>
+        ) : (
+          <Text style={styles.noticeText}>
+            {t('Esta pasta da empresa é privada. Peça para a empresa liberar o link dela no Locker para você enviar.')}
           </Text>
         )}
       </ScrollView>
@@ -747,6 +879,19 @@ function NameForm({
 const THUMB = 76;
 
 const useStyles = makeStyles(colors => ({
+  folderLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    minHeight: 30,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primarySoft,
+  },
+  folderLinkText: { fontSize: 12, fontWeight: '600', color: colors.primaryText },
+  noticeBody: { padding: spacing.md, gap: spacing.md },
+  noticeTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  noticeText: { fontSize: 14, lineHeight: 20, color: colors.textSecondary },
   planNotice: {
     color: colors.text,
     backgroundColor: colors.primarySoft,

@@ -17,8 +17,10 @@ import { isAccountId, syncSubscriber } from '../_shared/revenuecat.ts';
 
 Deno.serve(async req => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
-  const expected = Deno.env.get('REVENUECAT_WEBHOOK_SECRET');
-  if (!expected || req.headers.get('Authorization') !== `Bearer ${expected}`) return json({ error: 'unauthorized' }, 401);
+  // Aceita "Bearer <senha>" ou só "<senha>" (como foi colado no RevenueCat), sem espaços nas pontas
+  const bare = (v: string | null | undefined) => (v ?? '').trim().replace(/^bearer\s+/i, '').trim();
+  const expected = bare(Deno.env.get('REVENUECAT_WEBHOOK_SECRET'));
+  if (!expected || bare(req.headers.get('Authorization')) !== expected) return json({ error: 'unauthorized' }, 401);
 
   let event: Record<string, unknown> = {};
   try {

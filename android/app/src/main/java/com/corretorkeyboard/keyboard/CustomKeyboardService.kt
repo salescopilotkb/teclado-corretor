@@ -528,6 +528,32 @@ class CustomKeyboardService : InputMethodService() {
         return ok
     }
 
+    /**
+     * Espaço arrastado: anda com o cursor `offset` caracteres (negativo = esquerda),
+     * sem parar no meio de um emoji. Sem o texto do campo, usa as setas do teclado.
+     */
+    fun moveCursor(offset: Int): Boolean {
+        val ic = currentInputConnection ?: return false
+        if (offset == 0) return true
+        val et = ic.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0)
+        val text = et?.text
+        if (et != null && text != null && et.selectionEnd >= 0) {
+            var pos = et.selectionEnd.coerceIn(0, text.length)
+            repeat(kotlin.math.abs(offset)) {
+                if (offset < 0 && pos > 0) {
+                    pos -= if (pos > 1 && Character.isLowSurrogate(text[pos - 1]) && Character.isHighSurrogate(text[pos - 2])) 2 else 1
+                } else if (offset > 0 && pos < text.length) {
+                    pos += if (pos + 1 < text.length && Character.isHighSurrogate(text[pos])) 2 else 1
+                }
+            }
+            val abs = et.startOffset + pos
+            return ic.setSelection(abs, abs)
+        }
+        val code = if (offset < 0) android.view.KeyEvent.KEYCODE_DPAD_LEFT else android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+        repeat(kotlin.math.abs(offset)) { sendDownUpKeyEvents(code) }
+        return true
+    }
+
     /** O cursor mudou (digitação, toque no texto, colar...): o JS confere o contexto. */
     override fun onUpdateSelection(
         oldSelStart: Int, oldSelEnd: Int,

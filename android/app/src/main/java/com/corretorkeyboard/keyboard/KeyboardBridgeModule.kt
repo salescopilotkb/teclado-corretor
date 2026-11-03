@@ -78,6 +78,11 @@ class KeyboardBridgeModule(reactContext: ReactApplicationContext) :
     fun replaceTextBeforeCursor(count: Double, text: String, promise: Promise) =
         withService(promise) { it.replaceTextBeforeCursor(count.toInt(), text) }
 
+    /** Espaço arrastado: anda com o cursor `offset` caracteres (negativo = esquerda). */
+    @ReactMethod
+    fun moveCursor(offset: Double, promise: Promise) =
+        withService(promise) { it.moveCursor(offset.toInt()) }
+
     /** Alterna para o próximo teclado ou exibe o seletor de métodos de entrada */
     /** Vibração curta de "pegou o item" (arrastar os botões do menu). */
     @ReactMethod

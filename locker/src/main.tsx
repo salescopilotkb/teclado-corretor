@@ -4,6 +4,10 @@ import { isLang } from '../../src/i18n';
 import { applyLanguage, browserLanguage, chosenLanguage } from './lang';
 import { App } from './App';
 import './styles.css';
+import { applySavedTheme } from './theme';
+
+// Tema antes de desenhar: o mesmo do app KEYCON (escuro por padrão; depois, o do perfil)
+applySavedTheme();
 
 // Idioma antes de entrar: o escolhido na página ou o do navegador (depois, o do perfil: lang.ts)
 const asked = new URLSearchParams(location.search).get('lang');

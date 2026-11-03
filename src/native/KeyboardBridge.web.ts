@@ -48,6 +48,8 @@ export interface WebKeyboardTarget {
   enter(): void;
   /** Texto antes do cursor no campo de teste. */
   textBeforeCursor(): string;
+  /** Anda com o cursor (negativo = para a esquerda), em caracteres. */
+  moveCursor?(offset: number): boolean;
   /** Envia fotos/vídeos na conversa de teste (com legenda embaixo, como no WhatsApp). */
   sendMedia?(urls: string[], caption?: string): void;
 }
@@ -136,6 +138,12 @@ export const KeyboardBridge = {
     for (let i = 0; i < count; i++) target.deleteBackward();
     target.insert(text);
     return true;
+  },
+  /** Espaço arrastado: anda com o cursor no campo de teste. */
+  moveCursor: async (offset: number) => {
+    const ok = target?.moveCursor?.(offset) ?? false;
+    if (ok) selectionListeners.forEach(cb => cb({}));
+    return ok;
   },
   // No celular, a tecla 🌐 troca para outro teclado do sistema
   switchKeyboard: async () => false,

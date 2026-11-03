@@ -10,7 +10,7 @@ export const REVENUECAT_KEYS = {
   /** App Store (começa com appl_) */
   ios: '',
   /** Google Play (começa com goog_) */
-  android: '',
+  android: 'goog_huZNdDYfzXLuAUlmKHwbJNQuRMc',
 };
 
 /**

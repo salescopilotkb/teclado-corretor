@@ -87,8 +87,8 @@ export function onSellingLanguageChange(cb: (lang: Lang) => void): () => void {
 
 /**
  * Idioma em que o teclado está digitando (corretor, sugestões, tecla ñ).
- * É o idioma do app; segurar o espaço troca (ex.: escrever ao cliente no
- * idioma de venda, quando é outro).
+ * É o idioma do app; o botão de idioma no topo do teclado troca (ex.: escrever
+ * ao cliente no idioma de venda, quando é outro).
  */
 let typingOverride: Lang | null = null;
 const typingListeners = new Set<(lang: Lang) => void>();
@@ -111,7 +111,7 @@ export function onTypingLanguageChange(cb: (lang: Lang) => void): () => void {
   };
 }
 
-/** Próximo idioma ao segurar o espaço: o do app, o de venda e depois o outro. */
+/** Próximo idioma (botão de idioma do teclado): o do app, o de venda e depois o outro. */
 export function nextTypingLanguage(): Lang {
   const order = [...new Set<Lang>([current, selling, 'pt', 'en', 'es'])];
   return order[(order.indexOf(getTypingLanguage()) + 1) % order.length];

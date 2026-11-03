@@ -355,21 +355,21 @@ function KeyboardToggle({ value, label, hint, onChange, testID }: { value: boole
 const VISIBILITY_OPTIONS: Array<{ value: FolderVisibility; label: string; hint: string }> = [
   { value: 'private', label: 'Privada', hint: 'Só você vê esta pasta. Os links de cada arquivo continuam abrindo para quem os recebeu.' },
   { value: 'link', label: 'Só com o link', hint: 'Quem tiver o link da pasta vê os arquivos dela, sem precisar entrar numa conta.' },
-  { value: 'public', label: 'Pública', hint: 'Como "Só com o link", e também aparece na sua vitrine pública do Locker.' },
 ];
 
 /** Quem pode ver a pasta pelo Locker (locker.keyconapp.com) e o link dela. */
 function FolderSharing({ folder, onChanged }: { folder: FileFolder; onChanged: () => void }) {
   const styles = useStyles();
   const plan = usePlan();
-  const visibility = folder.visibility ?? 'private';
+  // "Pública" (de antes da retirada da vitrine) funciona como "Só com o link"
+  const visibility: FolderVisibility = (folder.visibility ?? 'private') === 'private' ? 'private' : 'link';
   // Pasta por link ou pública: Plus em diante (sem o plano, o link da pasta não abre)
   if (!plan.limits.folderLinks) {
     return (
       <Card>
         <CardTitle>{t('Quem pode ver esta pasta')}</CardTitle>
         <CardText>
-          {t('Só você vê esta pasta. Para compartilhar uma pasta por link ou numa vitrine pública, assine o plano Plus ou o Pro.')}
+          {t('Só você vê esta pasta. Para compartilhar uma pasta por link, assine o plano Plus ou o Pro.')}
         </CardText>
       </Card>
     );

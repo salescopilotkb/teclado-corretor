@@ -53,7 +53,7 @@ const FEATURES: Record<PaidPlan, { storage: string; items: string[] }> = {
       'Tudo do Basic',
       'Compartilhe com quantas pessoas quiser',
       '1 equipe com até 5 pessoas',
-      'Pasta por link e vitrine pública',
+      'Pastas inteiras por link',
       'Arquivos sem internet no computador',
       'Vídeos de até 256 MB',
       'Lixeira guarda por 60 dias',

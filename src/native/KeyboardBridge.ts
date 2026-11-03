@@ -14,6 +14,7 @@ interface KeyboardBridgeNative {
   sendEnter(): Promise<boolean>;
   getInputContext?(): Promise<InputContext>;
   replaceTextBeforeCursor?(count: number, text: string): Promise<boolean>;
+  moveCursor?(offset: number): Promise<boolean>;
   switchKeyboard(): Promise<boolean>;
   setExpanded?(expanded: boolean): Promise<boolean>;
   setHeightMode?(mode: HeightMode): Promise<boolean>;
@@ -137,6 +138,8 @@ export const KeyboardBridge = {
   /** Apaga `count` caracteres antes do cursor e insere `text` numa só edição. */
   replaceTextBeforeCursor: (count: number, text: string) =>
     Native?.replaceTextBeforeCursor ? Native.replaceTextBeforeCursor(count, text) : noop(),
+  /** Anda com o cursor no campo (espaço arrastado); negativo = para a esquerda. */
+  moveCursor: (offset: number) => (Native?.moveCursor ? Native.moveCursor(Math.round(offset)) : noop()),
   /** Volta ao teclado de digitação padrão (tecla 🌐). */
   switchKeyboard: () => (Native ? Native.switchKeyboard() : noop()),
   /** Teclado em tela grande (CRM) ou no tamanho normal. Volta ao normal sozinho a cada campo novo. */

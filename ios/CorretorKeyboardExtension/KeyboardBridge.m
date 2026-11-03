@@ -22,6 +22,10 @@ RCT_EXTERN_METHOD(replaceTextBeforeCursor:(nonnull NSNumber *)count
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(moveCursor:(nonnull NSNumber *)offset
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(setExpanded:(BOOL)expanded
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)

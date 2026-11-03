@@ -3,8 +3,10 @@
  * cliente e cadastro. "Conversar" abre a conversa do cliente no WhatsApp (o
  * número vira um link wa.me). Tudo grava no mesmo armazenamento do app (Repo).
  */
+import { PHONE_COUNTRIES, countryName, detectPhoneCountry, joinPhone, refineByAreaCode, splitPhone } from '../../crm/phoneCountry';
+import type { PhoneCountry } from '../../crm/phoneCountry';
 import { t } from '../../i18n';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { formatDayLong, upcoming } from '../../agenda/agenda';
 import {
@@ -420,7 +422,7 @@ function Action({ icon, label, primary, onPress, testID }: { icon: IconName; lab
 
 const LEAD_FIELDS: FormFieldSpec[] = [
   { key: 'name', label: 'Nome do cliente', placeholder: 'Toque e digite', kind: 'name' },
-  { key: 'phone', label: 'WhatsApp do cliente', placeholder: 'Com DDD (opcional)', kind: 'phone' },
+  { key: 'phone', label: 'Telefone do cliente', placeholder: 'Com DDD (opcional)', kind: 'phone' },
   { key: 'notes', label: 'Anotações', placeholder: 'Opcional: interesse, orçamento...' },
 ];
 
@@ -443,17 +445,40 @@ function LeadForm({
   const styles = useStyles();
   const [addingTag, setAddingTag] = useState(false);
   const fields = useMemo(() => (addingTag ? [...LEAD_FIELDS, NEW_TAG_FIELD] : LEAD_FIELDS), [addingTag]);
+  // Telefone: a bandeira do país fica ao lado; o campo guarda só o número sem o código
+  const initialPhone = useMemo(() => splitPhone(lead?.phone), [lead]);
+  const [country, setCountry] = useState<PhoneCountry>(initialPhone.country);
+  const [pickingCountry, setPickingCountry] = useState(false);
   const form = useKeyboardForm(fields, {
     name: lead?.clientName ?? '',
-    phone: lead?.phone ?? '',
+    phone: initialPhone.national,
     notes: lead?.notes ?? '',
     newTag: '',
   });
   const [stage, setStage] = useState(lead?.stage ?? segment.crmStages[0]);
   const [tags, setTags] = useState<string[]>(lead?.tags ?? []);
   const name = form.values.name.trim();
-  const link = whatsappLink(form.values.phone);
+  const storedPhone = joinPhone(country, form.values.phone ?? '');
+  const link = whatsappLink(storedPhone);
   const activeSpec = fields.find(f => f.key === form.active);
+
+  // Número com o código do país (digitado com "+" ou colado de uma vez): troca a bandeira
+  const lastPhone = useRef(form.values.phone ?? '');
+  useEffect(() => {
+    const text = form.values.phone ?? '';
+    const pasted = text.length - lastPhone.current.length >= 3;
+    lastPhone.current = text;
+    const found = detectPhoneCountry(text, country, pasted);
+    if (found) {
+      setCountry(refineByAreaCode(found.country, found.national));
+      lastPhone.current = found.national;
+      form.setValue('phone', found.national);
+    } else {
+      const refined = refineByAreaCode(country, text);
+      if (refined !== country) setCountry(refined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.values.phone]);
 
   // Abriu "Nova etiqueta": o teclado escreve nela
   useEffect(() => {
@@ -481,7 +506,7 @@ function LeadForm({
     onSaved({
       id: lead?.id ?? newLeadId(),
       clientName: name,
-      phone: form.values.phone.trim(),
+      phone: storedPhone,
       notes: form.values.notes.trim() || undefined,
       stage,
       tags: finalTags.length ? finalTags : undefined,
@@ -489,6 +514,33 @@ function LeadForm({
       lastContactAt: lead?.lastContactAt ?? now,
     });
   };
+
+  // Escolher o país do telefone (lista no lugar do formulário)
+  if (pickingCountry) {
+    return (
+      <View style={styles.flex}>
+        <Header title={t('País do telefone')} onBack={() => setPickingCountry(false)} />
+        <ScrollView style={styles.flex} contentContainerStyle={styles.form} keyboardShouldPersistTaps="always">
+          {PHONE_COUNTRIES.map(c => (
+            <Pressable
+              key={c.iso}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.countryRow, c.iso === country.iso && styles.countryRowOn, pressed && { opacity: 0.7 }]}
+              onPress={() => {
+                setCountry(c);
+                setPickingCountry(false);
+              }}>
+              <Text style={styles.countryFlag}>{c.flag}</Text>
+              <Text style={[styles.countryName, styles.flex]} numberOfLines={1}>
+                {countryName(c)}
+              </Text>
+              <Text style={styles.countryDial}>+{c.dial}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.flex}>
@@ -502,7 +554,25 @@ function LeadForm({
       <ScrollView style={styles.flex} contentContainerStyle={styles.form} keyboardShouldPersistTaps="always">
         {LEAD_FIELDS.map(f => (
           <React.Fragment key={f.key}>
-            <KeyboardFormField spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
+            {f.key === 'phone' ? (
+              // Bandeira do país ao lado do número: tocar escolhe o país
+              <View style={styles.phoneRow}>
+                <Pressable
+                  testID="lead-phone-country"
+                  accessibilityRole="button"
+                  accessibilityLabel={t('País do telefone: {country}. Toque para trocar.', { country: countryName(country) })}
+                  style={({ pressed }) => [styles.countryChip, pressed && { opacity: 0.7 }]}
+                  onPress={() => setPickingCountry(true)}>
+                  <Text style={styles.countryFlag}>{country.flag}</Text>
+                  <Text style={styles.countryDial}>+{country.dial}</Text>
+                </Pressable>
+                <View style={styles.flex}>
+                  <KeyboardFormField spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
+                </View>
+              </View>
+            ) : (
+              <KeyboardFormField spec={f} value={form.values[f.key] ?? ''} active={form.active === f.key} onPress={() => form.setActive(f.key)} />
+            )}
             {/* O número vira o link da conversa */}
             {f.key === 'phone' && form.values.phone.trim() ? (
               <Text style={[styles.hint, !link && styles.hintError]}>
@@ -586,6 +656,22 @@ export function Header({
 }
 
 const useStyles = makeStyles(colors => ({
+  phoneRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
+  countryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    minHeight: touchTarget,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    ...glassBorder(colors),
+  },
+  countryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.sm, minHeight: touchTarget, borderRadius: radius.md },
+  countryRowOn: { backgroundColor: colors.primarySoft },
+  countryFlag: { fontSize: 20 },
+  countryName: { fontSize: 15, color: colors.text },
+  countryDial: { fontSize: 14, fontWeight: '600', color: colors.text },
   flex: { flex: 1 },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.45 },

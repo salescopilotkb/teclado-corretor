@@ -89,9 +89,9 @@ gerar o link; ela nunca vai para o app.
 
 - Todo arquivo tem um link permanente `locker.keyconapp.com/f/<código>` que abre **sem login**
   (é o que o app copia e o que o teclado manda quando o envio precisa ser por link).
-- Cada pasta escolhe quem a vê: **Privada** (padrão), **Só com o link**
-  (`locker.keyconapp.com/d/<código>`) ou **Pública** (como "só com o link", e também na
-  vitrine do vendedor no Locker web).
+- Cada pasta escolhe quem a vê: **Privada** (padrão) ou **Só com o link**
+  (`locker.keyconapp.com/d/<código>`). A vitrine pública do vendedor foi adiada
+  (`IMPLEMENTACOES-FUTURAS.md`); pastas antigas marcadas como "public" valem como link.
 
 1. Rode de novo o `supabase/locker.sql` (ele só acrescenta as colunas novas).
 2. Publique a função pública, **sem exigir login**, e republique a `locker` (as duas usam
@@ -195,7 +195,7 @@ Limite de cada arquivo (no app e no servidor): **foto 16 MB, vídeo 64 MB, outro
 cada conta, e a tabela acima vale só para quem não rodou esse arquivo. O que cada plano
 permite fica na tabela `plan_limits`:
 
-| Plano | Espaço | Foto / vídeo / outros | Arquivos | Pessoas por e-mail | Equipes / dependentes | Vitrine | Lixeira |
+| Plano | Espaço | Foto / vídeo / outros | Arquivos | Pessoas por e-mail | Equipes / dependentes | Pasta por link | Lixeira |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Free (sem assinatura) | 200 MB | 16 / 64 / 10 MB | 1 pasta, 3 arquivos | — | — | — | 30 dias |
 | Basic | 5 GB | 16 / 64 / 10 MB | sem limite | 3 | — | — | 30 dias |

@@ -1,4 +1,8 @@
-/* Locker web — desenho do Google Drive com a identidade KEYCON (laranja coral). */
+/*
+ * Locker web — desenho do Google Drive com a identidade KEYCON (laranja coral).
+ * Tema: o mesmo do app e do teclado (escuro por padrão). O app grava a escolha no perfil
+ * (profiles.theme) e o Locker aplica em <html data-theme="dark|light"> (ver theme.ts).
+ */
 :root {
   --orange: #f17860;
   --orange-strong: #e2654d;
@@ -15,7 +19,37 @@
   --danger: #c0392b;
   --radius: 16px;
   --shadow: 0 2px 6px rgba(27, 30, 38, 0.12), 0 8px 24px rgba(27, 30, 38, 0.1);
+  /* Fundo ao passar o mouse, cartão em destaque e avisos (mudam no tema escuro) */
+  --hover: rgba(27, 30, 38, 0.06);
+  --hover-strong: rgba(27, 30, 38, 0.08);
+  --card-hover: #ebeef4;
+  --danger-soft: #fdecea;
+  --warn-bg: #fff4e5;
+  --warn-ink: #7a4b00;
   color-scheme: light;
+}
+
+/* Tema escuro: as mesmas cores do app e do teclado (grafite, com o coral da marca) */
+:root[data-theme='dark'] {
+  --orange-text: #ff9d86;
+  --orange-soft: rgba(241, 120, 96, 0.18);
+  --orange-hover: rgba(241, 120, 96, 0.1);
+  --bg: #14161d;
+  --field: #2f3441;
+  --surface: #1e2129;
+  --ink: #f5f6f8;
+  --muted: #a3a9b6;
+  --line: rgba(255, 255, 255, 0.1);
+  --danger: #fca5a5;
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --hover: rgba(255, 255, 255, 0.06);
+  --hover-strong: rgba(255, 255, 255, 0.1);
+  --card-hover: #2a2e39;
+  --danger-soft: rgba(239, 68, 68, 0.16);
+  --warn-bg: rgba(245, 158, 11, 0.16);
+  --warn-ink: #fcd34d;
+  --border-strong: #5b6271;
+  color-scheme: dark;
 }
 
 * {
@@ -127,7 +161,7 @@ button:disabled {
   color: var(--muted);
 }
 .icon-btn:hover {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .icon-btn.small {
   width: 32px;
@@ -354,7 +388,7 @@ button:disabled {
   color: var(--muted);
 }
 .nav-item:hover {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .nav-item.active {
   background: var(--orange-soft);
@@ -453,7 +487,7 @@ button:disabled {
   color: var(--ink);
 }
 .crumb:hover {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .crumb-sep {
   color: var(--muted);
@@ -553,7 +587,7 @@ button:disabled {
   cursor: pointer;
 }
 .sort-select select:hover {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .grid-wrap .group-title:first-child,
 .sort-bar + section .group-title {
@@ -576,7 +610,7 @@ button:disabled {
 }
 .folder-card:hover,
 .file-card:hover {
-  background: #e9edf4;
+  background: var(--card-hover);
 }
 .folder-card.selected,
 .file-card.selected {
@@ -658,7 +692,7 @@ button:disabled {
   font-weight: 500;
 }
 .col-btn:hover:not(:disabled) {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .col-btn:disabled {
   opacity: 1;
@@ -874,7 +908,7 @@ button:disabled {
 .uploads-sub {
   margin: 0;
   padding: 10px 20px;
-  background: #fdecea;
+  background: var(--danger-soft);
   color: var(--danger);
   font-weight: 500;
 }
@@ -945,7 +979,7 @@ button:disabled {
 }
 .upload-cancel:hover,
 .upload-cancel:focus-visible {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .upload-cancel:hover .ring,
 .upload-cancel:focus-visible .ring {
@@ -1034,7 +1068,7 @@ button:disabled {
   opacity: 1;
 }
 .more-btn:hover {
-  background: rgba(27, 30, 38, 0.08);
+  background: var(--hover-strong);
 }
 .folder-card,
 .file-card-head {
@@ -1206,7 +1240,7 @@ button:disabled {
 }
 .chip-main:hover,
 .chip-x:hover {
-  background: rgba(27, 30, 38, 0.06);
+  background: var(--hover);
 }
 .chip.on {
   border-color: transparent;
@@ -1925,8 +1959,8 @@ button:disabled {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: #fff4e5;
-  color: #7a4b00;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 .offline-notice svg {
   flex: none;
@@ -1937,9 +1971,11 @@ button:disabled {
    O laranja coral é a cor da marca: ações principais, o que está escolhido, pastas e o
    que é da pessoa. O azul acinzentado bem leve fica no fundo e nos campos; o grafite nos
    painéis escuros (teclado, envios, avisos). */
+:root:not([data-theme='dark']) {
+  --border-strong: #8c93a1;
+}
 :root {
   --graphite: #242833;
-  --border-strong: #8c93a1;
   --orange-grad: linear-gradient(135deg, #f58a6f 0%, #f17860 45%, #e2654d 100%);
 }
 [hidden] {
@@ -2015,7 +2051,7 @@ button:disabled {
 }
 .folder-card:hover,
 .file-card:hover {
-  background: #ebeef4;
+  background: var(--card-hover);
 }
 .file-card.selected,
 .folder-card.selected {
@@ -2314,8 +2350,8 @@ button:disabled {
 }
 .login-card .notice {
   margin: 0;
-  background: #fff4e5;
-  color: #7a4b00;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 @media (max-width: 900px) {
   .login {

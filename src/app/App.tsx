@@ -18,7 +18,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { pullProfile, restoreSession, signOut, startAuthSync } from '../services/auth';
+import { pullProfile, pullTheme, pushTheme, restoreSession, signOut, startAuthSync } from '../services/auth';
 import { startLockerSync } from '../files/locker';
 import { supabase } from '../services/supabase';
 import { getSegment } from '../segments/segments';
@@ -54,6 +54,8 @@ import { CompanyBlocked } from './components/PlanLocked';
 import { dependentNotice, getPlan, watchPlan } from '../plans/plan';
 import { startBilling, stopBilling } from '../plans/billing';
 import { usePlan } from '../plans/usePlan';
+import { TrialOffer } from './components/TrialOffer';
+import { onAppTab, startAppLinks } from '../navigation/appLink';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
 
@@ -73,6 +75,10 @@ applyProfileLanguages(Repo.getSeller());
 
 export default function App() {
   const [theme, setTheme] = useState<ThemePreference>(() => Repo.getTheme());
+  // O Locker web segue o tema do app: o tema deste aparelho vai para a conta
+  useEffect(() => {
+    pushTheme(theme).catch(() => {});
+  }, [theme]);
   return (
     // Liquid Glass: o app usa a paleta de vidro sobre a aurora
     <ThemeProvider preference={theme} glass>
@@ -121,6 +127,19 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     },
     isAuthenticated && !showTutorial && currentTab !== 'home',
   );
+
+  // Links keycon://locker (o botão da nuvem no teclado): o app abre direto na aba Locker
+  useEffect(() => startAppLinks(), []);
+  useEffect(() => {
+    if (!isAuthenticated || showTutorial) return;
+    return onAppTab(tab => {
+      setPlanScreen(null);
+      setAccountSection('root');
+      setScheduleClientId(null);
+      setCurrentTab(tab);
+      setTabVisit(v => v + 1);
+    });
+  }, [isAuthenticated, showTutorial]);
 
   // Locker: com login, os Arquivos sincronizam com a nuvem (Cloudflare R2 + tempo real)
   useEffect(() => {
@@ -200,6 +219,15 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
         <StatusBar barStyle={barStyle} backgroundColor={colors.canvas} />
         <AuthScreen
           onSuccess={() => {
+            // Entrou num aparelho: usa o tema que a conta já tinha (o mesmo do Locker web)
+            pullTheme()
+              .then(saved => {
+                if (saved && saved !== Repo.getTheme()) {
+                  Repo.setTheme(saved);
+                  onThemeChange(saved);
+                }
+              })
+              .catch(() => {});
             setSeller(Repo.getSeller());
             applyProfileLanguages(Repo.getSeller());
             setCurrentTab('home');
@@ -322,6 +350,9 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
         )}
         </View>
       </View>
+
+      {/* Primeiro acesso no plano grátis: oferta do teste de 7 dias do Plus (uma vez por conta) */}
+      <TrialOffer enabled={!showPlans} />
 
       {/* Dock: menu inferior flutuante em vidro leve (o ativo em laranja leve) */}
       <View style={styles.navBar}>

@@ -1,11 +1,12 @@
 /**
  * Mapeamento e regras linguísticas avançadas para o corretor do KEYCON:
- *  - Nomes próprios de pessoas brasileiras (comuns)
+ *  - Nomes próprios de pessoas comuns (Brasil, EUA e hispânicos)
  *  - Nomes de marcas famosas, apps e serviços (WhatsApp, Instagram, Pix, etc.)
- *  - Palavras com capitalização obrigatória (Deus com D maiúsculo)
+ *  - Palavras com capitalização obrigatória (Deus/God/Dios; dias e meses em inglês)
  *  - Frases coladas por falha da barra de espaço (split de duas palavras)
- *  - Fonética em pt-BR e coligações contextuais n-gram.
+ *  - Fonética em pt-BR e coligações contextuais n-gram (português, inglês e espanhol).
  */
+import type { Lang } from '../../i18n';
 import { toKey } from './lexicon';
 
 /** Palavras com capitalização obrigatória. */
@@ -499,14 +500,409 @@ export const COMMON_SPLIT_PHRASES: Record<string, string> = {
   mercadopago: 'Mercado Pago',
 };
 
+
+// ── Inglês e espanhol (mercado dos EUA) ─────────────────────────────────────
+
+/** Inglês: Deus, dias, meses, feriados, idiomas e lugares sempre com maiúscula. */
+const ALWAYS_CAPITALIZED_EN: Record<string, string> = {
+  god: "God",
+  jesus: "Jesus",
+  christ: "Christ",
+  monday: "Monday",
+  tuesday: "Tuesday",
+  wednesday: "Wednesday",
+  thursday: "Thursday",
+  friday: "Friday",
+  saturday: "Saturday",
+  sunday: "Sunday",
+  january: "January",
+  february: "February",
+  april: "April",
+  june: "June",
+  july: "July",
+  august: "August",
+  september: "September",
+  october: "October",
+  november: "November",
+  december: "December",
+  christmas: "Christmas",
+  easter: "Easter",
+  thanksgiving: "Thanksgiving",
+  halloween: "Halloween",
+  english: "English",
+  spanish: "Spanish",
+  portuguese: "Portuguese",
+  french: "French",
+  german: "German",
+  italian: "Italian",
+  chinese: "Chinese",
+  japanese: "Japanese",
+  american: "American",
+  mexican: "Mexican",
+  brazilian: "Brazilian",
+  canadian: "Canadian",
+  america: "America",
+  usa: "USA",
+  texas: "Texas",
+  florida: "Florida",
+  california: "California",
+};
+
+/** Nomes de pessoas populares nos EUA (sem os que são palavras comuns: Will, Mark, Rose...). */
+const PEOPLE_NAMES_EN: Record<string, string> = {
+  james: "James",
+  john: "John",
+  robert: "Robert",
+  michael: "Michael",
+  david: "David",
+  william: "William",
+  richard: "Richard",
+  joseph: "Joseph",
+  thomas: "Thomas",
+  christopher: "Christopher",
+  charles: "Charles",
+  daniel: "Daniel",
+  matthew: "Matthew",
+  anthony: "Anthony",
+  andrew: "Andrew",
+  joshua: "Joshua",
+  kevin: "Kevin",
+  brian: "Brian",
+  steven: "Steven",
+  ryan: "Ryan",
+  jacob: "Jacob",
+  nicholas: "Nicholas",
+  eric: "Eric",
+  jonathan: "Jonathan",
+  justin: "Justin",
+  brandon: "Brandon",
+  tyler: "Tyler",
+  aaron: "Aaron",
+  adam: "Adam",
+  nathan: "Nathan",
+  kyle: "Kyle",
+  liam: "Liam",
+  noah: "Noah",
+  oliver: "Oliver",
+  elijah: "Elijah",
+  lucas: "Lucas",
+  ethan: "Ethan",
+  logan: "Logan",
+  jackson: "Jackson",
+  aiden: "Aiden",
+  sebastian: "Sebastian",
+  benjamin: "Benjamin",
+  samuel: "Samuel",
+  alexander: "Alexander",
+  jason: "Jason",
+  jeffrey: "Jeffrey",
+  mary: "Mary",
+  patricia: "Patricia",
+  jennifer: "Jennifer",
+  linda: "Linda",
+  elizabeth: "Elizabeth",
+  barbara: "Barbara",
+  susan: "Susan",
+  jessica: "Jessica",
+  sarah: "Sarah",
+  karen: "Karen",
+  nancy: "Nancy",
+  lisa: "Lisa",
+  betty: "Betty",
+  sandra: "Sandra",
+  ashley: "Ashley",
+  kimberly: "Kimberly",
+  emily: "Emily",
+  donna: "Donna",
+  michelle: "Michelle",
+  melissa: "Melissa",
+  stephanie: "Stephanie",
+  rebecca: "Rebecca",
+  laura: "Laura",
+  amanda: "Amanda",
+  nicole: "Nicole",
+  emma: "Emma",
+  olivia: "Olivia",
+  sophia: "Sophia",
+  isabella: "Isabella",
+  mia: "Mia",
+  charlotte: "Charlotte",
+  amelia: "Amelia",
+  evelyn: "Evelyn",
+  abigail: "Abigail",
+  madison: "Madison",
+  chloe: "Chloe",
+  natalie: "Natalie",
+  hannah: "Hannah",
+  samantha: "Samantha",
+  rachel: "Rachel",
+  megan: "Megan",
+  lauren: "Lauren",
+  jasmine: "Jasmine",
+  victoria: "Victoria",
+};
+
+/** Espanhol: Deus e países sempre com maiúscula (dias e meses são minúsculos em espanhol). */
+const ALWAYS_CAPITALIZED_ES: Record<string, string> = {
+  dios: "Dios",
+  jesus: "Jesús",
+  navidad: "Navidad",
+  mexico: "México",
+  espana: "España",
+  colombia: "Colombia",
+  argentina: "Argentina",
+  peru: "Perú",
+  venezuela: "Venezuela",
+  ecuador: "Ecuador",
+  guatemala: "Guatemala",
+  cuba: "Cuba",
+  honduras: "Honduras",
+  texas: "Texas",
+  florida: "Florida",
+  california: "California",
+};
+
+/** Nomes de pessoas populares entre hispânicos (sem os que são palavras comuns). */
+const PEOPLE_NAMES_ES: Record<string, string> = {
+  jose: "José",
+  juan: "Juan",
+  luis: "Luis",
+  carlos: "Carlos",
+  jorge: "Jorge",
+  miguel: "Miguel",
+  antonio: "Antonio",
+  francisco: "Francisco",
+  javier: "Javier",
+  alejandro: "Alejandro",
+  fernando: "Fernando",
+  ricardo: "Ricardo",
+  eduardo: "Eduardo",
+  diego: "Diego",
+  andres: "Andrés",
+  manuel: "Manuel",
+  pedro: "Pedro",
+  pablo: "Pablo",
+  sergio: "Sergio",
+  raul: "Raúl",
+  roberto: "Roberto",
+  daniel: "Daniel",
+  david: "David",
+  mateo: "Mateo",
+  santiago: "Santiago",
+  sebastian: "Sebastián",
+  nicolas: "Nicolás",
+  gabriel: "Gabriel",
+  emiliano: "Emiliano",
+  leonardo: "Leonardo",
+  rodrigo: "Rodrigo",
+  gustavo: "Gustavo",
+  hector: "Héctor",
+  maria: "María",
+  guadalupe: "Guadalupe",
+  carmen: "Carmen",
+  ana: "Ana",
+  laura: "Laura",
+  isabel: "Isabel",
+  patricia: "Patricia",
+  elena: "Elena",
+  lucia: "Lucía",
+  sofia: "Sofía",
+  valentina: "Valentina",
+  camila: "Camila",
+  gabriela: "Gabriela",
+  daniela: "Daniela",
+  fernanda: "Fernanda",
+  mariana: "Mariana",
+  andrea: "Andrea",
+  alejandra: "Alejandra",
+  paula: "Paula",
+  natalia: "Natalia",
+  veronica: "Verónica",
+  adriana: "Adriana",
+  claudia: "Claudia",
+  monica: "Mónica",
+  carolina: "Carolina",
+  ximena: "Ximena",
+  regina: "Regina",
+  valeria: "Valeria",
+  isabella: "Isabella",
+  marisol: "Marisol",
+  yesenia: "Yesenia",
+};
+
+/** Marcas conhecidas nos EUA (sem as que são palavras comuns: "face", "target", "visa"...). */
+const GLOBAL_BRAND_NAMES: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+  twitter: "Twitter",
+  telegram: "Telegram",
+  youtube: "YouTube",
+  linkedin: "LinkedIn",
+  pinterest: "Pinterest",
+  snapchat: "Snapchat",
+  reddit: "Reddit",
+  gmail: "Gmail",
+  icloud: "iCloud",
+  facetime: "FaceTime",
+  google: "Google",
+  iphone: "iPhone",
+  ipad: "iPad",
+  macbook: "MacBook",
+  airpods: "AirPods",
+  android: "Android",
+  microsoft: "Microsoft",
+  samsung: "Samsung",
+  motorola: "Motorola",
+  xiaomi: "Xiaomi",
+  sony: "Sony",
+  lenovo: "Lenovo",
+  nvidia: "Nvidia",
+  playstation: "PlayStation",
+  ps5: "PS5",
+  xbox: "Xbox",
+  nintendo: "Nintendo",
+  paypal: "PayPal",
+  venmo: "Venmo",
+  zelle: "Zelle",
+  cashapp: "Cash App",
+  mastercard: "Mastercard",
+  amex: "American Express",
+  amazon: "Amazon",
+  ebay: "eBay",
+  etsy: "Etsy",
+  walmart: "Walmart",
+  costco: "Costco",
+  shein: "Shein",
+  aliexpress: "AliExpress",
+  uber: "Uber",
+  lyft: "Lyft",
+  doordash: "DoorDash",
+  instacart: "Instacart",
+  airbnb: "Airbnb",
+  netflix: "Netflix",
+  spotify: "Spotify",
+  hulu: "Hulu",
+  disney: "Disney",
+  hbo: "HBO",
+  starbucks: "Starbucks",
+  mcdonalds: "McDonald's",
+  cocacola: "Coca-Cola",
+  pepsi: "Pepsi",
+  nike: "Nike",
+  adidas: "Adidas",
+  zara: "Zara",
+  toyota: "Toyota",
+  honda: "Honda",
+  hyundai: "Hyundai",
+  chevrolet: "Chevrolet",
+  volkswagen: "Volkswagen",
+  tesla: "Tesla",
+  bmw: "BMW",
+  audi: "Audi",
+  chatgpt: "ChatGPT",
+  keycon: "KEYCON",
+};
+
+/** Marcas do mundo hispânico. */
+const BRAND_NAMES_ES: Record<string, string> = {
+  mercadolibre: "Mercado Libre",
+  bbva: "BBVA",
+  oxxo: "OXXO",
+  telcel: "Telcel",
+  movistar: "Movistar",
+};
+
+/** Inglês: expressões coladas por falha do espaço. */
+const COMMON_SPLIT_PHRASES_EN: Record<string, string> = {
+  goodmorning: "good morning",
+  goodafternoon: "good afternoon",
+  goodevening: "good evening",
+  thankyou: "thank you",
+  thanku: "thank you",
+  thanksalot: "thanks a lot",
+  howareyou: "how are you",
+  seeyou: "see you",
+  seeyousoon: "see you soon",
+  letme: "let me",
+  letmeknow: "let me know",
+  ofcourse: "of course",
+  alot: "a lot",
+  atleast: "at least",
+  rightnow: "right now",
+  noproblem: "no problem",
+  aswell: "as well",
+  eachother: "each other",
+  talktoyou: "talk to you",
+  haveaniceday: "have a nice day",
+  haveagreatday: "have a great day",
+  creditcard: "credit card",
+  debitcard: "debit card",
+  phonenumber: "phone number",
+  emailaddress: "email address",
+  iam: "I am",
+  iwill: "I will",
+  ican: "I can",
+};
+
+/** Espanhol: expressões coladas por falha do espaço. */
+const COMMON_SPLIT_PHRASES_ES: Record<string, string> = {
+  buenosdias: "buenos días",
+  buendia: "buen día",
+  buenastardes: "buenas tardes",
+  buenasnoches: "buenas noches",
+  comoestas: "cómo estás",
+  comoesta: "cómo está",
+  quetal: "qué tal",
+  muchasgracias: "muchas gracias",
+  porfavor: "por favor",
+  denada: "de nada",
+  hastaluego: "hasta luego",
+  hastapronto: "hasta pronto",
+  hastamanana: "hasta mañana",
+  nosvemos: "nos vemos",
+  estabien: "está bien",
+  todobien: "todo bien",
+  alomejor: "a lo mejor",
+  sinembargo: "sin embargo",
+  otravez: "otra vez",
+  congusto: "con gusto",
+  tarjetadecredito: "tarjeta de crédito",
+  tarjetadedebito: "tarjeta de débito",
+  mercadolibre: "Mercado Libre",
+};
+
+/** Grafia certa de cada idioma (nomes, marcas e palavras com maiúscula). */
+const PROPER_FORMS_BY_LANG: Record<Lang, Array<Record<string, string>>> = {
+  pt: [ALWAYS_CAPITALIZED, BRAND_NAMES, PEOPLE_NAMES],
+  en: [ALWAYS_CAPITALIZED_EN, GLOBAL_BRAND_NAMES, PEOPLE_NAMES_EN],
+  es: [ALWAYS_CAPITALIZED_ES, GLOBAL_BRAND_NAMES, BRAND_NAMES_ES, PEOPLE_NAMES_ES],
+};
+
+/** Nomes, marcas e palavras com maiúscula do idioma (entram no dicionário com boa relevância). */
+export function properEntriesFor(lang: Lang): string[] {
+  return PROPER_FORMS_BY_LANG[lang].flatMap(map => Object.values(map));
+}
+
+const SPLIT_BY_LANG: Record<Lang, Record<string, string>> = {
+  pt: COMMON_SPLIT_PHRASES,
+  en: COMMON_SPLIT_PHRASES_EN,
+  es: COMMON_SPLIT_PHRASES_ES,
+};
+
+/** Expressões coladas conhecidas do idioma ("bomdia", "thankyou", "buenosdias"). */
+export function splitPhrasesFor(lang: Lang): Record<string, string> {
+  return SPLIT_BY_LANG[lang];
+}
+
 /**
- * Retorna a forma canônica de escrita (ex: "deus" -> "Deus", "whatsapp" -> "WhatsApp", "lucas" -> "Lucas").
+ * Retorna a forma canônica de escrita no idioma (ex: "deus" -> "Deus", "whatsapp" -> "WhatsApp",
+ * "james" -> "James", "jose" -> "José").
  */
-export function getProperDisplayForm(word: string): string | undefined {
+export function getProperDisplayForm(lang: Lang, word: string): string | undefined {
   const k = toKey(word);
-  if (ALWAYS_CAPITALIZED[k]) return ALWAYS_CAPITALIZED[k];
-  if (BRAND_NAMES[k]) return BRAND_NAMES[k];
-  if (PEOPLE_NAMES[k]) return PEOPLE_NAMES[k];
+  for (const map of PROPER_FORMS_BY_LANG[lang]) if (map[k]) return map[k];
   return undefined;
 }
 
@@ -536,8 +932,69 @@ export function getPhoneticKey(word: string): string {
 /**
  * Avalia o contexto de múltiplas palavras antes do cursor para dar bônus a candidatos coerentes.
  */
-export function getCollocationBoost(contextWords: string[] | undefined, candidateWord: string): number {
+export function getCollocationBoost(lang: Lang, contextWords: string[] | undefined, candidateWord: string): number {
   if (!contextWords || contextWords.length === 0) return 0;
+  if (lang === 'en') return collocationEn(contextWords, candidateWord);
+  if (lang === 'es') return collocationEs(contextWords, candidateWord);
+  return collocationPt(contextWords, candidateWord);
+}
+
+/** Inglês: saudações, cortesia, "credit card", sujeito e verbo ("I am", "you are"). */
+function collocationEn(contextWords: string[], candidateWord: string): number {
+  const cand = toKey(candidateWord);
+  const n = contextWords.length;
+  const last = contextWords[n - 1].toLowerCase();
+  const last2 = n >= 2 ? `${contextWords[n - 2].toLowerCase()} ${last}` : '';
+  if (last === 'good' && ['morning', 'afternoon', 'evening', 'night', 'luck'].includes(cand)) return 20;
+  if (last === 'thank' && cand === 'you') return 22;
+  if (last === 'thanks' && ['for', 'again'].includes(cand)) return 10;
+  if (last === 'see' && cand === 'you') return 18;
+  if (last === 'let' && cand === 'me') return 18;
+  if (last2 === 'let me' && cand === 'know') return 20;
+  if ((last2 === 'have a' || last2 === 'have a nice') && ['nice', 'great', 'good', 'day', 'weekend'].includes(cand)) return 14;
+  if ((last === 'credit' || last === 'debit') && cand === 'card') return 22;
+  if (last === 'phone' && cand === 'number') return 18;
+  if (last2 === 'looking forward' && cand === 'to') return 20;
+  if (last2 === 'talk to' && cand === 'you') return 16;
+  if (last === 'of' && cand === 'course' && n >= 2) return 6;
+  if (last === 'oh' && cand === 'god') return 14;
+  if (last === 'thank' && cand === 'god') return 10;
+  // Sujeito e verbo
+  if (last === 'i' && ['am', 'have', 'will', 'can', 'think', 'want', 'need', 'know'].includes(cand)) return 4;
+  if (['you', 'we', 'they'].includes(last) && ['are', 'have', 'were', 'can', 'will'].includes(cand)) return 4;
+  if (['he', 'she', 'it'].includes(last) && ['is', 'has', 'was', 'can', 'will'].includes(cand)) return 4;
+  return 0;
+}
+
+/** Espanhol: saudações, cortesia, "tarjeta de crédito", sujeito e verbo ("yo soy", "tú eres"). */
+function collocationEs(contextWords: string[], candidateWord: string): number {
+  const cand = toKey(candidateWord);
+  const n = contextWords.length;
+  const last = toKey(contextWords[n - 1]);
+  const last2 = n >= 2 ? `${toKey(contextWords[n - 2])} ${last}` : '';
+  if (last === 'buenos' && cand === 'dias') return 22;
+  if (last === 'buen' && ['dia', 'viaje', 'trabajo'].includes(cand)) return 16;
+  if (last === 'buenas' && ['tardes', 'noches'].includes(cand)) return 22;
+  if (last === 'muchas' && cand === 'gracias') return 22;
+  if (last === 'por' && cand === 'favor') return 20;
+  if (last === 'hasta' && ['luego', 'pronto', 'manana'].includes(cand)) return 18;
+  if (last === 'como' && ['estas', 'esta', 'estan'].includes(cand)) return 16;
+  if (last === 'que' && cand === 'tal') return 12;
+  if (last === 'todo' && ['bien', 'bueno'].includes(cand)) return 16;
+  if (last === 'con' && cand === 'gusto') return 16;
+  if (last === 'nos' && cand === 'vemos') return 16;
+  if (last2 === 'gracias a' && cand === 'dios') return 25;
+  if (last2 === 'tarjeta de' && ['credito', 'debito'].includes(cand)) return 22;
+  if (last2 === 'sin embargo' || (last === 'sin' && cand === 'embargo')) return 12;
+  // Sujeito e verbo
+  if (last === 'yo' && ['soy', 'estoy', 'tengo', 'quiero', 'puedo', 'voy', 'se', 'creo'].includes(cand)) return 4;
+  if (['tu', 'vos'].includes(last) && ['eres', 'estas', 'tienes', 'quieres', 'puedes', 'vas'].includes(cand)) return 4;
+  if (['el', 'ella', 'usted'].includes(last) && ['es', 'esta', 'tiene', 'quiere', 'puede', 'va'].includes(cand)) return 4;
+  return 0;
+}
+
+/** Português: Deus, Pix, cortesia, concordância e sujeito e verbo. */
+function collocationPt(contextWords: string[], candidateWord: string): number {
   const candKey = toKey(candidateWord);
   const n = contextWords.length;
   const last = contextWords[n - 1];
@@ -595,8 +1052,56 @@ export function getCollocationBoost(contextWords: string[] | undefined, candidat
 /**
  * Previsões contextuais para quando o usuário acabou de digitar espaço.
  */
-export function getContextualNextPredictions(contextWords: string[] | undefined): string[] {
+export function getContextualNextPredictions(lang: Lang, contextWords: string[] | undefined): string[] {
   if (!contextWords || contextWords.length === 0) return [];
+  if (lang === 'en') return nextPredictionsEn(contextWords);
+  if (lang === 'es') return nextPredictionsEs(contextWords);
+  return nextPredictionsPt(contextWords);
+}
+
+/** Inglês: a próxima palavra depois de "good", "thank", "let me", "credit"... */
+function nextPredictionsEn(contextWords: string[]): string[] {
+  const n = contextWords.length;
+  const last = contextWords[n - 1].toLowerCase();
+  const last2 = n >= 2 ? `${contextWords[n - 2].toLowerCase()} ${last}` : '';
+  if (last2 === 'let me') return ['know'];
+  if (last2 === 'have a') return ['great', 'nice', 'good'];
+  if (last2 === 'talk to') return ['you'];
+  if (last2 === 'looking forward') return ['to'];
+  if (last === 'good') return ['morning', 'afternoon', 'night'];
+  if (last === 'thank') return ['you', 'God'];
+  if (last === 'thanks') return ['for', 'again', 'so'];
+  if (last === 'see') return ['you'];
+  if (last === 'let') return ['me', 'us'];
+  if (last === 'how') return ['are', 'much', 'is'];
+  if (last === 'credit' || last === 'debit') return ['card'];
+  if (last === 'phone') return ['number'];
+  return [];
+}
+
+/** Espanhol: a próxima palavra depois de "buenos", "muchas", "por", "hasta"... */
+function nextPredictionsEs(contextWords: string[]): string[] {
+  const n = contextWords.length;
+  const last = toKey(contextWords[n - 1]);
+  const last2 = n >= 2 ? `${toKey(contextWords[n - 2])} ${last}` : '';
+  if (last2 === 'gracias a') return ['Dios'];
+  if (last2 === 'tarjeta de') return ['crédito', 'débito'];
+  if (last === 'buenos') return ['días'];
+  if (last === 'buen') return ['día', 'viaje', 'trabajo'];
+  if (last === 'buenas') return ['tardes', 'noches'];
+  if (last === 'muchas') return ['gracias'];
+  if (last === 'por') return ['favor', 'eso', 'supuesto'];
+  if (last === 'hasta') return ['luego', 'pronto', 'mañana'];
+  if (last === 'como') return ['estás', 'está', 'te'];
+  if (last === 'que') return ['tal'];
+  if (last === 'todo') return ['bien'];
+  if (last === 'con') return ['gusto'];
+  if (last === 'nos') return ['vemos'];
+  return [];
+}
+
+/** Português: Deus, Pix, cortesia e "cartão de crédito". */
+function nextPredictionsPt(contextWords: string[]): string[] {
   const n = contextWords.length;
   const last = contextWords[n - 1];
   const last2 = n >= 2 ? `${contextWords[n - 2]} ${last}` : '';

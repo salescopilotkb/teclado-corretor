@@ -61,8 +61,8 @@ create table if not exists public.locker_files (
 --  - todo arquivo tem um link próprio: locker.keyconapp.com/f/<share_token>
 --    (quem tiver o link abre o arquivo, também de dentro de uma pasta privada);
 --  - cada pasta escolhe quem a vê: private (só o dono), link (quem tem o link
---    locker.keyconapp.com/d/<share_token>) ou public (como link, e também na
---    vitrine pública do vendedor no Locker web).
+--    locker.keyconapp.com/d/<share_token>) ou public (igual a link; a vitrine
+--    pública do vendedor foi adiada: IMPLEMENTACOES-FUTURAS.md).
 -- O share_token é aleatório (32 caracteres): não dá para adivinhar outros links.
 -- -----------------------------------------------------------------------------
 alter table public.locker_folders add column if not exists visibility text not null default 'private';

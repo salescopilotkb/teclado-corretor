@@ -123,6 +123,8 @@ final class KeyboardViewController: UIInputViewController {
     func insert(_ text: String) { textDocumentProxy.insertText(text) }
     func deleteBackward() { textDocumentProxy.deleteBackward() }
     func sendEnter() { textDocumentProxy.insertText("\n") }
+    /// Espaço arrastado: anda com o cursor (negativo = para a esquerda).
+    func moveCursor(_ offset: Int) { textDocumentProxy.adjustTextPosition(byCharacterOffset: offset) }
     func switchKeyboard() { advanceToNextInputMode() }
 
     /// Expande o teclado para quase a tela toda (ou volta ao normal).

@@ -224,6 +224,11 @@ alter table public.products add constraint products_price_check check (price >= 
 alter table public.profiles add column if not exists language text not null default 'pt';
 alter table public.profiles add column if not exists market text not null default 'BR';
 
+-- Tema do app, do teclado e do Locker web (escuro por padrão; o app grava ao trocar)
+alter table public.profiles add column if not exists theme text not null default 'dark';
+alter table public.profiles drop constraint if exists profiles_theme_check;
+alter table public.profiles add constraint profiles_theme_check check (theme in ('dark', 'light', 'system'));
+
 -- -----------------------------------------------------------------------------
 -- Lista de espera da landing page (landing/): "Avise-me no lançamento".
 -- Qualquer visitante pode SE INSCREVER (insert com a chave anon), mas ninguém

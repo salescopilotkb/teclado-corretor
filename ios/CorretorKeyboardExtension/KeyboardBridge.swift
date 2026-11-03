@@ -76,6 +76,12 @@ final class KeyboardBridge: RCTEventEmitter {
         onMain(resolve, reject) { $0.replaceTextBeforeCursor(count.intValue, text); return true }
     }
 
+    @objc func moveCursor(_ offset: NSNumber,
+                          resolver resolve: @escaping RCTPromiseResolveBlock,
+                          rejecter reject: @escaping RCTPromiseRejectBlock) {
+        onMain(resolve, reject) { $0.moveCursor(offset.intValue); return true }
+    }
+
     @objc func setExpanded(_ expanded: Bool,
                            resolver resolve: @escaping RCTPromiseResolveBlock,
                            rejecter reject: @escaping RCTPromiseRejectBlock) {

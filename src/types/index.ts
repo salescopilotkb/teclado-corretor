@@ -178,7 +178,10 @@ export interface CRMLead {
 }
 
 /** Pasta da seção Arquivos. parentId null = pasta na raiz. */
-/** Quem vê a pasta pelo Locker: só o dono, quem tem o link, ou também a vitrine pública. */
+/**
+ * Quem vê a pasta pelo Locker: só o dono ou quem tem o link. "public" ficou de pastas
+ * antigas e vale como "link" (a vitrine pública foi adiada: IMPLEMENTACOES-FUTURAS.md).
+ */
 export type FolderVisibility = 'private' | 'link' | 'public';
 
 export interface FileFolder {

@@ -43,7 +43,7 @@ create table if not exists public.plan_limits (
   -- Equipes e dependentes (as pessoas das equipes, criadas pela empresa)
   max_teams              integer,
   max_dependents         integer,
-  -- Pasta por link ou pública (vitrine)
+  -- Pasta por link (a vitrine pública foi adiada)
   folder_links           boolean not null default false,
   -- Arquivos sem internet no Locker do computador
   offline_web            boolean not null default false,
@@ -268,7 +268,7 @@ begin
   if l.max_folders is not null and (select count(*) from public.locker_folders where user_id = new.user_id) > l.max_folders then
     raise exception 'plan_limit:folders' using errcode = 'P0001', hint = l.max_folders::text;
   end if;
-  -- Pasta por link ou pública: só nos planos com vitrine
+  -- Pasta por link: só nos planos Plus e Pro
   if new.visibility <> 'private' and not l.folder_links then
     raise exception 'plan_limit:folder_links' using errcode = 'P0001';
   end if;

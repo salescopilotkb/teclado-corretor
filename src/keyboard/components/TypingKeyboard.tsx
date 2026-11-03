@@ -14,7 +14,7 @@ import { TypingContext } from '../typing/typingContext';
 import { createDeleteRepeater } from '../utils/deleteRepeater';
 import type { IconName } from './Icon';
 import { Icon } from './Icon';
-import { LANGUAGES, getTypingLanguage, t, nextTypingLanguage, onTypingLanguageChange, setTypingLanguage } from '../../i18n';
+import { LANGUAGES, getTypingLanguage, t, onTypingLanguageChange } from '../../i18n';
 import type { Lang } from '../../i18n';
 import { useLanguage } from '../../i18n/useLanguage';
 import { EmojiPanel } from './EmojiPanel';
@@ -143,8 +143,13 @@ function pointsOf(e: GestureResponderEvent): NativeTouchEvent[] {
 
 const isLetter = (c: string) => /^[a-zà-ÿç]$/i.test(c);
 
-/** Segurar o espaço por este tempo troca o idioma de digitação. */
-const LANGUAGE_HOLD_MS = 500;
+/**
+ * Segurar o espaço e arrastar para os lados anda com o cursor no campo: depois de
+ * CURSOR_START px vira "modo cursor" (o espaço não é digitado) e cada CURSOR_STEP px
+ * anda 1 caractere.
+ */
+const CURSOR_START = 14;
+const CURSOR_STEP = 9;
 
 /** Palavras da frase que o corretor lê para entender o contexto (antes eram 5). */
 const CONTEXT_WORDS = 12;
@@ -217,7 +222,7 @@ function buildRows(mode: Mode, shift: ShiftState, typingLang: Lang): KeyDef[][] 
       { id: 'comma', label: ',', kind: 'char', flex: 1, action: { t: 'char', v: ',' } },
       // Emojis (painel com os emojis do próprio celular)
       { id: 'emoji', label: '😊', icon: 'emoji', kind: 'func', flex: 1, action: { t: 'emoji' } },
-      // O nome do idioma de digitação no espaço (segurar troca)
+      // O nome do idioma de digitação no espaço (segurar e arrastar anda com o cursor)
       { id: 'space', label: LANGUAGES.find(l => l.id === typingLang)?.label ?? '', kind: 'space', flex: 4, action: { t: 'space' } },
       { id: 'dot', label: '.', kind: 'char', flex: 1, action: { t: 'char', v: '.' } },
       { id: 'enter', label: '↵', icon: 'enter', kind: 'enter', flex: 1.5, action: { t: 'enter' } },
@@ -239,6 +244,8 @@ interface ActiveTouch {
   timer: ReturnType<typeof setTimeout> | null;
   /** Segurando uma letra: opções de acento abertas acima dela. */
   accent?: AccentSession;
+  /** Espaço: de onde o dedo partiu e quantos caracteres o cursor já andou. */
+  cursor?: { startX: number; moved: number; active: boolean };
 }
 
 interface AccentSession {
@@ -270,6 +277,8 @@ export interface TextSink {
   replaceTextBeforeCursor(count: number, text: string): Promise<boolean>;
   sendEnter(): Promise<boolean>;
   getInputContext(): Promise<InputContext>;
+  /** Anda com o cursor (negativo = para a esquerda), em caracteres. */
+  moveCursor?(offset: number): Promise<boolean>;
 }
 
 interface Props {
@@ -854,13 +863,8 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
         active.done = true;
         deleteRepeater.start();
       } else if (key.action.t === 'space') {
-        // Segurou o espaço: troca o idioma do corretor (o espaço não é digitado)
-        active.timer = setTimeout(() => {
-          active.timer = null;
-          if (active.done) return;
-          active.done = true;
-          setTypingLanguage(nextTypingLanguage());
-        }, LANGUAGE_HOLD_MS);
+        // Arrastar o espaço para os lados anda com o cursor (onTouchMove)
+        if (out.current.moveCursor) active.cursor = { startX: x, moved: 0, active: false };
       } else if (key.letter && ACCENTS[key.letter] && modeRef.current === 'alpha') {
         const letter = key.letter;
         active.timer = setTimeout(() => {
@@ -886,9 +890,30 @@ export function TypingKeyboard({ sink, initialMode = 'alpha' }: Props = {}) {
     [context, deleteRepeater, finish, keyRects, onShift, setShift],
   );
 
-  /** Dedo arrastando: com os acentos abertos, escolhe a opção sob ele. */
+  /** Dedo arrastando: no espaço, anda com o cursor; com os acentos abertos, escolhe a opção sob ele. */
   const onTouchMove = useCallback((t: NativeTouchEvent) => {
     const active = touches.current.get(String(t.identifier));
+    const cursor = active?.cursor;
+    if (active && cursor) {
+      const dx = pointOf(t).x - cursor.startX;
+      if (!cursor.active) {
+        if (Math.abs(dx) < CURSOR_START) return;
+        // Virou "modo cursor": soltar não digita o espaço
+        cursor.active = true;
+        active.done = true;
+        cursor.startX += dx > 0 ? CURSOR_START : -CURSOR_START;
+        KeyboardBridge.hapticLongPress();
+      }
+      const steps = Math.trunc((pointOf(t).x - cursor.startX) / CURSOR_STEP);
+      const delta = steps - cursor.moved;
+      if (delta !== 0) {
+        cursor.moved = steps;
+        autoSpace.current = false;
+        lastFix.current = null;
+        out.current.moveCursor?.(delta).catch(() => {});
+      }
+      return;
+    }
     const session = active?.accent;
     if (!session) return;
     const { x } = pointOf(t);

@@ -15,6 +15,7 @@ import { Login } from './Login';
 import { DEMO_USER, PREVIEW } from './demo';
 import { useLanguage } from '../../src/i18n/useLanguage';
 import { applyProfileLanguage } from './lang';
+import { applyProfileTheme } from './theme';
 import { PublicPage, publicRoute } from './Public';
 
 /** /f/<código> ou /d/<código>: página pública, sem login. */
@@ -44,8 +45,17 @@ export function App() {
   const userId = session?.user.id;
   useEffect(() => {
     if (userId) applyProfileLanguage(userId);
+    if (userId) applyProfileTheme(userId).catch(() => {});
     setPlan(null);
     if (userId) fetchPlan().then(setPlan).catch(() => setPlan(OPEN));
+  }, [userId]);
+
+  // Trocou o tema no app com o Locker aberto: ao voltar para a aba, segue o novo
+  useEffect(() => {
+    if (!userId) return;
+    const onShow = () => document.visibilityState === 'visible' && applyProfileTheme(userId).catch(() => {});
+    document.addEventListener('visibilitychange', onShow);
+    return () => document.removeEventListener('visibilitychange', onShow);
   }, [userId]);
 
   useEffect(() => {

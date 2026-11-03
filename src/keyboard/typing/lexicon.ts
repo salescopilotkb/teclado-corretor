@@ -19,7 +19,8 @@
  *    "bom dia"); as outras separações ("parada" → "para da") só aparecem como
  *    opção, sem trocar a palavra;
  *  - Tolerância estendida a palavras muito erradas (busca fonética e teclado);
- *  - Nomes próprios de pessoas brasileiras populares e marcas famosas;
+ *  - Nomes próprios populares (Brasil, EUA e hispânicos) e marcas famosas, nos 3 idiomas;
+ *  - Palavras coladas e expressões comuns também em inglês e espanhol;
  *  - Capitalização estrita da palavra "Deus" sempre com 'D' maiúsculo.
  *
  * Tudo roda no próprio aparelho, sem internet. O índice é montado fora do
@@ -34,13 +35,11 @@ import { WORDS_EN } from './wordsEn';
 import { WORDS_ES } from './wordsEs';
 import { WORDS_PT } from './wordsPt';
 import {
-  ALWAYS_CAPITALIZED,
-  BRAND_NAMES,
-  PEOPLE_NAMES,
-  COMMON_SPLIT_PHRASES,
   getProperDisplayForm,
   getCollocationBoost,
   getContextualNextPredictions,
+  properEntriesFor,
+  splitPhrasesFor,
 } from './properNouns';
 import { isLearned, learnedForm, learnedWords, nextFromPairs, pairCount, userCount } from './userWords';
 
@@ -297,10 +296,8 @@ const DISPLAY_FORMS: Partial<Record<Lang, Record<string, string>>> = {
 };
 
 const displayForm = (word: string): string => {
-  if (currentLexiconLang === 'pt') {
-    const proper = getProperDisplayForm(word);
-    if (proper) return proper;
-  }
+  const proper = getProperDisplayForm(currentLexiconLang, word);
+  if (proper) return proper;
   const fixed = DISPLAY_FORMS[currentLexiconLang]?.[word];
   if (fixed) return fixed;
   // Palavra aprendida que a pessoa escreve com maiúscula (apelido, nome): "Lindeusa"
@@ -372,13 +369,9 @@ export function buildLexicon(targetLang?: Lang): void {
       else byKey.set(key, [entry]);
     }
 
-    // Injeta marcas famosas, nomes populares e termos sagrados com alta relevância
-    if (target === 'pt') {
-      const properEntries: string[] = [
-        ...Object.values(ALWAYS_CAPITALIZED),
-        ...Object.values(BRAND_NAMES),
-        ...Object.values(PEOPLE_NAMES),
-      ];
+    // Injeta marcas famosas, nomes populares e termos sagrados com alta relevância (nos 3 idiomas)
+    {
+      const properEntries: string[] = properEntriesFor(target);
       for (let i = 0; i < properEntries.length; i++) {
         const word = properEntries[i];
         const key = toKey(word);
@@ -483,11 +476,8 @@ function isKnown(lex: Lexicon, word: string): boolean {
 /** Mantém o jeito que a pessoa escreveu, preservando marcas e nomes próprios. */
 function matchCase(typed: string, suggestion: string): string {
   // Nomes com capitalização específica
-  const proper = getProperDisplayForm(suggestion);
+  const proper = getProperDisplayForm(currentLexiconLang, suggestion);
   if (proper) return proper;
-  if (ALWAYS_CAPITALIZED[suggestion.toLowerCase()]) return ALWAYS_CAPITALIZED[suggestion.toLowerCase()];
-  if (BRAND_NAMES[suggestion.toLowerCase()]) return BRAND_NAMES[suggestion.toLowerCase()];
-  if (PEOPLE_NAMES[suggestion.toLowerCase()]) return PEOPLE_NAMES[suggestion.toLowerCase()];
 
   // Aprendida com maiúscula ("Lindeusa"): sempre como a pessoa escreve
   const learned = learnedForm(currentLexiconLang, suggestion);
@@ -637,7 +627,7 @@ function findSplitWordCandidate(
   const key = toKey(typed);
 
   // 1. Frases comuns pré-mapeadas
-  const common = COMMON_SPLIT_PHRASES[key];
+  const common = splitPhrasesFor(currentLexiconLang)[key];
   if (common) {
     return { text: common, score: 38 };
   }
@@ -693,7 +683,7 @@ function findSplitWordCandidate(
 
     const bigramStrength = bigramMap.get(e1.word)?.get(e2.word) ?? 0;
     const contextStrengthW1 = prev ? (bigramMap.get(prev)?.get(e1.word) ?? 0) : 0;
-    const collocBoost = contextWords ? getCollocationBoost(contextWords, e1.word) : 0;
+    const collocBoost = contextWords ? getCollocationBoost(currentLexiconLang, contextWords, e1.word) : 0;
 
     let score = 22 - Math.log(e1.rank + 10) - Math.log(e2.rank + 10);
     score -= (p1Cost + p2Cost) * 1.8;
@@ -732,9 +722,11 @@ function splitSuggestion(
   prev?: string,
   contextWords?: string[],
 ): string | null {
-  if (currentLexiconLang !== 'pt' || toKey(typed).length < 5 || isLearned(currentLexiconLang, typed)) return null;
-  const curated = COMMON_SPLIT_PHRASES[toKey(typed)];
+  if (toKey(typed).length < 5 || isLearned(currentLexiconLang, typed)) return null;
+  const curated = splitPhrasesFor(currentLexiconLang)[toKey(typed)];
   if (curated) return curated;
+  // Inglês e espanhol: além das conhecidas, só separa palavra que não existe
+  if (currentLexiconLang !== 'pt' && known) return null;
   const cand = findSplitWordCandidate(lex, typed, prev, contextWords, known);
   if (!cand || cand.score < (known ? KNOWN_SPLIT_MIN_SCORE : 5)) return null;
   return matchCase(typed, cand.text);
@@ -762,7 +754,7 @@ function candidatesFor(
   const offer = (word: string, base: number, kind: Kind) => {
     if (word === lowerTyped || neverSuggest.has(word)) return;
     const { context, bonus } = phraseContext(word, prev, contextWords, recent);
-    const colloc = contextWords && currentLexiconLang === 'pt' ? getCollocationBoost(contextWords, word) : 0;
+    const colloc = contextWords ? getCollocationBoost(currentLexiconLang, contextWords, word) : 0;
     const score = base + CONTEXT_WEIGHT * context + colloc + bonus;
     const old = found.get(word);
     if (!old || score > old.score) found.set(word, { word, score, kind, context });
@@ -774,9 +766,10 @@ function candidatesFor(
   const expanded = abbreviations[lowerTyped];
   if (expanded) offer(expanded, 100, 'abbr');
 
-  // 0.5) Expressões coladas conhecidas ("bomdia" → "bom dia"): só quando a digitada não é uma palavra
-  if (currentLexiconLang === 'pt' && !known) {
-    const commonSplit = COMMON_SPLIT_PHRASES[key];
+  // 0.5) Expressões coladas conhecidas ("bomdia" → "bom dia", "thankyou" → "thank you"): a lista é
+  // escolhida a dedo, então vale mesmo quando a forma colada aparece no dicionário
+  {
+    const commonSplit = splitPhrasesFor(currentLexiconLang)[key];
     if (commonSplit) {
       found.set(commonSplit, {
         word: commonSplit,
@@ -961,13 +954,20 @@ function pickAutocorrect(
   contextWords?: string[],
 ): Candidate | null {
   if (!typed || !ONLY_LETTERS.test(typed)) return null;
-  if (known) return isLearned(currentLexiconLang, typed) ? null : contextualAccent(lex, typed, prev, contextWords);
+  if (known) {
+    if (isLearned(currentLexiconLang, typed)) return null;
+    // Forma colada que aparece no dicionário ("thankyou", "porfavor"): a lista feita a dedo manda
+    const curated = splitPhrasesFor(currentLexiconLang)[toKey(typed)];
+    const split = curated ? all.find(c => c.word === curated) : undefined;
+    if (split) return split;
+    return contextualAccent(lex, typed, prev, contextWords);
+  }
   if (typed.length < 2) return null;
   const abbreviations = ABBREVIATIONS_BY_LANG[currentLexiconLang] ?? ABBREVIATIONS_BY_LANG.pt;
   if (abbreviations[typed.toLowerCase()]) return null;
   const typedLength = toKey(typed).length;
   loadBigrams();
-  const curatedSplit = COMMON_SPLIT_PHRASES[toKey(typed)];
+  const curatedSplit = splitPhrasesFor(currentLexiconLang)[toKey(typed)];
   const fixes = all.filter(c => {
     // Só as frases coladas conhecidas ("bom dia") entram sozinhas
     if (c.word.includes(' ')) return c.word === curatedSplit;
@@ -1027,8 +1027,8 @@ export function predictNext(prev: string, limit = 3, contextWords?: string[], re
   if (prev !== '^') for (const w of nextFromPairs(currentLexiconLang, bigramKey(prev)).slice(0, 2)) push(w);
 
   // 2. Predições contextuais avançadas pelo histórico da oração
-  if (currentLexiconLang === 'pt' && contextWords && contextWords.length > 0) {
-    for (const w of getContextualNextPredictions(contextWords)) push(w);
+  if (contextWords && contextWords.length > 0) {
+    for (const w of getContextualNextPredictions(currentLexiconLang, contextWords)) push(w);
   }
 
   // 3. Combinações da língua, com a palavra de duas posições atrás e a conversa

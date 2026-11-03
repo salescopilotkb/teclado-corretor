@@ -113,6 +113,7 @@ const ICONS = {
   globo: [{ circle: [12, 12, 10] }, { d: 'M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20' }],
   // Locker no computador (locker.keyconapp.com)
   nuvem: [{ d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' }],
+  link: [{ d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' }, { d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' }],
   enter: [{ d: 'M9 10l-5 5 5 5' }, { d: 'M20 4v7a4 4 0 0 1-4 4H4' }],
   // Tecla de emojis: rosto só no traço, como os outros ícones (não o emoji colorido)
   emoji: [{ circle: [12, 12, 9.5] }, { d: 'M8.5 14.5a4.5 4.5 0 0 0 7 0' }, { d: 'M9 9.5h.01M15 9.5h.01' }],

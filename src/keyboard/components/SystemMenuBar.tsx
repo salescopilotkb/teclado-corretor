@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
-import { t } from '../../i18n';
+import { LANGUAGES, getTypingLanguage, nextTypingLanguage, onTypingLanguageChange, setTypingLanguage, t } from '../../i18n';
+import type { Lang } from '../../i18n';
 import { KeyboardBridge } from '../../native/KeyboardBridge';
 import { canTranslate } from '../../native/Translator';
 import type { MainSystemTab, MenuTab } from '../../types';
@@ -20,6 +21,9 @@ const BUTTONS: Record<MenuTab, { label: string; icon: IconName }> = {
   crm: { label: 'CRM', icon: 'clientes' },
   more: { label: 'Mais', icon: 'mais' },
 };
+
+/** Botão 🌐 (voltar ao teclado do sistema): só no Android. */
+const SHOW_SWITCH = Platform.OS === 'android';
 
 /** Segurar este tempo num botão: o teclado vibra e o botão descola para ser arrastado. */
 const DRAG_HOLD_MS = 1000;
@@ -49,7 +53,8 @@ interface Props {
 
 /**
  * Menu do teclado, SEMPRE VISÍVEL no topo:
- *  - em cima, o logotipo KEYCON (à esquerda) e, à direita, o 🌐 (voltar ao
+ *  - em cima, o logotipo KEYCON (à esquerda) e, à direita, o idioma de digitação
+ *    (EN/PT/ES: tocar troca o corretor e as sugestões), o 🌐 (só no Android: voltar ao
  *    teclado do sistema, com pergunta antes), Traduzir (tradução simultânea)
  *    e o ícone de teclado (fixo), que alterna entre o teclado de letras e a
  *    última seção usada;
@@ -196,16 +201,22 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
         ) : (
           <KeyconLogo size={16} />
         )}
-        {/* Voltar ao teclado padrão do sistema (longe das teclas, para não tocar sem querer) */}
-        <Pressable
-          testID="system-btn-switch"
-          accessibilityRole="button"
-          accessibilityLabel={t('Trocar para o teclado do sistema')}
-          hitSlop={6}
-          onPress={onSwitchKeyboard}
-          style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
-          <Icon name="globo" size={20} color={colors.textMuted} />
-        </Pressable>
+        {/* Idioma de digitação: tocar troca (o do app, o de venda e o outro) */}
+        <LanguageButton />
+        {/* Voltar ao teclado padrão do sistema (longe das teclas, para não tocar sem querer).
+            Só no Android: no iPhone o 🌐 do próprio sistema já fica embaixo do teclado,
+            e a página de teste (web) não tem outro teclado para trocar */}
+        {SHOW_SWITCH && (
+          <Pressable
+            testID="system-btn-switch"
+            accessibilityRole="button"
+            accessibilityLabel={t('Trocar para o teclado do sistema')}
+            hitSlop={6}
+            onPress={onSwitchKeyboard}
+            style={({ pressed }) => [styles.keyboardBtn, pressed && styles.pressed]}>
+            <Icon name="globo" size={20} color={colors.textMuted} />
+          </Pressable>
+        )}
         {/* Tradução simultânea: escreve no seu idioma, vai traduzido para a conversa */}
         {canTranslate && (
           <Pressable
@@ -282,6 +293,27 @@ export const SystemMenuBar = memo(({ active, onChange, order, onReorder, catalog
   );
 });
 
+/** "EN" / "PT" / "ES": o idioma em que o teclado corrige e sugere; tocar passa para o próximo. */
+function LanguageButton() {
+  const styles = useStyles();
+  const [lang, setLang] = useState<Lang>(getTypingLanguage);
+  useEffect(() => onTypingLanguageChange(setLang), []);
+  const name = LANGUAGES.find(l => l.id === lang)?.label ?? lang;
+  return (
+    <Pressable
+      testID="system-btn-language"
+      accessibilityRole="button"
+      accessibilityLabel={t('Idioma de digitação: {lang}. Toque para trocar.', { lang: name })}
+      hitSlop={6}
+      onPress={() => setTypingLanguage(nextTypingLanguage())}
+      style={({ pressed }) => [styles.keyboardBtn, styles.headLeftBtn, pressed && styles.pressed]}>
+      <View style={styles.langChip}>
+        <Text style={styles.langText}>{lang.toUpperCase()}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 const useStyles = makeStyles(colors => ({
   wrap: {
     backgroundColor: colors.bg,
@@ -298,6 +330,17 @@ const useStyles = makeStyles(colors => ({
     paddingTop: 2,
   },
   dragHint: { flex: 1, fontSize: 12, fontWeight: '600', color: colors.primaryText },
+  langChip: {
+    minWidth: 30,
+    height: 20,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.textMuted,
+  },
+  langText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4, color: colors.textMuted },
   /** O logotipo fica à esquerda; Traduzir e Teclado juntos à direita. */
   headLeftBtn: { marginLeft: 'auto' },
   keyboardBtn: {

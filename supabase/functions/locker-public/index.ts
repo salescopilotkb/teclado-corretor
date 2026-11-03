@@ -8,7 +8,7 @@
  *
  * Quem tem o link de um ARQUIVO abre o arquivo (também se ele estiver numa pasta
  * privada: foi o próprio arquivo que a pessoa compartilhou). Uma PASTA só abre se
- * estiver como "link" ou "public" e o plano do dono tiver vitrine (Plus em diante,
+ * estiver como "link" ou "public" e o plano do dono tiver link de pasta (Plus em diante,
  * supabase/plans.sql); as subpastas dela abrem junto (sub = id da
  * subpasta, conferida para ser mesmo de dentro). Nada da lixeira aparece.
  *
@@ -91,7 +91,7 @@ Deno.serve(async req => {
       .eq('share_token', folderToken)
       .maybeSingle();
     if (!root || root.trashed_at || root.visibility === 'private') return notFound();
-    // Pasta por link ou pública só nos planos com vitrine (Plus em diante): quem desceu
+    // Pasta por link só nos planos Plus em diante: quem desceu
     // de plano ou ficou sem assinatura volta a ter a pasta privada, sem mudar nada nela
     const { data: limits, error: limitsError } = await db.rpc('plan_limits_of', { uid: root.user_id });
     if (!limitsError && !(limits as { folder_links?: boolean } | null)?.folder_links) return notFound();

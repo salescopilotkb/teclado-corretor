@@ -45,6 +45,13 @@
                 <data android:scheme="keycon" android:host="auth-callback" />
                 <data android:scheme="com.keycon.app" android:host="auth-callback" />
             </intent-filter>
+            <!-- Botão da nuvem no teclado: keycon://locker abre o app na aba Locker -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="keycon" android:host="locker" />
+            </intent-filter>
         </activity>
 
         <!-- 2) Servico de Metodo de Entrada (Teclado IME) -->

@@ -2,8 +2,8 @@
  * "Compartilhar", como no Drive:
  *  - Pessoas e equipes com acesso: por e-mail ou por uma equipe (acesso de leitor:
  *    ver, abrir e baixar). Quem recebe acha em "Compartilhados comigo".
- *  - Acesso geral da pasta: Privada, Qualquer pessoa com o link ou Pública (o mesmo
- *    que o app mostra em "Quem pode ver esta pasta"). Arquivo: o link sempre abre
+ *  - Acesso geral da pasta: Privada ou Qualquer pessoa com o link (o mesmo que o
+ *    app mostra em "Quem pode ver esta pasta"; a vitrine pública foi adiada). Arquivo: o link sempre abre
  *    sem login.
  */
 import React, { useEffect, useMemo, useState } from 'react';
@@ -18,7 +18,6 @@ import type { Share, Team } from './sharing';
 const OPTIONS: Array<{ id: Visibility; label: string; hint: string; icon: IconName }> = [
   { id: 'private', label: 'Privada', hint: 'Só você e as pessoas e equipes acima.', icon: 'lock' },
   { id: 'link', label: 'Qualquer pessoa com o link', hint: 'Quem tiver o link vê a pasta, sem entrar na conta.', icon: 'link' },
-  { id: 'public', label: 'Pública', hint: 'Como "com o link", e também na sua vitrine pública do Locker.', icon: 'globe' },
 ];
 
 export function ShareDialog({
@@ -31,7 +30,7 @@ export function ShareDialog({
   onCopied,
 }: {
   target: { kind: 'folder'; folder: LockerFolder } | { kind: 'file'; file: LockerFile };
-  /** Pasta por link ou pública: só nos planos com vitrine (Plus e Pro) */
+  /** Pasta por link: só nos planos Plus e Pro */
   allowLinks?: boolean;
   userId: string;
   userEmail: string;
@@ -39,7 +38,10 @@ export function ShareDialog({
   onChanged: () => Promise<void>;
   onCopied: (text: string) => void;
 }) {
-  const [visibility, setVisibility] = useState<Visibility>(target.kind === 'folder' ? target.folder.visibility ?? 'private' : 'link');
+  // "Pública" (pastas antigas) aparece como "com o link": as duas abrem do mesmo jeito
+  const [visibility, setVisibility] = useState<Visibility>(
+    target.kind === 'folder' ? ((target.folder.visibility ?? 'private') === 'private' ? 'private' : 'link') : 'link',
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [shares, setShares] = useState<Share[] | null>(null);
@@ -232,7 +234,7 @@ export function ShareDialog({
                 </span>
               </label>
             ))}
-            {allowLinks ? null : <p className="muted share-note">{t('Pasta por link ou pública: no plano Plus ou no Pro.')}</p>}
+            {allowLinks ? null : <p className="muted share-note">{t('Pasta por link: no plano Plus ou no Pro.')}</p>}
           </fieldset>
         ) : (
           <div className="share-option on static">

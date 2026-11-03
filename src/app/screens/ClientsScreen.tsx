@@ -28,6 +28,7 @@ import { Icon } from '../../keyboard/components/Icon';
 import { ChoiceRow } from '../../keyboard/components/KeyboardForm';
 import { UseButton } from '../../keyboard/components/KeyboardButtons';
 import { TagChip, TagFilter, TagList, TagPicker } from '../../keyboard/components/TagChips';
+import { PhoneField } from '../components/PhoneField';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { CoralSheen, Button, Card, CardText, CardTitle, EmptyState, Page, ScreenTitle, SubHeader } from '../components/ui';
 import { useStoredList } from '../hooks/useStoredList';
@@ -508,7 +509,8 @@ function LeadForm({
       <SubHeader title={lead ? t('Editar cliente') : t('Novo cliente')} onBack={onBack} />
       <Card>
         {input(t('Nome'), name, setName, t('Nome do cliente'))}
-        {input(t('WhatsApp do cliente'), phone, setPhone, t('Com DDD (opcional)'), { keyboardType: 'phone-pad', testID: 'lead-phone' })}
+        {/* Bandeira do país: tocar escolhe; colar com o código (+55...) troca sozinho */}
+        <PhoneField label={t('Telefone do cliente')} value={phone} onChange={setPhone} placeholder={t('Com DDD (opcional)')} testID="lead-phone" />
         {/* O número vira o link da conversa */}
         {phone.trim() ? (
           <Text style={[styles.hint, !link && styles.hintError]}>

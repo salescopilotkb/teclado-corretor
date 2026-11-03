@@ -10,6 +10,7 @@ pedido explícito.
 | Login com Google e com a Apple | 30/10/2026 | `fdc098c` |
 | Google Meet / Google Agenda na agenda | 30/10/2026 | `fdc098c` |
 | Locker: Editor, aviso por e-mail, limpeza de órfãos, versões, cobrança (nunca feitos) | 31/10/2026 | (item 4) |
+| Locker: vitrine pública do vendedor (nunca feita) | 03/11/2026 | (item 5) |
 
 Para ver um arquivo como era: `git show <commit>:<caminho>`, por exemplo
 `git show 0f6e70d:src/keyboard/components/MoreTab.tsx`.
@@ -118,3 +119,23 @@ O Locker (tarefas 1 a 15, outubro de 2026) foi entregue sem estes itens, de prop
 
 Ao fazer qualquer um deles, revise a política (`src/legal/legal.ts`) e a Segurança dos dados
 (`docs/GOOGLE-PLAY-SEGURANCA-DOS-DADOS.md`).
+
+## 5. Locker: vitrine pública do vendedor
+
+**O que seria.** Uma página pública de cada vendedor no Locker web (ex.: `locker.keyconapp.com/v/<nome>`)
+reunindo as pastas que ele marcasse como "Pública", para divulgar como um catálogo (link na bio,
+no cartão, no WhatsApp). Não é uma área compartilhada entre usuários do KEYCON: cada vendedor
+mostraria só as próprias pastas aos próprios clientes.
+
+**Por que saiu.** A página nunca foi construída: a opção "Pública" fazia o mesmo que "Só com o
+link" e os textos prometiam uma vitrine que não existia. Retirada a pedido em 03/11/2026, para
+pensar no catálogo depois do lançamento.
+
+**O que ficou.** No banco, `locker_folders.visibility` ainda aceita `public` (pastas antigas):
+o app, o teclado e o Locker web mostram essas pastas como "Só com o link", e o link delas
+continua abrindo (`locker-public` trata `link` e `public` igual).
+
+**Para fazer.** Página `/v/<nome>` no Locker web e rota na função `locker-public` que liste as
+pastas `public` do dono; escolha do nome da vitrine; a opção "Pública" de volta no app
+(`FilesManagerScreen.tsx`, `VISIBILITY_OPTIONS`) e no Locker web (`ShareDialog.tsx`, `OPTIONS`);
+botão "Copiar link da vitrine".
