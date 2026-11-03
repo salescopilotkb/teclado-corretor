@@ -131,7 +131,7 @@ export const TERMS: Docs = {
       {
         title: '12. Encerramento',
         paragraphs: [
-          'Você pode parar de usar o KEYCON e pedir a exclusão da sua conta a qualquer momento pelo e-mail {email}. Podemos suspender ou encerrar contas que violem estes Termos ou a lei.',
+          'Você pode parar de usar o KEYCON e excluir a sua conta a qualquer momento, no próprio app (Conta › Excluir minha conta) ou pelo e-mail {email}. Podemos suspender ou encerrar contas que violem estes Termos ou a lei.',
         ],
       },
       {
@@ -234,7 +234,7 @@ export const TERMS: Docs = {
       {
         title: '12. Termination',
         paragraphs: [
-          'You may stop using KEYCON and request deletion of your account at any time at {email}. We may suspend or close accounts that violate these Terms or the law.',
+          'You may stop using KEYCON and delete your account at any time, in the app (Account › Delete my account) or by writing to {email}. We may suspend or close accounts that violate these Terms or the law.',
         ],
       },
       {
@@ -337,7 +337,7 @@ export const TERMS: Docs = {
       {
         title: '12. Terminación',
         paragraphs: [
-          'Puedes dejar de usar KEYCON y pedir la eliminación de tu cuenta en cualquier momento escribiendo a {email}. Podemos suspender o cerrar cuentas que violen estos Términos o la ley.',
+          'Puedes dejar de usar KEYCON y eliminar tu cuenta en cualquier momento, en la propia app (Cuenta › Eliminar mi cuenta) o escribiendo a {email}. Podemos suspender o cerrar cuentas que violen estos Términos o la ley.',
         ],
       },
       {

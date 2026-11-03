@@ -14,7 +14,8 @@ import type { CountryId, CurrencyId, SegmentId, SellerProfile, TargetAudienceId,
 import { getSegment } from '../../segments/segments';
 import { makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { Icon } from '../../keyboard/components/Icon';
-import { AuthError, currentEmail, pushProfile } from '../../services/auth';
+import { AuthError, currentEmail, deleteAccount, pushProfile } from '../../services/auth';
+import { openManageSubscription } from '../../plans/billing';
 import { SegmentPicker } from '../components/SegmentPicker';
 import { BUILD_INFO } from '../../config/buildInfo';
 import { fillLegal, LEGAL_UPDATED, PRIVACY, TERMS } from '../../legal/legal';
@@ -233,7 +234,75 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
       </MenuGroup>
 
       <Button label={t('Sair da conta')} variant="danger" icon="sair" onPress={onLogout} />
+      {/* Exigido pelas lojas: excluir a conta de dentro do app */}
+      <DeleteAccountButton onDeleted={onLogout} />
     </Page>
+  );
+}
+
+/**
+ * "Excluir minha conta": avisa o que é apagado (e que a assinatura da loja não é
+ * cancelada sozinha), pede uma segunda confirmação e apaga tudo de verdade.
+ * Dependente: a conta é da empresa (só ela remove).
+ */
+function DeleteAccountButton({ onDeleted }: { onDeleted: () => void }) {
+  const styles = useStyles();
+  const plan = usePlan();
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      await deleteAccount();
+      Alert.alert(t('Conta excluída'), t('Sua conta e os seus dados foram apagados.'));
+      onDeleted();
+    } catch (e) {
+      Alert.alert(t('Atenção'), e instanceof AuthError ? e.message : t('Não foi possível excluir a conta agora. Verifique a internet e tente de novo.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmTwice = () =>
+    Alert.alert(t('Tem certeza?'), t('A exclusão é definitiva e não dá para desfazer.'), [
+      { text: t('Cancelar'), style: 'cancel' },
+      { text: t('Excluir para sempre'), style: 'destructive', onPress: run },
+    ]);
+
+  const start = () => {
+    if (plan.role === 'dependent') {
+      Alert.alert(t('Conta da empresa'), t('Sua conta faz parte da equipe de uma empresa. Para excluí-la, peça à empresa que remova o seu acesso.'));
+      return;
+    }
+    const subscribed = (plan.status === 'active' || plan.status === 'trial') && plan.store !== 'manual';
+    const company = hasCompany(plan) && plan.dependents > 0;
+    const message = [
+      t('Isso apaga para sempre a sua conta, o seu perfil, o Locker com todos os arquivos e pastas, os seus compartilhamentos e equipes, e os produtos, atalhos, clientes e agenda deste aparelho. Os links que você compartilhou deixam de funcionar.'),
+      company ? t('Os acessos das pessoas da sua equipe também serão excluídos.') : '',
+      subscribed
+        ? t('Sua assinatura NÃO é cancelada sozinha: cancele na loja antes, para não ser cobrado de novo.')
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    Alert.alert(t('Excluir sua conta?'), message, [
+      { text: t('Cancelar'), style: 'cancel' },
+      ...(subscribed
+        ? [{ text: t('Gerenciar assinatura'), onPress: () => openManageSubscription().catch(() => {}) }]
+        : []),
+      { text: t('Continuar'), style: 'destructive' as const, onPress: confirmTwice },
+    ]);
+  };
+
+  return (
+    <Pressable
+      testID="account-delete"
+      accessibilityRole="button"
+      disabled={busy}
+      onPress={start}
+      style={({ pressed }) => [styles.deleteAccount, (pressed || busy) && { opacity: 0.6 }]}>
+      <Text style={styles.deleteAccountText}>{busy ? t('Excluindo a conta...') : t('Excluir minha conta')}</Text>
+    </Pressable>
   );
 }
 
@@ -584,6 +653,8 @@ function MarketSection({
 }
 
 const useStyles = makeStyles(colors => ({
+  deleteAccount: { alignSelf: 'center', paddingVertical: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+  deleteAccountText: { fontSize: 14, fontWeight: '600', color: colors.danger, textDecorationLine: 'underline' },
   aboutCard: { gap: spacing.sm },
   version: { fontSize: 22, fontWeight: '700', color: colors.text },
   legalText: { fontSize: 14, lineHeight: 21, color: colors.textSecondary },

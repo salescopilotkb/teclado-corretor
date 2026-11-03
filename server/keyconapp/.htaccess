@@ -1,0 +1,46 @@
+# =============================================================================
+# KEYCON — keyconapp.com (HostGator, Apache). Vai na raiz do public_html.
+# Segurança do site: HTTPS sempre, cabeçalhos de proteção do navegador, sem
+# listagem de pastas, arquivos ocultos bloqueados e o /app fora dos buscadores.
+# A SENHA do /app fica em public_html/app/.htaccess (criado pelo cPanel →
+# Privacidade de diretórios); a porta principal do /app é o Cloudflare Access.
+# =============================================================================
+
+# Sem listagem de pastas e sem a versão do servidor nas páginas de erro
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # HTTPS sempre (também atrás da Cloudflare, que avisa por X-Forwarded-Proto)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Arquivos e pastas ocultos (.git, .env, .htpasswd...): proibido. .well-known fica aberto
+  RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
+
+  # Cópias de segurança e arquivos de configuração esquecidos
+  RewriteRule \.(bak|old|orig|swp|sql|log|ini|env|zip|tar|gz)$ - [F,L,NC]
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Navegador só usa HTTPS por 1 ano (vale também para locker.keyconapp.com)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  # Não adivinha o tipo do arquivo (evita executar um arquivo como script)
+  Header always set X-Content-Type-Options "nosniff"
+  # Ninguém coloca o site dentro de outro (golpe de clique escondido)
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # Câmera e microfone só do próprio site (gravar áudio no app de teste); o resto, nunca
+  Header always set Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header unset X-Powered-By
+
+  # /app (só o admin): fora dos buscadores e sem cópia em cache
+  <If "%{REQUEST_URI} =~ m#^/app(/|$)#">
+    Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+    Header always set Cache-Control "no-store, private"
+  </If>
+</IfModule>

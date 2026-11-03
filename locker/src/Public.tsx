@@ -114,6 +114,13 @@ function Shell({ title, actions, children, toast }: { title?: string; actions?: 
         <a href="https://keyconapp.com" target="_blank" rel="noreferrer">
           keyconapp.com
         </a>
+        <br />
+        {/* Denunciar conteúdo abusivo ou que viola direitos autorais (regras das lojas e DMCA) */}
+        <a
+          className="pub-report"
+          href={`mailto:contact@keyconapp.com?subject=${encodeURIComponent(t('Denúncia de conteúdo no Locker'))}&body=${encodeURIComponent(`${t('Link denunciado: {link}', { link: location.href })}\n\n${t('Motivo:')}`)}`}>
+          {t('Denunciar este conteúdo')}
+        </a>
       </footer>
       {toast ? (
         <div className="toast" role="status">

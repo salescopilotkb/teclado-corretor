@@ -191,6 +191,38 @@ export async function signOut(): Promise<void> {
   }
 }
 
+/**
+ * "Excluir minha conta": o servidor (função delete-account) apaga os arquivos do
+ * Locker na nuvem, o cliente no RevenueCat, os dependentes (conta empresa) e o login,
+ * com tudo o que é da conta no banco. Depois, apaga o que ficou neste aparelho.
+ * Erro "storage_failed": nada foi apagado do login (dá para tentar de novo).
+ */
+export async function deleteAccount(): Promise<void> {
+  if (DEMO_MODE) {
+    await signOut();
+    return;
+  }
+  const { data, error } = await supabase.functions.invoke<{ deleted?: boolean; error?: string }>('delete-account', {
+    body: { confirm: 'DELETE' },
+  });
+  if (error || !data?.deleted) {
+    let code = data?.error;
+    try {
+      const ctx = (error as { context?: Response } | null)?.context;
+      if (ctx && typeof ctx.json === 'function') code = ((await ctx.json()) as { error?: string }).error ?? code;
+    } catch {
+      // sem detalhe do servidor
+    }
+    throw new AuthError(
+      code === 'storage_failed'
+        ? t('Não foi possível apagar todos os seus arquivos agora. Sua conta não foi excluída: tente de novo em alguns minutos.')
+        : t('Não foi possível excluir a conta agora. Verifique a internet e tente de novo.'),
+    );
+  }
+  Repo.clearUserData();
+  await signOut().catch(() => {});
+}
+
 /** Baixa o perfil (nome, negócio, telefone, ramo) para o app e o teclado. */
 export async function pullProfile(): Promise<SellerProfile | null> {
   if (DEMO_MODE) return null;

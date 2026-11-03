@@ -5,6 +5,7 @@
 # - cache: os assets têm nome com hash (guardar por 1 ano); a página, o service
 #   worker e o manifesto sempre conferem a versão nova
 Options -Indexes
+ServerSignature Off
 DirectoryIndex index.html
 
 <IfModule mod_rewrite.c>
@@ -12,6 +13,10 @@ DirectoryIndex index.html
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Arquivos ocultos (.env, .git...) e cópias esquecidas: proibido (.well-known fica aberto)
+  RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]
+  RewriteRule \.(bak|old|orig|swp|sql|log|ini|env)$ - [F,L,NC]
 
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
@@ -26,6 +31,11 @@ AddType text/javascript .js
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "SAMEORIGIN"
+  # Navegador só usa HTTPS por 1 ano; o resto do navegador fica fechado ao que o Locker não usa
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header unset X-Powered-By
   <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>

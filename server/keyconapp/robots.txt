@@ -1,0 +1,4 @@
+# keyconapp.com — o /app é a área do administrador (protegida por login).
+User-agent: *
+Disallow: /app/
+Disallow: /app

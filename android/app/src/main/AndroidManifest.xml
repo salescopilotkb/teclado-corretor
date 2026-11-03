@@ -7,6 +7,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Gravar atalhos de áudio no app (pedida só na hora de gravar) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- O KEYCON não usa ID de publicidade (Play Console: "Seu app usa um ID de publicidade? Não").
+         Se alguma biblioteca tentar incluir a permissão, ela é retirada aqui. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
     <!-- Ditado por voz no teclado: o serviço de reconhecimento de voz do Android (API 30+ precisa declarar) -->
     <queries>
