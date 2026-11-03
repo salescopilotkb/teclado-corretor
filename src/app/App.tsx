@@ -51,7 +51,8 @@ import { KeepFilesScreen } from './screens/KeepFilesScreen';
 import { CompanyScreen } from './screens/CompanyScreen';
 import { KeyboardBridge } from '../native/KeyboardBridge';
 import { CompanyBlocked } from './components/PlanLocked';
-import { dependentNotice, getPlan } from '../plans/plan';
+import { dependentNotice, getPlan, watchPlan } from '../plans/plan';
+import { startBilling, stopBilling } from '../plans/billing';
 import { usePlan } from '../plans/usePlan';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
@@ -150,7 +151,18 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active') refreshPlan().catch(() => {});
     });
-    return () => sub.remove();
+    // A loja (App Store ou Google Play) passa a conhecer a pessoa pela conta KEYCON,
+    // e o plano muda na tela assim que o servidor grava (compra, renovação, vencimento)
+    const userId = Repo.getUserId();
+    let stopWatch = () => {};
+    if (userId) {
+      startBilling(userId).catch(() => {});
+      stopWatch = watchPlan(userId);
+    }
+    return () => {
+      sub.remove();
+      stopWatch();
+    };
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -255,6 +267,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
           <CompanyBlocked
             company={plan.companyName}
             onLogout={() => {
+              stopBilling().catch(() => {});
               signOut().catch(() => {});
               setIsAuthenticated(false);
             }}
@@ -301,6 +314,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             }}
             onThemeChange={onThemeChange}
             onLogout={() => {
+              stopBilling().catch(() => {});
               signOut().catch(() => {});
               setIsAuthenticated(false);
             }}

@@ -52,6 +52,22 @@ export function onPlanChange(fn: (plan: PlanInfo) => void): () => void {
 const missingFunction = (error: { code?: string; message?: string }) =>
   error.code === 'PGRST202' || error.code === '42883' || /could not find the function|does not exist/i.test(error.message ?? '');
 
+/**
+ * Plano na hora: acompanha a própria linha de locker_plans (compra, renovação,
+ * vencimento gravados pelo servidor). Devolve a função que para de acompanhar.
+ */
+export function watchPlan(userId: string): () => void {
+  const channel = supabase
+    .channel(`plan-${userId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'locker_plans', filter: `user_id=eq.${userId}` }, () => {
+      refreshPlan().catch(() => {});
+    })
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 let refreshing: Promise<PlanInfo> | null = null;
 
 /** Lê o plano no servidor e guarda. Sem internet: fica o que estava guardado. */

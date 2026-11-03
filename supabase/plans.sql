@@ -775,3 +775,19 @@ begin
   end if;
 end;
 $$;
+
+-- =============================================================================
+-- 8. Plano na hora: o app acompanha a própria linha de locker_plans (tempo real).
+--    Compra, renovação ou vencimento aparecem sem fechar o app (a regra de leitura
+--    "plano do locker do proprio usuario" já limita cada um à sua linha).
+-- =============================================================================
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'locker_plans'
+  ) then
+    alter publication supabase_realtime add table public.locker_plans;
+  end if;
+end;
+$$;

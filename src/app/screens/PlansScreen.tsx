@@ -19,6 +19,7 @@ import {
   listPrice,
   loadOffers,
   managedElsewhere,
+  moveFromGoogle,
   openManageSubscription,
   PAID_PLANS,
   purchase,
@@ -130,18 +131,7 @@ export function PlansScreen({ onBack }: { onBack: () => void }) {
       <CurrentPlan plan={plan} />
 
       {elsewhere ? (
-        <Card>
-          <CardTitle>{t('Sua assinatura é de outra loja')}</CardTitle>
-          <CardText>
-            {plan.store === 'app_store'
-              ? t(
-                  'Você assinou pela App Store. O plano vale aqui também; para mudar ou cancelar, use a App Store (no iPhone, em Ajustes › seu nome › Assinaturas).',
-                )
-              : t(
-                  'Você assinou pela Google Play. O plano vale aqui também; para mudar ou cancelar, use a Google Play (play.google.com › Pagamentos e assinaturas).',
-                )}
-          </CardText>
-        </Card>
+        <OtherStore plan={plan} busy={busy !== null} onBusy={v => setBusy(v ? 'restore' : null)} />
       ) : null}
 
       {PAID_PLANS.map(p => {
@@ -210,6 +200,77 @@ export function PlansScreen({ onBack }: { onBack: () => void }) {
       </View>
     </Page>
   );
+}
+
+/**
+ * Assinatura de outra loja (trocou de celular). O plano vale aqui também. Para passar
+ * para a loja deste aparelho sem pagar duas vezes:
+ *  - Google Play → iPhone: o servidor cancela a renovação na Google; ao vencer, assina aqui;
+ *  - App Store → Android: a Apple não deixa cancelar por fora; a pessoa cancela no
+ *    iPhone e, ao vencer, assina aqui.
+ */
+function OtherStore({ plan, busy, onBusy }: { plan: PlanInfo; busy: boolean; onBusy: (v: boolean) => void }) {
+  const until = plan.expiresAt ? formatDate(plan.expiresAt) : null;
+  const moveToApple = () =>
+    Alert.alert(
+      t('Passar para a App Store'),
+      until
+        ? t('Vamos cancelar a renovação na Google Play. Seu plano continua valendo até {date}; a partir daí, você assina aqui pelo iPhone.', { date: until })
+        : t('Vamos cancelar a renovação na Google Play. Seu plano continua valendo até o fim do período pago; depois, você assina aqui pelo iPhone.'),
+      [
+        { text: t('Cancelar'), style: 'cancel' },
+        {
+          text: t('Confirmar'),
+          onPress: async () => {
+            onBusy(true);
+            try {
+              const end = await moveFromGoogle();
+              Alert.alert(
+                t('Pronto!'),
+                end
+                  ? t('A renovação na Google Play foi cancelada. Seu plano vale até {date}; depois, assine aqui.', { date: formatDate(end) })
+                  : t('A renovação na Google Play foi cancelada. Quando o plano vencer, assine aqui.'),
+              );
+            } catch (e) {
+              Alert.alert(t('Atenção'), e instanceof BillingError ? e.message : t('Não foi possível concluir. Tente de novo.'));
+            } finally {
+              onBusy(false);
+            }
+          },
+        },
+      ],
+    );
+
+  if (plan.store === 'play_store' && DEVICE_STORE === 'app_store') {
+    return (
+      <Card>
+        <CardTitle>{t('Sua assinatura é da Google Play')}</CardTitle>
+        <CardText>
+          {plan.willRenew
+            ? t('Ela vale aqui também. Para passar a pagar pela App Store, cancelamos a renovação na Google e você assina aqui quando ela vencer, sem pagar duas vezes.')
+            : until
+              ? t('A renovação na Google Play já foi cancelada. Seu plano vale até {date}; depois, assine aqui pelo iPhone.', { date: until })
+              : t('A renovação na Google Play já foi cancelada. Quando o plano vencer, assine aqui pelo iPhone.')}
+        </CardText>
+        {plan.willRenew ? <Button label={t('Passar para a App Store')} variant="secondary" disabled={busy} onPress={moveToApple} /> : null}
+      </Card>
+    );
+  }
+  if (plan.store === 'app_store' && DEVICE_STORE === 'play_store') {
+    return (
+      <Card>
+        <CardTitle>{t('Sua assinatura é da App Store')}</CardTitle>
+        <CardText>
+          {plan.willRenew
+            ? t('Ela vale aqui também. Para passar a pagar pela Google Play, cancele a assinatura no iPhone (Ajustes › seu nome › Assinaturas): ela continua valendo até o fim do período pago e, depois, você assina aqui.')
+            : until
+              ? t('A assinatura da App Store foi cancelada e vale até {date}; depois, assine aqui pela Google Play.', { date: until })
+              : t('A assinatura da App Store foi cancelada. Quando ela vencer, assine aqui pela Google Play.')}
+        </CardText>
+      </Card>
+    );
+  }
+  return null;
 }
 
 /** O plano de agora e o que acontece com ele (renova, teste, vencida). */
