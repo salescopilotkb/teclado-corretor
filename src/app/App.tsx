@@ -55,6 +55,7 @@ import { dependentNotice, getPlan, watchPlan } from '../plans/plan';
 import { startBilling, stopBilling } from '../plans/billing';
 import { usePlan } from '../plans/usePlan';
 import { TrialOffer } from './components/TrialOffer';
+import { NewPasswordScreen } from './screens/NewPasswordScreen';
 import { onAppTab, startAppLinks } from '../navigation/appLink';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
@@ -127,6 +128,16 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     },
     isAuthenticated && !showTutorial && currentTab !== 'home',
   );
+
+  // Acesso criado pela empresa com uma senha inicial: no primeiro login, a pessoa cria a própria
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setMustChangePassword(!!data.session?.user.user_metadata?.must_change_password))
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   // Links keycon://locker (o botão da nuvem no teclado): o app abre direto na aba Locker
   useEffect(() => startAppLinks(), []);
@@ -252,6 +263,23 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     else if (target === 'files') openTab('files');
     else openTab('profile', 'data');
   };
+
+  if (mustChangePassword) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <Aurora />
+        <StatusBar barStyle={barStyle} backgroundColor={colors.canvas} />
+        <NewPasswordScreen
+          onDone={() => setMustChangePassword(false)}
+          onLogout={() => {
+            stopBilling().catch(() => {});
+            signOut().catch(() => {});
+            setIsAuthenticated(false);
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
 
   if (showTutorial) {
     return (

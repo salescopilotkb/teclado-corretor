@@ -2607,3 +2607,23 @@ button:disabled {
 .login.gate .login-side {
   grid-column: 1 / -1;
 }
+
+/* Convite para a equipe: "tenho 18 anos e aceito os termos" */
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.consent input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--orange);
+  flex: none;
+}
+.consent a {
+  color: var(--orange-text);
+}

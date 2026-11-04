@@ -100,8 +100,8 @@ export const TERMS: Docs = {
       {
         title: '7. Contas de empresa',
         paragraphs: [
-          'Nos planos Plus e Pro, a conta que assina (a "empresa") pode criar o acesso de pessoas da sua equipe (os "dependentes"): até 5 no Plus e até 50 no Pro, em equipes. A empresa informa o nome e o e-mail de cada pessoa e declara ter autorização para isso, e é responsável pelo uso que os dependentes fazem do KEYCON.',
-          'O dependente entra com o próprio e-mail e senha, vê e baixa o Locker da empresa (sem poder mudá-lo) e tem teclado, produtos, atalhos, clientes e agenda só dele, guardados no próprio aparelho. Ele não vê a assinatura nem os dados da empresa e não pode sair sozinho: só a empresa remove o acesso. Se a assinatura da empresa vencer, os dependentes ficam bloqueados, sem nada apagado, até a empresa renovar.',
+          'Nos planos Plus e Pro, a conta que assina (a "empresa") pode criar o acesso de pessoas da sua equipe (os "dependentes"): até 5 no Plus e até 50 no Pro, em equipes. A empresa informa o nome e o e-mail de cada pessoa e declara ter autorização para isso, e é responsável pelo uso que os dependentes fazem do KEYCON. O acesso é criado por um convite (um link que vale 7 dias, uma vez só, no qual a pessoa cria a própria senha) ou pela empresa com uma senha inicial, que a pessoa troca no primeiro acesso.',
+          'O dependente entra com o próprio e-mail e senha, vê e baixa o Locker da empresa (sem poder mudá-lo) e tem teclado, produtos, atalhos, clientes e agenda só dele, guardados no próprio aparelho. Ele não vê a assinatura nem os dados da empresa. Quando a empresa remove o acesso, a conta do dependente é excluída. O dependente também pode sair da equipe sozinho: perde o acesso ao Locker da empresa e a conta continua como uma conta comum, no plano grátis, podendo assinar um plano. Se a assinatura da empresa vencer, os dependentes ficam bloqueados, sem nada apagado, até a empresa renovar ou até saírem da equipe.',
         ],
       },
       {
@@ -203,8 +203,8 @@ export const TERMS: Docs = {
       {
         title: '7. Company accounts',
         paragraphs: [
-          'On the Plus and Pro plans, the subscribing account (the "company") can create access for people on its team (the "dependents"): up to 5 on Plus and up to 50 on Pro, organized in teams. The company provides each person\'s name and email, represents that it is authorized to do so, and is responsible for how dependents use KEYCON.',
-          'A dependent signs in with their own email and password, can view and download the company\'s Locker (without changing it) and has their own keyboard, products, shortcuts, clients and calendar, stored on their own device. They can\'t see the company\'s subscription or data and can\'t leave on their own: only the company removes access. If the company\'s subscription expires, dependents are blocked, with nothing deleted, until the company renews.',
+          'On the Plus and Pro plans, the subscribing account (the "company") can create access for people on its team (the "dependents"): up to 5 on Plus and up to 50 on Pro, organized in teams. The company provides each person\'s name and email, represents that it is authorized to do so, and is responsible for how dependents use KEYCON. Access is created through an invite (a link valid for 7 days, usable once, where the person creates their own password) or by the company with a starting password, which the person changes on first sign-in.',
+          'A dependent signs in with their own email and password, can view and download the company\'s Locker (without changing it) and has their own keyboard, products, shortcuts, clients and calendar, stored on their own device. They can\'t see the company\'s subscription or data. When the company removes access, the dependent\'s account is deleted. A dependent can also leave the team on their own: they lose access to the company\'s Locker and the account continues as a regular account on the free plan, and can subscribe to a plan. If the company\'s subscription expires, dependents are blocked, with nothing deleted, until the company renews or until they leave the team.',
         ],
       },
       {
@@ -306,8 +306,8 @@ export const TERMS: Docs = {
       {
         title: '7. Cuentas de empresa',
         paragraphs: [
-          'En los planes Plus y Pro, la cuenta que se suscribe (la "empresa") puede crear el acceso de personas de su equipo (los "dependientes"): hasta 5 en Plus y hasta 50 en Pro, organizadas en equipos. La empresa indica el nombre y el correo de cada persona, declara tener autorización para hacerlo y es responsable del uso que los dependientes hagan de KEYCON.',
-          'El dependiente entra con su propio correo y contraseña, ve y descarga el Locker de la empresa (sin poder cambiarlo) y tiene teclado, productos, atajos, clientes y agenda propios, guardados en su propio dispositivo. No ve la suscripción ni los datos de la empresa y no puede salir por su cuenta: solo la empresa quita el acceso. Si la suscripción de la empresa vence, los dependientes quedan bloqueados, sin que se borre nada, hasta que la empresa renueve.',
+          'En los planes Plus y Pro, la cuenta que se suscribe (la "empresa") puede crear el acceso de personas de su equipo (los "dependientes"): hasta 5 en Plus y hasta 50 en Pro, organizadas en equipos. La empresa indica el nombre y el correo de cada persona, declara tener autorización para hacerlo y es responsable del uso que los dependientes hagan de KEYCON. El acceso se crea con una invitación (un enlace que vale 7 días, una sola vez, en el que la persona crea su propia contraseña) o por la empresa con una contraseña inicial, que la persona cambia en el primer acceso.',
+          'El dependiente entra con su propio correo y contraseña, ve y descarga el Locker de la empresa (sin poder cambiarlo) y tiene teclado, productos, atajos, clientes y agenda propios, guardados en su propio dispositivo. No ve la suscripción ni los datos de la empresa. Cuando la empresa quita el acceso, la cuenta del dependiente se elimina. El dependiente también puede salir del equipo por su cuenta: pierde el acceso al Locker de la empresa y la cuenta sigue como una cuenta común, en el plan gratis, y puede suscribirse a un plan. Si la suscripción de la empresa vence, los dependientes quedan bloqueados, sin que se borre nada, hasta que la empresa renueve o hasta que salgan del equipo.',
         ],
       },
       {
@@ -383,7 +383,7 @@ export const PRIVACY: Docs = {
           'Assinatura: o seu plano, a loja em que você assinou (App Store ou Google Play), se é teste grátis, as datas de início, renovação e vencimento e o código da compra na loja. Não recebemos dados de cartão ou de pagamento: a cobrança é feita pela Apple ou pela Google.',
           'Conta de empresa: o nome, o e-mail e a equipe das pessoas que a empresa cadastra como dependentes. A empresa vê esses dados; ela não vê os produtos, atalhos, clientes e agenda dos dependentes, que ficam no aparelho de cada um.',
           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
-          'Lista de espera do site: se você se inscrever para ser avisado do lançamento, guardamos seu e-mail, o tipo de celular que você escolheu (iPhone ou Android) e o idioma da página. Usamos esses dados só para avisar quando o KEYCON estiver disponível no seu celular.',
+          'Lista de novidades do site: se você se inscrever, guardamos seu e-mail, o seu WhatsApp (se você informar), o tipo de celular que você escolheu (iPhone ou Android), o idioma da página e a sua autorização (o texto que você aceitou, com data e hora). Com essa autorização, mandamos novidades e ofertas do KEYCON, incluindo o aviso de lançamento, por e-mail e, se você informou, por WhatsApp. Você pode cancelar quando quiser: pelo link de descadastro no fim de cada e-mail, respondendo SAIR no WhatsApp ou escrevendo para {email}.',
         ],
       },
       {
@@ -429,7 +429,7 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'Guardamos os dados da conta, do perfil, o Locker e os arquivos enviados enquanto sua conta existir. O que você manda para a lixeira do Locker é apagado para sempre depois de 30 dias (ou antes, se você esvaziar a lixeira). Se você pedir a exclusão da conta, apagamos esses dados, inclusive os arquivos do Locker, em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
           'Quando a assinatura vence ou o plano diminui e a conta passa do limite, os arquivos do Locker ficam guardados por 30 dias e depois os que passam do limite são apagados, como explicam os Termos de Uso. Os dados da assinatura ficam guardados enquanto a conta existir, para registro das compras.',
-          'Os dados da lista de espera ficam guardados até o aviso de lançamento ser enviado. Você pode pedir a remoção antes disso pelo e-mail {email}.',
+          'Os dados da lista de novidades ficam guardados enquanto a sua autorização valer. Quando você cancela, paramos de mandar mensagens e apagamos o seu WhatsApp e o seu e-mail da lista em até 30 dias (guardamos só o registro de que você cancelou, para não mandar de novo). Você também pode pedir a remoção pelo e-mail {email}.',
         ],
       },
       {
@@ -484,7 +484,7 @@ export const PRIVACY: Docs = {
           'Subscription: your plan, the store where you subscribed (App Store or Google Play), whether it\'s a free trial, the start, renewal and expiration dates, and the store\'s purchase ID. We don\'t receive card or payment details: billing is handled by Apple or Google.',
           'Company account: the name, email and team of the people the company adds as dependents. The company can see this data; it can\'t see dependents\' products, shortcuts, clients and calendar, which stay on each person\'s device.',
           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
-          'Website waitlist: if you sign up to be notified about the launch, we keep your email, the type of phone you chose (iPhone or Android) and the language of the page. We use this data only to tell you when KEYCON is available for your phone.',
+          'Website news list: if you sign up, we keep your email, your WhatsApp number (if you provide it), the type of phone you chose (iPhone or Android), the language of the page and your consent (the text you accepted, with date and time). With that consent, we send news and offers about KEYCON, including the launch notice, by email and, if you provided it, by WhatsApp. You can unsubscribe at any time: through the unsubscribe link at the end of every email, by replying STOP on WhatsApp or by writing to {email}.',
         ],
       },
       {
@@ -530,7 +530,7 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'We keep account and profile data, your Locker and uploaded files while your account exists. Items you move to the Locker trash are deleted forever after 30 days (or sooner, if you empty the trash). If you ask us to delete your account, we delete this data, including your Locker files, within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.',
           'When a subscription expires or a plan is reduced and the account goes over the limit, Locker files are kept for 30 days and then the files over the limit are deleted, as described in the Terms of Use. Subscription data is kept while the account exists, as a record of purchases.',
-          'Waitlist data is kept until the launch notice is sent. You can ask us to remove it before then by writing to {email}.',
+          'News list data is kept while your consent is valid. When you unsubscribe, we stop sending messages and delete your WhatsApp number and email from the list within 30 days (we keep only a record that you unsubscribed, so we do not contact you again). You can also ask for removal by writing to {email}.',
         ],
       },
       {
@@ -585,7 +585,7 @@ export const PRIVACY: Docs = {
           'Suscripción: tu plan, la tienda en la que te suscribiste (App Store o Google Play), si es prueba gratis, las fechas de inicio, renovación y vencimiento y el código de la compra en la tienda. No recibimos datos de tarjeta ni de pago: el cobro lo hacen Apple o Google.',
           'Cuenta de empresa: el nombre, el correo y el equipo de las personas que la empresa registra como dependientes. La empresa ve esos datos; no ve los productos, atajos, clientes ni la agenda de los dependientes, que quedan en el dispositivo de cada uno.',
           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',
-          'Lista de espera del sitio: si te inscribes para recibir el aviso del lanzamiento, guardamos tu correo, el tipo de celular que elegiste (iPhone o Android) y el idioma de la página. Usamos estos datos solo para avisarte cuando KEYCON esté disponible para tu celular.',
+          'Lista de novedades del sitio: si te inscribes, guardamos tu correo, tu WhatsApp (si lo indicas), el tipo de celular que elegiste (iPhone o Android), el idioma de la página y tu autorización (el texto que aceptaste, con fecha y hora). Con esa autorización, enviamos novedades y ofertas de KEYCON, incluido el aviso de lanzamiento, por correo y, si lo indicaste, por WhatsApp. Puedes darte de baja cuando quieras: con el enlace al final de cada correo, respondiendo BAJA en WhatsApp o escribiendo a {email}.',
         ],
       },
       {
@@ -631,7 +631,7 @@ export const PRIVACY: Docs = {
         paragraphs: [
           'Guardamos los datos de la cuenta, del perfil, el Locker y los archivos subidos mientras exista tu cuenta. Lo que mandas a la papelera del Locker se elimina para siempre después de 30 días (o antes, si vacías la papelera). Si pides la eliminación de la cuenta, borramos estos datos, incluidos los archivos del Locker, en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
           'Cuando la suscripción vence o el plan baja y la cuenta supera el límite, los archivos del Locker se guardan 30 días y después se borran los que superan el límite, como explican los Términos de Uso. Los datos de la suscripción se guardan mientras exista la cuenta, como registro de las compras.',
-          'Los datos de la lista de espera se guardan hasta enviar el aviso de lanzamiento. Puedes pedir que los borremos antes escribiendo a {email}.',
+          'Los datos de la lista de novedades se guardan mientras tu autorización siga vigente. Cuando te das de baja, dejamos de enviar mensajes y borramos tu WhatsApp y tu correo de la lista en un plazo de 30 días (guardamos solo el registro de que te diste de baja, para no volver a escribirte). También puedes pedir que los borremos escribiendo a {email}.',
         ],
       },
       {

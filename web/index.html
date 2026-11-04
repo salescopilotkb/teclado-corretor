@@ -8,11 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script>
-      // Demonstração: cada abertura começa do zero, já entrando com um usuário de exemplo.
-      // Só apaga os dados do app (não mexe no idioma da landing nem na lista de espera).
+      // Demonstração (só do admin): na PRIMEIRA visita (ou depois de "Restart demo") entra com
+      // o usuário e os dados de exemplo; nas outras, o que o admin mudou continua guardado.
+      // Só mexe nos dados do app (não no idioma da landing nem na lista de espera).
       (function () {
         try {
           var P = 'corretor-keyboard\\';
+          if (localStorage.getItem(P + 'auth.token') === 'demo') return;
           for (var i = localStorage.length - 1; i >= 0; i--) {
             var k = localStorage.key(i);
             if (k && (k.indexOf(P) === 0 || k.indexOf('sb-') === 0)) localStorage.removeItem(k);
@@ -83,6 +85,8 @@
         border: 1px solid rgba(241, 120, 96, .85);
         box-shadow: 0 0 0 1px rgba(241, 120, 96, .25), 0 0 18px rgba(241, 120, 96, .55), 0 0 46px rgba(241, 120, 96, .25);
         animation: qr-glow 3.2s ease-in-out infinite;
+        /* É só uma imagem: nunca segura o toque (nem quando fica perto do celular) */
+        pointer-events: none;
       }
       .qr-card b { display: block; font-size: 17px; line-height: 1.25; }
       .qr-card small { display: block; margin: 4px 0 14px; font-size: 12.5px; color: #c9cdd6; }
@@ -92,9 +96,18 @@
         50% { box-shadow: 0 0 0 1px rgba(241, 120, 96, .35), 0 0 26px rgba(241, 120, 96, .75), 0 0 64px rgba(241, 120, 96, .35); }
       }
       @media (prefers-reduced-motion: reduce) { .qr-card { animation: none; } }
-      /* Telas sem espaço ao lado do celular: o QR some (a apresentação é no telão) */
-      @media (max-width: 1000px), (max-height: 600px) { .qr-card { display: none; } }
+      /* Telas menores (notebook, janela pela metade, zoom): o QR fica menor no canto, sem sumir */
+      @media (max-width: 1000px), (max-height: 760px) {
+        .qr-card { left: 16px; bottom: 16px; width: 132px; padding: 10px 10px 8px; border-radius: 14px; }
+        .qr-card b { font-size: 12.5px; }
+        .qr-card small { display: none; }
+        .qr-card img { margin-top: 8px; border-radius: 8px; }
+        .qr-card .qr-url { margin-top: 6px; font-size: 10.5px; }
+      }
+      /* Só no celular (quem assiste já está nele): o QR não faz sentido e cobriria o app */
+      @media (max-width: 700px) { .qr-card { display: none; } }
       .top nav { display: flex; gap: 6px; }
+      .link-reset { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
       .top nav button {
         border: 1px solid var(--line);
         background: var(--panel);

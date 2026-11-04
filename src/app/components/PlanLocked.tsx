@@ -7,6 +7,7 @@ import { t } from '../../i18n';
 import type { IconName } from '../../keyboard/components/Icon';
 import { openPlans } from '../../plans/plan';
 import { Button, EmptyState, Page } from './ui';
+import { LeaveTeamButton } from './LeaveTeam';
 
 export type LockedFeature = 'agenda' | 'crm';
 
@@ -45,6 +46,8 @@ export function CompanyBlocked({ company, onLogout }: { company: string; onLogou
             : t('A assinatura da sua empresa venceu. Seu acesso volta assim que a empresa renovar. Nada foi apagado.')
         }
       />
+      {/* Ou sai da equipe e continua com uma conta própria (plano grátis) */}
+      <LeaveTeamButton company={company} />
       <Button label={t('Sair da conta')} variant="secondary" icon="sair" onPress={onLogout} />
     </Page>
   );

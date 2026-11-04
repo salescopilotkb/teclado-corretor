@@ -1,0 +1,17 @@
+# KEYCON — /app é só do administrador: TODA requisição passa pelo gate.php
+# (página de login, senha guardada fora do site, bloqueio de tentativas). Sem
+# login, nenhum arquivo do app é entregue, nem pelo endereço direto.
+Options -Indexes
+DirectoryIndex gate.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /app/
+  RewriteRule ^gate\.php$ - [L]
+  RewriteRule ^ gate.php [L,QSA]
+</IfModule>
+
+# Sem o mod_rewrite, nada do /app abre (melhor fechado do que aberto)
+<IfModule !mod_rewrite.c>
+  Require all denied
+</IfModule>

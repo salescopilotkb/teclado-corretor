@@ -17,9 +17,12 @@ import { useLanguage } from '../../src/i18n/useLanguage';
 import { applyProfileLanguage } from './lang';
 import { applyProfileTheme } from './theme';
 import { PublicPage, publicRoute } from './Public';
+import { InvitePage, inviteRoute } from './Invite';
 
 /** /f/<código> ou /d/<código>: página pública, sem login. */
 const route = publicRoute();
+/** /convite/<código>: entrar na equipe de uma empresa (sem login). */
+const invite = inviteRoute();
 
 // Lido antes do Supabase limpar o endereço
 const hash = new URLSearchParams(location.hash.replace(/^#/, ''));
@@ -80,6 +83,7 @@ export function App() {
   }, []);
 
   if (route) return <PublicPage route={route} />;
+  if (invite) return <InvitePage token={invite} />;
 
   // Prévia com o Locker de exemplo (só no desenvolvimento: ?preview, ?preview=entrar, ?preview=senha,
   // ?preview=gratis, ?preview=empresa, ?preview=limite)
@@ -104,7 +108,9 @@ export function App() {
       </div>
     );
   }
-  if (session && resetting) {
+  // Senha escolhida pela empresa ("Criar acesso com senha"): no primeiro login, cria a própria
+  const mustChange = !!session?.user.user_metadata?.must_change_password;
+  if (session && (resetting || mustChange)) {
     return (
       <Login
         initialMode="reset"

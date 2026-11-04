@@ -252,7 +252,19 @@ alter table public.waitlist enable row level security;
 revoke all on public.waitlist from anon, authenticated;
 grant insert (email, platform, language) on public.waitlist to anon, authenticated;
 
+-- Novidades por e-mail e WhatsApp: o WhatsApp (opcional) e a AUTORIZAÇÃO da pessoa.
+-- Guarda o texto exato que ela aceitou e quando (prova do consentimento, exigida para
+-- mandar marketing por e-mail e WhatsApp). Sem a autorização marcada, não entra.
+alter table public.waitlist add column if not exists whatsapp text
+  check (whatsapp is null or (char_length(whatsapp) <= 20 and whatsapp ~ '^\+?[0-9 ().-]{8,20}$'));
+alter table public.waitlist add column if not exists marketing_consent boolean not null default false;
+alter table public.waitlist add column if not exists consent_text text check (consent_text is null or char_length(consent_text) <= 500);
+alter table public.waitlist add column if not exists consent_at timestamptz not null default now();
+
+revoke all on public.waitlist from anon, authenticated;
+grant insert (email, platform, language, whatsapp, marketing_consent, consent_text) on public.waitlist to anon, authenticated;
+
 drop policy if exists "inscricao na lista de espera" on public.waitlist;
 create policy "inscricao na lista de espera" on public.waitlist
   for insert to anon, authenticated
-  with check (true);
+  with check (marketing_consent = true);

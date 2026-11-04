@@ -791,3 +791,33 @@ begin
   end if;
 end;
 $$;
+
+-- =============================================================================
+-- 9. Convites para a equipe da empresa (link de uso único) e sair da equipe
+--    A empresa convida pelo nome e e-mail; o app mostra o link
+--    locker.keyconapp.com/convite/<token> para mandar pelo WhatsApp ou e-mail. A
+--    pessoa abre, cria a PRÓPRIA senha (a empresa nunca vê) e entra na equipe.
+--    O link vale 7 dias, uma vez só e só para o e-mail convidado; a empresa pode
+--    cancelar. Quem cria e aceita os convites são as funções "company" e
+--    "team-invite" (chave service_role): o app só LÊ os convites da própria empresa.
+--    Sair da equipe: o funcionário sai sozinho (função "company", ação leave) e a
+--    conta continua como uma conta comum, no plano grátis.
+-- =============================================================================
+create table if not exists public.company_invites (
+  id           uuid primary key default gen_random_uuid(),
+  company_id   uuid not null references auth.users (id) on delete cascade,
+  name         text not null default '',
+  email        text not null,
+  team_id      uuid references public.locker_teams (id) on delete set null,
+  token        text not null unique default replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''),
+  created_at   timestamptz not null default now(),
+  expires_at   timestamptz not null default now() + interval '7 days',
+  accepted_at  timestamptz,
+  accepted_by  uuid references auth.users (id) on delete set null
+);
+create index if not exists company_invites_company_idx on public.company_invites (company_id);
+
+alter table public.company_invites enable row level security;
+drop policy if exists "convites: a empresa ve os seus" on public.company_invites;
+create policy "convites: a empresa ve os seus" on public.company_invites
+  for select using (company_id = auth.uid());

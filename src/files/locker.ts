@@ -540,6 +540,27 @@ export function startLockerSync(): () => void {
   };
 }
 
+/**
+ * Saiu da equipe da empresa: o Locker da empresa sai do aparelho e a conta passa a
+ * ver (e acompanhar) o próprio Locker, que começa vazio.
+ */
+export function resetLockerOwner(): void {
+  ownerCache = null;
+  Repo.setFiles({ folders: [], files: [] });
+  storage.delete(PENDING_KEY);
+  if (channel) {
+    supabase.removeChannel(channel);
+    channel = null;
+  }
+  // Religa o acompanhamento para o dono novo, mantendo quantas telas estão usando
+  if (users > 0) {
+    const open = users;
+    users = 0;
+    startLockerSync();
+    users = open;
+  }
+}
+
 export { LOCKER_WEB_URL };
 
 /**

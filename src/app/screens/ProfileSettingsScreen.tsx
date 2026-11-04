@@ -16,6 +16,7 @@ import { makeStyles, onCoralText, radius, spacing, touchTarget, typography, useC
 import { Icon } from '../../keyboard/components/Icon';
 import { AuthError, currentEmail, deleteAccount, pushProfile } from '../../services/auth';
 import { openManageSubscription } from '../../plans/billing';
+import { LeaveTeamButton } from '../components/LeaveTeam';
 import { SegmentPicker } from '../components/SegmentPicker';
 import { BUILD_INFO } from '../../config/buildInfo';
 import { fillLegal, LEGAL_UPDATED, PRIVACY, TERMS } from '../../legal/legal';
@@ -227,6 +228,8 @@ export function ProfileSettingsScreen({ onLogout, onThemeChange, onProfileChange
           />
         ) : null}
       </MenuGroup>
+      {/* Funcionário: pode sair da equipe e continuar com uma conta própria */}
+      {plan.role === 'dependent' ? <LeaveTeamButton company={plan.companyName} /> : null}
 
       <MenuGroup>
         <MenuRow icon="dados" title={t('Status da conta')} subtitle={t('Conexão e sincronização')} onPress={() => setSection('status')} />
@@ -271,7 +274,10 @@ function DeleteAccountButton({ onDeleted }: { onDeleted: () => void }) {
 
   const start = () => {
     if (plan.role === 'dependent') {
-      Alert.alert(t('Conta da empresa'), t('Sua conta faz parte da equipe de uma empresa. Para excluí-la, peça à empresa que remova o seu acesso.'));
+      Alert.alert(
+        t('Conta da empresa'),
+        t('Sua conta faz parte da equipe de uma empresa. Para excluí-la, primeiro toque em "Sair da equipe" (ou peça à empresa que remova o seu acesso).'),
+      );
       return;
     }
     const subscribed = (plan.status === 'active' || plan.status === 'trial') && plan.store !== 'manual';

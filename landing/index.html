@@ -90,15 +90,24 @@
                 <label class="platform-opt"><input type="radio" name="platform" value="iphone"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1.1-2.9-4.2ZM13.9 5.2c.7-.9 1.2-2 1-3.2-1 .1-2.2.7-3 1.6-.6.7-1.2 1.9-1 3.1 1.1.1 2.3-.6 3-1.5Z"/></svg><span>iPhone</span></label>
                 <label class="platform-opt"><input type="radio" name="platform" value="android"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 9.3 19.2 6.4a.5.5 0 0 0-.9-.5l-1.7 3A10.3 10.3 0 0 0 12 8a10.3 10.3 0 0 0-4.6 1L5.7 5.9a.5.5 0 0 0-.9.5l1.7 2.9A8.3 8.3 0 0 0 2 16h20a8.3 8.3 0 0 0-4.5-6.7ZM7.5 13.3a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm9 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg><span>Android</span></label>
               </fieldset>
-              <div class="field-row">
+              <div class="wl-fields">
                 <label class="sr-only" for="wl-email" data-i18n="wl.emailLabel">Email</label>
                 <input id="wl-email" class="email" type="email" name="email" autocomplete="email" inputmode="email" maxlength="254" spellcheck="false" placeholder="you@yourbusiness.com" data-i18n-placeholder="wl.placeholder">
+                <label class="sr-only" for="wl-whatsapp" data-i18n="wl.whatsappLabel">WhatsApp (optional)</label>
+                <input id="wl-whatsapp" class="whatsapp" type="tel" name="whatsapp" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="WhatsApp (optional): +1 305 555 0123" data-i18n-placeholder="wl.whatsappPlaceholder">
+              </div>
+              <!-- Autorização para receber novidades (obrigatória para entrar na lista) -->
+              <label class="wl-consent">
+                <input type="checkbox" class="consent" name="consent">
+                <span data-i18n="wl.consent">I agree to receive news and offers about KEYCON by email and WhatsApp. I can unsubscribe at any time.</span>
+              </label>
+              <div class="field-row">
                 <!-- Campo-isca para robôs: pessoas não veem nem preenchem -->
                 <input class="hp" type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
-                <button class="btn btn-primary" type="submit"><span data-i18n="wl.submit">Notify me</span></button>
+                <button class="btn btn-primary wl-submit" type="submit"><span data-i18n="wl.submit">Notify me</span></button>
               </div>
               <p class="wl-error" role="alert"></p>
-              <p class="wl-note"><span data-i18n="wl.note">One email when KEYCON launches on your phone. No spam.</span> <a href="privacidade.html" data-i18n="foot.privacy">Privacy Policy</a></p>
+              <p class="wl-note"><span data-i18n="wl.note">News about KEYCON by email and WhatsApp. No spam.</span> <a href="privacidade.html" data-i18n="foot.privacy">Privacy Policy</a></p>
             </form>
             <div class="wl-done" data-waitlist-done role="status" tabindex="-1" hidden>
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>

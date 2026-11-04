@@ -72,7 +72,8 @@ export function Login({ initialMode = 'signin', onReset, expired }: { initialMod
     if (password !== confirm) return setError(t('As duas senhas não são iguais.'));
     setBusy(true);
     setError('');
-    const { error: err } = await supabase.auth.updateUser({ password });
+    // A senha agora é da pessoa: some o aviso de "troque a senha" (conta criada pela empresa)
+    const { error: err } = await supabase.auth.updateUser({ password, data: { must_change_password: false } });
     setBusy(false);
     if (err) return setError(friendly(err));
     onReset?.();

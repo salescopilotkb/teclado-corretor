@@ -100,6 +100,8 @@ async function callCompany(body: Record<string, unknown>): Promise<Record<string
       throw new CompanyError(t('Seu plano permite até {n} pessoas. Mude de plano para adicionar mais.', { n: max ?? 0 }));
     case 'not_company':
       throw new CompanyError(t('Só o Plus e o Pro têm pessoas na equipe. Assine um deles para adicionar.'));
+    case 'already_invited':
+      throw new CompanyError(t('Já existe um convite em aberto para este e-mail. Copie o link na lista de convites.'));
     case 'bad_request':
       throw new CompanyError(t('Confira o nome e o e-mail.'));
     default:
@@ -118,4 +120,67 @@ export async function removeMember(memberId: string): Promise<void> {
 
 export async function setMemberPassword(memberId: string, password: string): Promise<void> {
   await callCompany({ action: 'password', memberId, password });
+}
+
+// ── Convites (link de uso único) e sair da equipe ───────────────────────
+
+export interface CompanyInvite {
+  id: string;
+  name: string;
+  email: string;
+  teamId: string | null;
+  link: string;
+  expiresAt: string;
+}
+
+const LOCKER_INVITE_URL = 'https://locker.keyconapp.com/convite/';
+
+/** Convites em aberto (ainda não aceitos e dentro dos 7 dias). */
+export async function listInvites(): Promise<CompanyInvite[]> {
+  const { data: auth } = await supabase.auth.getSession();
+  const companyId = auth.session?.user.id;
+  if (!companyId) return [];
+  const { data, error } = await supabase
+    .from('company_invites')
+    .select('id, name, email, team_id, token, expires_at')
+    .eq('company_id', companyId)
+    .is('accepted_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+  // Banco sem a tabela (plans.sql, seção 9, ainda não rodou): sem convites
+  if (error) return [];
+  return (data ?? []).map(r => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    teamId: r.team_id,
+    link: LOCKER_INVITE_URL + r.token,
+    expiresAt: r.expires_at,
+  }));
+}
+
+/** Convida pelo nome e e-mail: devolve o link para mandar à pessoa (vale 7 dias, uma vez). */
+export async function inviteMember(input: { name: string; email: string; teamId: string | null }): Promise<CompanyInvite> {
+  const reply = await callCompany({ action: 'invite', name: input.name, email: input.email, teamId: input.teamId });
+  const invite = reply.invite as { id: string; token: string; link: string; expires_at: string };
+  return {
+    id: invite.id,
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
+    teamId: input.teamId,
+    link: invite.link || LOCKER_INVITE_URL + invite.token,
+    expiresAt: invite.expires_at,
+  };
+}
+
+export async function cancelInvite(inviteId: string): Promise<void> {
+  await callCompany({ action: 'cancel_invite', inviteId });
+}
+
+/**
+ * O funcionário sai da equipe: perde o acesso ao Locker da empresa e a conta
+ * continua, como uma conta comum no plano grátis (pode assinar um plano depois).
+ */
+export async function leaveCompany(): Promise<void> {
+  await callCompany({ action: 'leave' });
 }

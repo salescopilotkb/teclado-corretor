@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from '../config/supabase';
 import { supabase } from './supabase';
 import { DEMO_MODE } from '../config/demo';
+import { deleteDemoMedia, DEMO_MEDIA_PREFIX, saveDemoMedia } from './demoMedia';
 
 /** Mesmo limite do bucket e do teclado. */
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -85,9 +86,10 @@ export function publicUrl(storagePath: string): string {
  */
 export async function uploadMedia(media: LocalMedia, onProgress?: (fraction: number) => void): Promise<UploadedMedia> {
   if (DEMO_MODE) {
-    // Demonstração (versão web): o arquivo fica só nesta aba do navegador, nada vai ao servidor
+    // Demonstração (versão web): o arquivo fica guardado neste navegador, nada vai ao servidor
+    const storagePath = media.file ? await saveDemoMedia(media.file) : '';
     onProgress?.(1);
-    return { url: media.uri, storagePath: '' };
+    return { url: media.uri, storagePath };
   }
   if (media.size && media.size > MAX_UPLOAD_BYTES) {
     throw new UploadError(t('O arquivo passa de 50 MB. Escolha um menor ou mande o link.'));
@@ -150,6 +152,8 @@ function uploadErrorMessage(status: number, response: string): string {
  */
 export async function deleteUploadedMedia(storagePath: string | undefined): Promise<void> {
   if (!storagePath) return;
+  // Demonstração: o arquivo estava guardado neste navegador
+  if (storagePath.startsWith(DEMO_MEDIA_PREFIX)) return deleteDemoMedia(storagePath);
   try {
     if (storagePath.startsWith('r2:')) {
       await supabase.functions.invoke('locker', { body: { action: 'delete', keys: [storagePath.slice(3)] } });

@@ -673,7 +673,7 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
         </View>
         <Text style={styles.hint}>
           {DEMO_MODE
-            ? t('A galeria abre por cima da conversa. Nesta demonstração, o arquivo fica só neste navegador e some ao recarregar a página.')
+            ? t('A galeria abre por cima da conversa. Nesta demonstração, o arquivo fica guardado só neste navegador (não vai para a nuvem).')
             : t('A galeria abre por cima da conversa. O arquivo vai para a nuvem e aparece também no app.')}
         </Text>
         </>

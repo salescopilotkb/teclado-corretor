@@ -140,8 +140,8 @@ export function hasCompany(plan: PlanInfo = getPlan()): boolean {
 /** Dependente: a conta é da equipe de uma empresa (a assinatura e os dados ficam com ela). */
 export function dependentNotice(plan: PlanInfo = getPlan()): string {
   return plan.companyName
-    ? t('Sua conta faz parte da equipe de {company}. A assinatura e os dados da empresa ficam com ela.', { company: plan.companyName })
-    : t('Sua conta faz parte da equipe de uma empresa. A assinatura e os dados da empresa ficam com ela.');
+    ? t('Sua conta faz parte da equipe de {company}. A assinatura e os dados da empresa ficam com ela. Se você sair da equipe, continua com uma conta própria e pode assinar um plano.', { company: plan.companyName })
+    : t('Sua conta faz parte da equipe de uma empresa. A assinatura e os dados da empresa ficam com ela. Se você sair da equipe, continua com uma conta própria e pode assinar um plano.');
 }
 
 /** Abre a tela "Escolher o que manter" (passou do limite do plano). */

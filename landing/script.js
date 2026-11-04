@@ -112,7 +112,12 @@ var I18N = {
     "wl.placeholder": "voce@seunegocio.com.br",
     "wl.submit": "Avise-me",
     "wl.sending": "Enviando…",
-    "wl.note": "Um e-mail quando o KEYCON chegar ao seu celular. Sem spam.",
+    "wl.note": "Novidades do KEYCON por e-mail e WhatsApp. Sem spam.",
+    "wl.whatsappLabel": "WhatsApp (opcional)",
+    "wl.whatsappPlaceholder": "WhatsApp (opcional): +55 11 98765-4321",
+    "wl.consent": "Aceito receber novidades e ofertas do KEYCON por e-mail e WhatsApp. Posso cancelar quando quiser.",
+    "wl.errConsent": "Para entrar na lista, marque que aceita receber as novidades.",
+    "wl.errWhatsapp": "Digite o WhatsApp com o código do país, como +55 11 98765-4321, ou deixe em branco.",
     "wl.doneTitle": "Você está na lista.",
     "wl.doneText": "Vamos avisar em {email} quando o KEYCON chegar ao {platform}.",
     "wl.reset": "Usar outro e-mail",
@@ -240,7 +245,12 @@ var I18N = {
     "wl.placeholder": "tu@tunegocio.com",
     "wl.submit": "Avísame",
     "wl.sending": "Enviando…",
-    "wl.note": "Un correo cuando KEYCON llegue a tu celular. Sin spam.",
+    "wl.note": "Novedades de KEYCON por correo y WhatsApp. Sin spam.",
+    "wl.whatsappLabel": "WhatsApp (opcional)",
+    "wl.whatsappPlaceholder": "WhatsApp (opcional): +1 305 555 0123",
+    "wl.consent": "Acepto recibir novedades y ofertas de KEYCON por correo y WhatsApp. Puedo darme de baja cuando quiera.",
+    "wl.errConsent": "Para entrar en la lista, marca que aceptas recibir las novedades.",
+    "wl.errWhatsapp": "Escribe el WhatsApp con el código del país, como +1 305 555 0123, o déjalo en blanco.",
     "wl.doneTitle": "Ya estás en la lista.",
     "wl.doneText": "Te avisaremos en {email} cuando KEYCON llegue a {platform}.",
     "wl.reset": "Usar otro correo",
@@ -288,6 +298,8 @@ var EN_EXTRA = {
   'wl.errEmail': 'Enter an email like name@yourbusiness.com.',
   'wl.errPlatform': 'Choose iPhone or Android.',
   'wl.errNetwork': 'We couldn’t save your email. Check your connection and try again.',
+  'wl.errConsent': 'To join the list, check that you agree to receive the news.',
+  'wl.errWhatsapp': 'Enter your WhatsApp with the country code, like +1 305 555 0123, or leave it blank.',
 };
 
 (function () {
@@ -375,6 +387,8 @@ var EN_EXTRA = {
   var renderHooks = [];
   var PLATFORM_NAME = { iphone: 'iPhone', android: 'Android' };
   var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  // WhatsApp (opcional): com o código do país; só dígitos, espaços, parênteses, ponto e traço
+  var PHONE_RE = /^\+?[0-9 ().-]{8,20}$/;
   var joined = null;
   try { joined = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null'); } catch (e) {}
   if (!joined || !joined.email || !PLATFORM_NAME[joined.platform]) joined = null;
@@ -392,6 +406,7 @@ var EN_EXTRA = {
     box.dataset.key = key || '';
     box.textContent = key ? tr(key) : '';
     form.querySelector('.email').setAttribute('aria-invalid', String(key === 'wl.errEmail'));
+    form.querySelector('.whatsapp').setAttribute('aria-invalid', String(key === 'wl.errWhatsapp'));
     if (field) field.focus();
   }
 
@@ -429,6 +444,10 @@ var EN_EXTRA = {
     var email = form.querySelector('.email');
     var errorKey = function () { return form.querySelector('.wl-error').dataset.key; };
     email.addEventListener('input', function () { if (errorKey() === 'wl.errEmail') showError(form, ''); });
+    var phone = form.querySelector('.whatsapp');
+    var consent = form.querySelector('.consent');
+    phone.addEventListener('input', function () { if (errorKey() === 'wl.errWhatsapp') showError(form, ''); });
+    consent.addEventListener('change', function () { if (errorKey() === 'wl.errConsent') showError(form, ''); });
     form.querySelectorAll('.platform input').forEach(function (r) {
       r.addEventListener('change', function () { if (errorKey() === 'wl.errPlatform') showError(form, ''); });
     });
@@ -439,6 +458,10 @@ var EN_EXTRA = {
       var picked = form.querySelector('.platform input:checked');
       if (value.length > 254 || !EMAIL_RE.test(value)) return showError(form, 'wl.errEmail', email);
       if (!picked) return showError(form, 'wl.errPlatform', form.querySelector('.platform input'));
+      var whatsapp = phone.value.trim();
+      var digits = whatsapp.replace(/\D/g, '');
+      if (whatsapp && (!PHONE_RE.test(whatsapp) || digits.length < 10 || digits.length > 15)) return showError(form, 'wl.errWhatsapp', phone);
+      if (!consent.checked) return showError(form, 'wl.errConsent', consent);
       showError(form, '');
       var entry = { email: value, platform: picked.value };
       // Robô preencheu o campo-isca: finge que deu certo e não envia nada
@@ -450,7 +473,15 @@ var EN_EXTRA = {
       fetch(wl.url + '/rest/v1/waitlist', {
         method: 'POST',
         headers: { apikey: wl.anonKey, Authorization: 'Bearer ' + wl.anonKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-        body: JSON.stringify({ email: value, platform: picked.value, language: current }),
+        // A autorização vai junto com o texto exato que a pessoa aceitou (prova do consentimento)
+        body: JSON.stringify({
+          email: value,
+          platform: picked.value,
+          language: current,
+          whatsapp: whatsapp || null,
+          marketing_consent: true,
+          consent_text: tr('wl.consent'),
+        }),
         signal: ctrl ? ctrl.signal : undefined,
       }).then(function (res) {
         clearTimeout(timer);

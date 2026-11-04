@@ -25,7 +25,8 @@ if (typeof window !== 'undefined') {
     if (!WebKeyboardHost.pressBack()) appBack.handle();
   });
 }
-import { Repo } from '../src/storage/storage';
+import { Repo, storage } from '../src/storage/storage';
+import { clearDemoMedia, demoMediaUrls, relinkDemoMedia } from '../src/services/demoMedia';
 import { demoFilesData } from '../src/files/demoLocker';
 import { isLang } from '../src/i18n';
 
@@ -274,21 +275,53 @@ function TestSite() {
     else WebKeyboardHost.hide();
   }, [screen]);
 
-  // Celular no tamanho real (tela 440 x 956), reduzido por inteiro para caber na janela
+  // Celular no tamanho real (tela 440 x 956), reduzido por inteiro para caber na janela.
+  // Com transform (e não a propriedade CSS "zoom"): todos os navegadores calculam o lugar
+  // do toque igual ao desenho. Com "zoom", alguns (Safari, Firefox, versões do Chrome)
+  // erravam a conta e os toques nos botões do app não valiam. As margens negativas tiram
+  // o espaço que sobra em volta do celular reduzido.
   useEffect(() => {
+    const W = 466;
+    const H = 982;
     const fit = () => {
       const phone = document.querySelector<HTMLElement>('.iphone');
       if (!phone) return;
+      phone.style.removeProperty('zoom');
+      const reset = () => {
+        phone.style.removeProperty('transform');
+        phone.style.removeProperty('transform-origin');
+        phone.style.removeProperty('margin');
+      };
       if (window.innerWidth <= 480) {
-        phone.style.removeProperty('zoom');
+        reset();
+        placeQr(phone);
         return;
       }
-      const k = Math.min(1, (window.innerHeight - 200) / 982, (window.innerWidth - 32) / 466);
-      phone.style.setProperty('zoom', String(Math.max(0.45, k)));
+      const k = Math.max(0.45, Math.min(1, (window.innerHeight - 200) / H, (window.innerWidth - 32) / W));
+      if (k >= 1) {
+        reset();
+      } else {
+        phone.style.transformOrigin = 'top center';
+        phone.style.transform = `scale(${k})`;
+        const side = (W * (1 - k)) / 2;
+        phone.style.margin = `0 ${-side}px ${-H * (1 - k)}px`;
+      }
+      placeQr(phone);
+    };
+    // O QR Code nunca fica por cima do celular (nem atrapalha os toques nele)
+    const placeQr = (phone: HTMLElement) => {
+      const qr = document.querySelector<HTMLElement>('.qr-card');
+      if (!qr) return;
+      qr.style.removeProperty('visibility');
+      const a = qr.getBoundingClientRect();
+      const b = phone.getBoundingClientRect();
+      const overlap = a.width > 0 && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      if (overlap) qr.style.visibility = 'hidden';
     };
     fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
+    const again = () => requestAnimationFrame(fit);
+    window.addEventListener('resize', again);
+    return () => window.removeEventListener('resize', again);
   }, []);
 
   return (
@@ -351,11 +384,48 @@ function TestSite() {
       </aside>
 
       <p className="note">
-        Demo: the keyboard types and sends into this test chat, like on WhatsApp. Nothing is saved: reloading the page
-        starts over.
+        Demo: the keyboard types and sends into this test chat, like on WhatsApp. Your changes (Locker, products,
+        shortcuts) stay in this browser only — nothing goes to the server. <button className="link-reset" onClick={restartDemo}>Restart demo</button>
       </p>
     </div>
   );
 }
 
-createRoot(document.getElementById('root')!).render(<TestSite />);
+/**
+ * "Restart demo": apaga o que o admin mudou neste navegador (dados do app e arquivos
+ * enviados) e volta ao Locker e ao perfil de exemplo (web/index.html prepara de novo).
+ */
+async function restartDemo() {
+  if (!window.confirm('Restart the demo? Everything you changed or uploaded in this browser goes back to the sample data.')) return;
+  await clearDemoMedia();
+  storage.clearAll();
+  location.reload();
+}
+
+/**
+ * Antes de abrir: os arquivos que o admin enviou em visitas anteriores voltam com
+ * links novos (os links "blob:" só valem durante uma visita).
+ */
+async function start() {
+  try {
+    // Nunca espera mais de 1,5 s: em alguns navegadores (aba anônima, por exemplo) o
+    // IndexedDB não responde, e a página não pode ficar em branco por isso
+    const urls = await Promise.race([demoMediaUrls(), new Promise<Map<string, string>>(r => setTimeout(() => r(new Map()), 1500))]);
+    if (urls.size) {
+      for (const key of storage.getAllKeys()) {
+        const raw = storage.getString(key);
+        if (!raw || !raw.includes('"demo:')) continue;
+        try {
+          const value = JSON.parse(raw);
+          if (relinkDemoMedia(value, urls)) storage.set(key, JSON.stringify(value));
+        } catch {
+          // não é JSON: nada a trocar
+        }
+      }
+    }
+  } catch {
+    // sem os arquivos guardados: abre do mesmo jeito
+  }
+  createRoot(document.getElementById('root')!).render(<TestSite />);
+}
+start();

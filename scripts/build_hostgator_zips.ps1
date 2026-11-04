@@ -31,10 +31,16 @@ if (Test-Path hostgator) { Remove-Item -Recurse -Force hostgator -Confirm:$false
 New-Item -ItemType Directory hostgator | Out-Null
 Get-ChildItem landing | Where-Object { $_.Name -ne 'three.min.js' } | ForEach-Object { Copy-Item -Recurse -LiteralPath $_.FullName -Destination hostgator }
 Copy-Item -Recurse -LiteralPath dist -Destination hostgator\app
-# Segurança do servidor: .htaccess da raiz, robots.txt, .well-known/security.txt e a
-# senha do /app (app/.htaccess, o mesmo que o cPanel criou), para que subir o zip não
-# apague a proteção
-Get-ChildItem -Force server\keyconapp | ForEach-Object { Copy-Item -Recurse -Force -LiteralPath $_.FullName -Destination hostgator }
+# Segurança do servidor: .htaccess da raiz, robots.txt, .well-known/security.txt e o
+# porteiro do /app (app/.htaccess + app/gate.php: página de login antes do app).
+# Arquivo por arquivo, para juntar com o que já está em hostgator\app
+$serverRoot = (Resolve-Path server\keyconapp).Path
+Get-ChildItem -Force -Recurse -File server\keyconapp | ForEach-Object {
+  $rel = $_.FullName.Substring($serverRoot.Length + 1)
+  $dest = Join-Path hostgator $rel
+  New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
+  Copy-Item -Force -LiteralPath $_.FullName -Destination $dest
+}
 Write-Zip hostgator keyconapp-public_html.zip
 
 # 2. Locker web
