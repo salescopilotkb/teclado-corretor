@@ -2,7 +2,7 @@
 
 // Versão dos arquivos: troque a cada publicação para o navegador não usar imagens antigas
 // (a mesma usada no ?v= de index.html)
-var ASSET_VERSION = '2026102901';
+var ASSET_VERSION = '2026110502';
 
 // ── Preencha aqui quando tiver os links ────────────────────────────────
 // Enquanto um link das lojas estiver vazio, o botão mostra "Em breve".
@@ -11,6 +11,13 @@ var CONFIG = {
   googlePlayUrl: '',  // ex.: 'https://play.google.com/store/apps/details?id=com.keycon.app'
   appStoreUrl: '',    // ex.: 'https://apps.apple.com/app/idXXXXXXXXXX'
   contactEmail: 'support@keyconapp.com',
+  // Pixel da Meta: só carrega depois do "Aceitar" no aviso de cookies (veja o fim do arquivo)
+  metaPixelId: '1825988711961690',
+  // Google Tag Manager: também só carrega depois do "Aceitar"
+  gtmId: 'GTM-K4FM43WW',
+  // Google Analytics 4: também só carrega depois do "Aceitar". Não crie outra tag
+  // do Analytics com este ID dentro do GTM, senão as visitas contam em dobro.
+  gaId: 'G-P4XQBDV735',
   // Lista de espera: tabela "waitlist" do Supabase do app (supabase/schema.sql).
   // A chave "anon" é pública (a mesma do app) e só permite SE INSCREVER;
   // ninguém lê a lista pelo site. NUNCA coloque aqui a chave "service_role".
@@ -97,6 +104,12 @@ var I18N = {
     "foot.privacy": "Política de Privacidade",
     "foot.terms": "Termos de Uso",
     "foot.note": "WhatsApp, Instagram e Messenger são marcas da Meta. O KEYCON não é afiliado à Meta.",
+    "foot.choices": "Suas escolhas de privacidade",
+    "ck.title": "Cookies no nosso site",
+    "ck.text": "Com a sua permissão, usamos ferramentas da Meta e do Google para medir as visitas e os nossos anúncios. Elas só funcionam se você aceitar.",
+    "ck.more": "Política de Privacidade",
+    "ck.accept": "Aceitar",
+    "ck.decline": "Recusar",
     "hero.alt": "Teclado KEYCON aberto numa conversa, com o menu de Arquivos, Produtos, Atalhos, Agenda e CRM acima das letras",
     "panel.products": "Aba Produtos do teclado com uma pasta de vestidos, preços e o botão Usar",
     "panel.shortcuts": "Aba Atalhos do teclado com respostas prontas de Pix, horário e entrega",
@@ -238,6 +251,12 @@ var I18N = {
     "foot.privacy": "Política de Privacidad",
     "foot.terms": "Términos de Uso",
     "foot.note": "WhatsApp, Instagram y Messenger son marcas de Meta. KEYCON no está afiliado a Meta.",
+    "foot.choices": "Tus opciones de privacidad",
+    "ck.title": "Cookies en nuestro sitio",
+    "ck.text": "Con tu permiso, usamos herramientas de Meta y Google para medir las visitas y nuestros anuncios. Solo funcionan si aceptas.",
+    "ck.more": "Política de Privacidad",
+    "ck.accept": "Aceptar",
+    "ck.decline": "Rechazar",
     "meta.title": "KEYCON · Teclado inteligente para vender",
     "nav.ctaLive": "Quiero KEYCON",
     "wl.platform": "Tu celular",
@@ -756,4 +775,103 @@ var EN_EXTRA = {
   }
 
   document.getElementById('ano').textContent = new Date().getFullYear();
+})();
+
+// ── Cookies: pixel da Meta e Google Tag Manager só com o consentimento ──
+// Sem escolha salva: mostra o aviso. "Aceitar" carrega o pixel; "Recusar" não.
+// O sinal Global Privacy Control do navegador conta como recusa (lei da Califórnia).
+// "Suas escolhas de privacidade", no rodapé, reabre o aviso para mudar a escolha.
+(function () {
+  var KEY = 'keycon.consent';
+  var box = document.getElementById('consent');
+  var loaded = false;
+
+  function loadPixel() {
+    if (loaded || !CONFIG.metaPixelId) return;
+    loaded = true;
+    /* Meta Pixel Code */
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    window.fbq('consent', 'grant');
+    window.fbq('init', CONFIG.metaPixelId);
+    window.fbq('track', 'PageView');
+    /* End Meta Pixel Code */
+  }
+  // Google (Tag Manager e Analytics): também só depois do "Aceitar"
+  var googleStarted = false, gtmLoaded = false, gaLoaded = false;
+  function consentGoogle(state) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
+    window.gtag('consent', googleStarted || state === 'denied' ? 'update' : 'default', {
+      ad_storage: state, analytics_storage: state, ad_user_data: state, ad_personalization: state,
+    });
+  }
+  function startGoogle() {
+    if (googleStarted) return;
+    consentGoogle('granted');
+    googleStarted = true;
+    window.gtag('js', new Date());
+  }
+  function addScript(src) {
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = src;
+    document.head.appendChild(s);
+  }
+  function loadGTM() {
+    if (gtmLoaded || !CONFIG.gtmId) return;
+    startGoogle();
+    gtmLoaded = true;
+    /* Google Tag (Tag Manager) */
+    addScript('https://www.googletagmanager.com/gtm.js?id=' + CONFIG.gtmId);
+    // evento padrão do GTM: dispara as tags de "Todas as páginas"
+    window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+    /* End Google Tag */
+  }
+  function loadGA() {
+    if (gaLoaded || !CONFIG.gaId) return;
+    startGoogle();
+    gaLoaded = true;
+    /* Google tag (gtag.js) - Google Analytics */
+    addScript('https://www.googletagmanager.com/gtag/js?id=' + CONFIG.gaId);
+    window.gtag('config', CONFIG.gaId);
+    /* End Google tag */
+  }
+  function loadTrackers() { loadPixel(); loadGTM(); loadGA(); }
+
+  function saved() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function save(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function show(on) { if (box) box.hidden = !on; }
+
+  function choose(v) {
+    save(v);
+    show(false);
+    if (v === 'granted') loadTrackers();
+    else {
+      if (loaded && window.fbq) window.fbq('consent', 'revoke');
+      if (googleStarted) consentGoogle('denied');
+    }
+  }
+
+  var gpc = navigator.globalPrivacyControl === true;
+  var choice = saved();
+  if (choice === 'granted' && !gpc) loadTrackers();
+  else if (!choice && !gpc) show(true);
+
+  document.querySelectorAll('[data-consent]').forEach(function (b) {
+    b.addEventListener('click', function () { choose(b.dataset.consent); });
+  });
+  document.querySelectorAll('[data-consent-open]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      show(true);
+      var first = box && box.querySelector('[data-consent="denied"]');
+      if (first) first.focus();
+    });
+  });
 })();

@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEYCON · Media Kit 2026</title>
+<meta name="description" content="Media Kit do KEYCON: o kit de vendas que mora dentro do teclado do celular. Sobre o app, recursos, planos, fatos rápidos, identidade visual e contato.">
+<meta name="theme-color" content="#14161D">
+<link rel="canonical" href="https://keyconapp.com/media-kit/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="KEYCON · Media Kit 2026">
+<meta property="og:description" content="O kit de vendas que mora dentro do teclado do celular.">
+<meta property="og:url" content="https://keyconapp.com/media-kit/">
+<meta property="og:image" content="https://keyconapp.com/media-kit/img/logo-app-keycon.png">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Identidade KEYCON (manual v1.0): grafite estrutural, coral só para marca/ação, Inter. */
+  :root {
+    --graphite: #242833; --coral: #F17860; --coral-strong: #E2654D; --coral-text: #D9573E;
+    --cloud: #F1F2F4; --canvas: #14161D; --text: #1B1E26; --muted: #6B7280; --muted-dark: #9AA1AE;
+    --peach: #FAD0BD; --mist: #E3E8F1; --dusk: #3B4A6B;
+    --wrap: 1160px; --pad: clamp(20px, 5vw, 48px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', system-ui, sans-serif; color: var(--text); background: var(--cloud); -webkit-font-smoothing: antialiased; }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+
+  /* barra do topo */
+  .nav { position: sticky; top: 0; z-index: 20; background: rgba(20,22,29,.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,.08); }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+  .nav img { height: 22px; width: auto; }
+  .nav .links { display: flex; align-items: center; gap: 22px; }
+  .nav .links a.txt { color: #C9CDD6; text-decoration: none; font-size: 14px; font-weight: 600; }
+  .nav .links a.txt:hover { color: #fff; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 999px; background: var(--coral); color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 8px 22px rgba(241,120,96,.35); transition: background .2s, transform .2s; }
+  .btn:hover { background: var(--coral-strong); transform: translateY(-1px); }
+  .btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.25); box-shadow: none; }
+  .btn.ghost:hover { background: rgba(255,255,255,.08); }
+
+  /* seções */
+  .sec { position: relative; overflow: hidden; padding: clamp(72px, 10vw, 120px) 0; }
+  .wrap { position: relative; z-index: 1; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--pad); }
+  .light { background: var(--cloud); }
+  .dark { background: radial-gradient(120% 90% at 70% 30%, var(--graphite) 0%, var(--canvas) 70%); color: #fff; }
+
+  .blob { position: absolute; border-radius: 50%; pointer-events: none; }
+  .light .b1 { width: 640px; height: 640px; left: -200px; top: -260px; background: radial-gradient(circle, var(--peach) 0%, transparent 68%); opacity: .8; }
+  .light .b2 { width: 720px; height: 720px; right: -260px; bottom: -340px; background: radial-gradient(circle, var(--mist) 0%, transparent 68%); }
+  .dark .b1 { width: 800px; height: 800px; right: -220px; top: -340px; background: radial-gradient(circle, rgba(241,120,96,.42) 0%, transparent 66%); }
+  .dark .b2 { width: 830px; height: 830px; left: -340px; bottom: -450px; background: radial-gradient(circle, rgba(59,74,107,.7) 0%, transparent 66%); }
+
+  .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--coral-text); margin-bottom: 16px; }
+  .dark .eyebrow { color: var(--coral); }
+  h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.05; font-weight: 800; letter-spacing: -.035em; }
+  h2 { font-size: clamp(28px, 4vw, 42px); line-height: 1.1; font-weight: 800; letter-spacing: -.03em; }
+  h3 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; }
+  .hi { color: var(--coral-text); }
+  .dark .hi { color: var(--coral); }
+  .lead { font-size: clamp(17px, 1.8vw, 20px); line-height: 1.55; color: #3A4050; font-weight: 500; max-width: 620px; }
+  .dark .lead { color: #C9CDD6; }
+  p, li { font-size: 15px; line-height: 1.55; }
+  .muted { color: var(--muted); }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; color: var(--muted); }
+  .dark .label { color: var(--muted-dark); }
+
+  /* vidro (Liquid Glass) */
+  .glass { background: rgba(255,255,255,.72); border: 1px solid rgba(36,40,51,.08); border-top-color: rgba(255,255,255,.98); border-radius: 22px; box-shadow: 0 30px 68px rgba(36,40,51,.10), 0 6px 18px rgba(36,40,51,.05); }
+  .dark .glass { background: rgba(36,40,51,.62); border-color: rgba(255,255,255,.10); border-top-color: rgba(255,255,255,.22); box-shadow: 0 38px 80px rgba(0,0,0,.35); }
+  .card { padding: 24px; }
+  .card p { color: #4A5061; }
+  .dark .card p { color: #C9CDD6; }
+  .card .top { display: flex; align-items: center; gap: 13px; margin-bottom: 12px; }
+  .card .top h3 { margin: 0; }
+
+  .phone { width: 220px; aspect-ratio: 640 / 1218; border-radius: 30px; background: #0C0E13; padding: 6px; box-shadow: 0 44px 90px rgba(10,12,18,.35), 0 12px 30px rgba(10,12,18,.2); flex-shrink: 0; }
+  .phone img { width: 100%; height: 100%; object-fit: cover; border-radius: 25px; }
+  .phones { display: flex; gap: 22px; align-items: flex-end; justify-content: center; }
+  .split .phones .phone { width: 190px; }
+  .split { gap: 44px; }
+
+  .icon { width: 42px; height: 42px; border-radius: 13px; background: var(--coral); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 9px 22px rgba(241,120,96,.35); }
+  .icon svg { width: 23px; height: 23px; stroke: #fff; fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+
+  .chip { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; background: #fff; border: 1px solid rgba(36,40,51,.08); }
+  .chip.on { background: var(--coral); color: #fff; border-color: var(--coral); }
+  .dark .chip { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(255,255,255,.16); }
+  .dark .chip.on { background: var(--coral); border-color: var(--coral); }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .split { display: grid; grid-template-columns: 1fr auto; gap: 56px; align-items: center; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .mt-s { margin-top: 20px; } .mt { margin-top: 36px; } .mt-l { margin-top: 52px; }
+
+  /* capa */
+  .cover { padding: clamp(96px, 14vw, 170px) 0; }
+  .cover .kbig { position: absolute; right: -110px; top: 40px; width: 660px; opacity: .10; }
+  .cover .logo { width: min(560px, 90%); margin-top: 44px; }
+  .tag { display: inline-block; padding: 10px 18px; border-radius: 999px; background: rgba(241,120,96,.16); border: 1px solid rgba(241,120,96,.5); color: var(--coral); font-weight: 700; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+  .cover h2 { font-weight: 700; max-width: 680px; margin-top: 36px; }
+  .cover .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 36px; }
+
+  /* passos */
+  .step-n { font-size: 44px; font-weight: 900; color: var(--coral); letter-spacing: -.04em; line-height: 1; }
+  .step h3 { margin-top: 18px; font-size: 20px; }
+  .check { display: flex; align-items: center; gap: 14px; padding: 18px 22px; }
+  .check p { color: #DADDE3; font-weight: 600; }
+
+  /* planos */
+  .plans { display: grid; grid-template-columns: 1fr 1fr 1fr .85fr; gap: 18px; align-items: stretch; }
+  .plan { padding: 28px 24px; position: relative; display: flex; flex-direction: column; }
+  .plan .name { font-size: 21px; font-weight: 800; letter-spacing: -.02em; }
+  .plan .price { font-size: 34px; font-weight: 800; letter-spacing: -.035em; margin-top: 8px; }
+  .plan .price small { font-size: 14px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+  .plan ul { list-style: none; margin-top: 16px; display: flex; flex-direction: column; gap: 9px; }
+  .plan li { font-size: 14px; line-height: 1.4; padding-left: 22px; position: relative; color: #3A4050; }
+  .plan li::before { content: ''; position: absolute; left: 0; top: 5px; width: 10px; height: 5px; border-left: 2px solid var(--coral); border-bottom: 2px solid var(--coral); transform: rotate(-45deg); }
+  .plan.featured { background: var(--graphite); color: #fff; border-color: var(--graphite); box-shadow: 0 38px 90px rgba(36,40,51,.35); }
+  .plan.featured li { color: #DADDE3; }
+  .plan.featured .price small { color: var(--muted-dark); }
+  .plan.soft { background: rgba(255,255,255,.45); }
+  .badge { position: absolute; top: -12px; left: 24px; background: var(--coral); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 6px 13px; border-radius: 999px; }
+  .plans-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+
+  /* fatos */
+  .facts { display: grid; grid-template-columns: 1.1fr .9fr; gap: 44px; }
+  .fact h3 { margin-top: 6px; }
+  .priv ul { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+  .priv li { color: #DADDE3; }
+  .priv b { color: #fff; }
+
+  /* identidade */
+  .brand { display: grid; grid-template-columns: 1.3fr 1fr; gap: 26px; }
+  .logos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .logo-box { border-radius: 20px; display: flex; align-items: center; justify-content: center; height: 128px; padding: 24px 28px; }
+  .logo-box img { max-height: 100%; width: auto; }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+  .swatch { border-radius: 20px; height: 128px; padding: 16px; display: flex; flex-direction: column; justify-content: flex-end; font-size: 14px; font-weight: 700; }
+  .swatch span { font-weight: 500; opacity: .8; font-size: 13px; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .rules ul { padding-left: 18px; margin-top: 10px; }
+  .rules li { margin-bottom: 6px; }
+
+  /* contato */
+  .contact { text-align: center; }
+  .contact .appicon { width: 104px; border-radius: 24px; box-shadow: 0 0 80px rgba(241,120,96,.45); margin: 0 auto; }
+  .contact .lead { margin: 16px auto 0; }
+  .contact .boxes { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-top: 40px; }
+  .contact .box { padding: 20px 28px; text-align: left; text-decoration: none; transition: transform .2s; }
+  .contact .box:hover { transform: translateY(-2px); }
+  .contact .box .v { font-size: 19px; font-weight: 700; margin-top: 4px; }
+  .contact .kbg { position: absolute; left: -150px; bottom: -190px; width: 640px; opacity: .08; }
+  .contact .actions { display: flex; justify-content: center; margin-top: 36px; }
+
+  footer { background: var(--canvas); color: var(--muted-dark); font-size: 13px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 22px; padding-bottom: 22px; }
+  footer a { text-decoration: none; }
+  footer a:hover { color: #fff; }
+
+  @media (max-width: 960px) {
+    .split, .facts, .brand { grid-template-columns: 1fr; }
+    .plans { grid-template-columns: 1fr 1fr; gap: 26px 18px; }
+    .phones { margin-top: 8px; }
+  }
+  @media (max-width: 720px) {
+    .grid3 { grid-template-columns: 1fr; }
+    .nav .links a.txt { display: none; }
+    .phone { width: 160px; border-radius: 24px; padding: 5px; }
+    .phone img { border-radius: 20px; }
+    .phones .up { transform: none !important; }
+  }
+  @media (max-width: 560px) {
+    .grid2, .plans, .logos { grid-template-columns: 1fr; }
+    .swatches { grid-template-columns: 1fr 1fr; }
+    .nav .btn span { display: none; }
+    .nav .btn { padding: 11px 13px; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .contact .box { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a href="/" aria-label="KEYCON, página inicial"><img src="img/logo-transp-without-slogan.png" alt="KEYCON"></a>
+    <nav class="links">
+      <a class="txt" href="#recursos">Recursos</a>
+      <a class="txt" href="#planos">Planos</a>
+      <a class="txt" href="#marca">Marca</a>
+      <a class="txt" href="#contato">Contato</a>
+      <a class="btn" href="KEYCON-Media-Kit-2026.pdf" download><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg><span>Baixar PDF</span></a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- 1 · CAPA -->
+<section class="sec dark cover">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <img class="kbig" src="img/icon-keycon.png" alt="">
+  <div class="wrap">
+    <span class="tag">Media Kit 2026</span>
+    <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">KEYCON · Media Kit 2026</h1>
+    <img class="logo" src="img/logo-transp-without-slogan.png" alt="KEYCON">
+    <h2>O kit de vendas que mora <span class="hi">dentro do teclado</span> do celular.</h2>
+    <p class="lead mt-s">Seu negócio na ponta dos dedos.</p>
+    <div class="actions">
+      <a class="btn" href="KEYCON-Media-Kit-2026.pdf" download><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Baixar o Media Kit em PDF</a>
+      <a class="btn ghost" href="#contato">Falar com a gente</a>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · SOBRE -->
+<section class="sec light" id="sobre">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">O que é</div>
+      <h2>Responder o cliente e enviar o produto <span class="hi">em um ou dois toques.</span></h2>
+      <p class="lead mt-s">O KEYCON é um teclado de celular feito para vender. O vendedor cadastra no app os produtos com fotos, as mensagens prontas, os clientes e os compromissos. Depois usa tudo isso direto do teclado, dentro de qualquer conversa.</p>
+      <div class="grid3 mt">
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v10H9l-5 4z"/></svg></div></div><h3>Em qualquer app de conversa</h3><p>Funciona onde o cliente já está: nas mensagens, nas redes sociais e no e-mail.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12z" fill="#fff" stroke="none"/></svg></div></div><h3>Sem integração</h3><p>Não precisa de API, conta comercial ou trocar de aplicativo no meio do atendimento.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg></div></div><h3>Teclado do dia a dia</h3><p>Também corrige palavras e sugere as próximas, para substituir o teclado padrão.</p></div>
+      </div>
+    </div>
+    <div class="phones">
+      <div class="phone up" style="transform: translateY(-30px);"><img src="img/story-ask.webp" alt="Cliente pergunta na conversa" loading="lazy"></div>
+      <div class="phone"><img src="img/story-sent.webp" alt="Ficha do produto enviada pelo teclado" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · COMO FUNCIONA -->
+<section class="sec dark" id="como-funciona">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap">
+    <div class="eyebrow">Em três passos</div>
+    <h2 style="max-width: 780px;">A conversa é o lugar de trabalho. <span class="hi">O KEYCON leva as ferramentas até ela.</span></h2>
+    <div class="grid3 mt-l">
+      <div class="glass card step" style="padding: 30px;"><div class="step-n">01</div><h3>Cadastre uma vez</h3><p>No app, organize produtos em pastas, com preço, fotos e vídeos. Salve mensagens prontas de texto, áudio e link, além de clientes e compromissos.</p></div>
+      <div class="glass card step" style="padding: 30px;"><div class="step-n">02</div><h3>Abra o teclado na conversa</h3><p>Em qualquer app, o teclado KEYCON mostra as abas Produtos, Atalhos, Locker, Agenda e CRM. Um toque no ícone volta para as letras.</p></div>
+      <div class="glass card step" style="padding: 30px;"><div class="step-n">03</div><h3>Envie em um ou dois toques</h3><p>A ficha completa do produto, as fotos, um áudio ou um link entram direto na conversa. O cliente recebe na hora, sem esperar o vendedor procurar na galeria.</p></div>
+    </div>
+    <div class="grid3 mt">
+      <div class="glass check"><div class="icon"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><p>Não muda o app de conversa que o vendedor já usa</p></div>
+      <div class="glass check"><div class="icon"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><p>O cliente recebe foto, preço e detalhes na hora</p></div>
+      <div class="glass check"><div class="icon"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><p>Atendimento padronizado em toda a equipe</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · RECURSOS -->
+<section class="sec light" id="recursos">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">Tudo no teclado</div>
+      <h2>Seis ferramentas de venda, <span class="hi">sem sair da conversa.</span></h2>
+      <div class="grid2 mt">
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3" fill="#fff"/></svg></div><h3>Catálogo</h3></div><p>Produtos em pastas, com preço, fotos, vídeos e campos do ramo. Envia a ficha completa com um toque.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12z" fill="#fff" stroke="none"/></svg></div><h3>Atalhos</h3></div><p>As mensagens de todo dia viram atalhos de texto, áudio ou link, prontos para enviar.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg></div><h3>Locker</h3></div><p>Fotos, vídeos e documentos em pastas na nuvem, no celular e no computador. Compartilha por link.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg></div><h3>CRM</h3></div><p>Clientes organizados por etapa de venda, do primeiro contato ao fechamento.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><h3>Agenda</h3></div><p>Reuniões, visitas e tarefas do mês, marcadas direto pelo teclado.</p></div>
+        <div class="glass card"><div class="top"><div class="icon"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c0 4-3 7-6 9M13 21l4-10 4 10M14.5 17h5"/></svg></div><h3>Teclado completo</h3></div><p>Corretor e sugestões em português, inglês e espanhol, tradução no aparelho e ditado por voz.</p></div>
+      </div>
+    </div>
+    <div class="phones" style="align-items: center;">
+      <div class="phone"><img src="img/products.webp" alt="Aba de produtos no teclado" loading="lazy"></div>
+      <div class="phone up" style="transform: translateY(40px);"><img src="img/shortcuts.webp" alt="Aba de atalhos no teclado" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · PARA QUEM -->
+<section class="sec dark" id="publico">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">Público</div>
+      <h2>Para quem vende <span class="hi">pelo celular, o dia inteiro.</span></h2>
+      <div class="grid3 mt">
+        <div class="glass card"><h3>Vendedores autônomos</h3><p>Revendedores, corretores e consultores que atendem sozinhos.</p></div>
+        <div class="glass card"><h3>Pequenos negócios</h3><p>Donos e atendentes que respondem clientes nas conversas.</p></div>
+        <div class="glass card"><h3>Equipes de vendas</h3><p>Empresas com equipe, cada pessoa com o seu acesso ao mesmo catálogo.</p></div>
+      </div>
+      <div class="eyebrow mt">O app se adapta ao ramo</div>
+      <p style="color: #C9CDD6; max-width: 620px;">Ao escolher o ramo, mudam os nomes do catálogo, os campos de cada item e as etapas do funil. Por exemplo, a imobiliária vê "Imóveis", com quartos, vagas e metragem.</p>
+      <div class="chips mt-s">
+        <span class="chip on">Geral</span><span class="chip">Imobiliária</span><span class="chip">Seguros</span><span class="chip">Restaurante</span><span class="chip">Advocacia</span><span class="chip">Loja e varejo</span><span class="chip">Beleza e estética</span><span class="chip">Veículos</span>
+      </div>
+    </div>
+    <div class="phones"><div class="phone"><img src="img/crm.webp" alt="Clientes no CRM do teclado" loading="lazy"></div></div>
+  </div>
+</section>
+
+<!-- 6 · PLANOS -->
+<section class="sec light" id="planos">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap">
+    <div class="plans-head">
+      <div><div class="eyebrow">Assinatura mensal</div><h2>Um plano para cada <span class="hi">tamanho de operação.</span></h2></div>
+      <span class="chip on" style="font-size: 15px; padding: 11px 20px;">Plus grátis por 7 dias</span>
+    </div>
+    <div class="plans mt-l">
+      <div class="glass plan">
+        <div class="name">Basic</div>
+        <div class="price">US$ 24,99 <small>/mês</small></div>
+        <ul><li>Catálogo, arquivos e atalhos sem limite</li><li>Locker com 5 GB</li><li>Agenda e CRM</li><li>Compartilhar com até 3 pessoas</li></ul>
+      </div>
+      <div class="glass plan featured">
+        <div class="badge">7 dias grátis</div>
+        <div class="name">Plus</div>
+        <div class="price">US$ 49,99 <small>/mês</small></div>
+        <ul><li>Tudo do Basic</li><li>Locker com 20 GB</li><li>Equipe com até 5 pessoas</li><li>Pastas compartilhadas por link</li><li>Locker no computador, também sem internet</li></ul>
+      </div>
+      <div class="glass plan">
+        <div class="name">Pro</div>
+        <div class="price">US$ 99,99 <small>/mês</small></div>
+        <ul><li>Tudo do Plus</li><li>Locker com 100 GB</li><li>Até 5 equipes e 50 pessoas</li><li>Suporte prioritário</li></ul>
+      </div>
+      <div class="glass plan soft">
+        <div class="name">Enterprise</div>
+        <div class="price" style="font-size: 24px; margin-top: 12px;">Sob consulta</div>
+        <ul><li>Espaço e equipes sob medida</li><li>Para operações maiores</li></ul>
+      </div>
+    </div>
+    <p class="muted mt" style="font-size: 13px; max-width: 760px;">Preços em dólar, cobrados pela App Store ou pela Google Play. O teste grátis de 7 dias vale para o Plus, para quem nunca assinou. A assinatura vale no app, no teclado e no Locker.</p>
+  </div>
+</section>
+
+<!-- 7 · FATOS E PRIVACIDADE -->
+<section class="sec dark" id="fatos">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap facts">
+    <div>
+      <div class="eyebrow">Ficha técnica</div>
+      <h2>KEYCON em <span class="hi">números e fatos.</span></h2>
+      <div class="grid2 mt">
+        <div class="glass card fact"><p class="label">Plataformas</p><h3>Android e iPhone</h3><p>App + teclado do sistema</p></div>
+        <div class="glass card fact"><p class="label">Mercado de lançamento</p><h3>Estados Unidos</h3><p>Também em português e espanhol</p></div>
+        <div class="glass card fact"><p class="label">Idiomas do app</p><h3>Inglês · Português · Espanhol</h3><p>Corretor nos três idiomas</p></div>
+        <div class="glass card fact"><p class="label">Tradução no aparelho</p><h3>6 idiomas</h3><p>pt, en, es, fr, it e de</p></div>
+        <div class="glass card fact"><p class="label">Ramos de negócio</p><h3>8 perfis prontos</h3><p>Do varejo à imobiliária</p></div>
+        <div class="glass card fact"><p class="label">Modelo</p><h3>Assinatura mensal</h3><p>Basic, Plus, Pro e Enterprise</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="eyebrow">Privacidade</div>
+      <h2 style="font-size: clamp(24px, 3vw, 32px);">O que acontece <span class="hi">dentro do celular</span> fica nele.</h2>
+      <div class="glass card priv mt">
+        <ul>
+          <li><b>Digitação:</b> processada no próprio aparelho.</li>
+          <li><b>Catálogo, atalhos, clientes e agenda:</b> ficam guardados no celular.</li>
+          <li><b>Na nuvem:</b> a conta e os arquivos que o próprio vendedor envia ao Locker.</li>
+          <li><b>Exclusão:</b> a conta pode ser apagada pelo próprio app, a qualquer momento.</li>
+        </ul>
+      </div>
+      <p class="mt-s" style="font-size: 13px; color: var(--muted-dark);"><a href="/privacidade.html">Política de Privacidade</a> e <a href="/termos.html">Termos de Uso</a> em keyconapp.com.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 · IDENTIDADE VISUAL -->
+<section class="sec light" id="marca">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="wrap">
+    <div class="eyebrow">Marca</div>
+    <h2>Como usar a <span class="hi">marca KEYCON.</span></h2>
+    <div class="brand mt">
+      <div>
+        <div class="logos">
+          <a class="logo-box" style="background: var(--canvas);" href="img/logo-transp-without-slogan.png" download title="Baixar: logo para fundo escuro"><img src="img/logo-transp-without-slogan.png" alt="Logo para fundo escuro" loading="lazy"></a>
+          <a class="logo-box glass" href="img/logo-transp-without-slogan-dark.png" download title="Baixar: logo para fundo claro"><img src="img/logo-transp-without-slogan-dark.png" alt="Logo para fundo claro" loading="lazy"></a>
+          <a class="logo-box" style="background: var(--graphite);" href="img/logo-transp-with-slogan.png" download title="Baixar: logo com slogan"><img src="img/logo-transp-with-slogan.png" alt="Logo com slogan" loading="lazy"></a>
+          <div class="logo-box glass" style="gap: 30px;">
+            <a href="img/logo-app-keycon.png" download title="Baixar: ícone do app"><img src="img/logo-app-keycon.png" style="height: 72px; border-radius: 17px;" alt="Ícone do app" loading="lazy"></a>
+            <a href="img/icon-keycon.png" download title="Baixar: símbolo K"><img src="img/icon-keycon.png" style="height: 56px;" alt="Símbolo K" loading="lazy"></a>
+          </div>
+        </div>
+        <p class="muted" style="font-size: 13px; margin-top: 10px;">Clique em um logo para baixar o arquivo.</p>
+        <div class="swatches">
+          <div class="swatch" style="background: var(--graphite); color: #fff;">Grafite<span>#242833 · estrutura</span></div>
+          <div class="swatch" style="background: var(--coral); color: #fff;">Coral<span>#F17860 · destaque</span></div>
+          <div class="swatch" style="background: var(--cloud); border: 1px solid rgba(36,40,51,.12);">Nuvem<span>#F1F2F4 · fundo</span></div>
+          <div class="swatch" style="background: #fff; border: 1px solid rgba(36,40,51,.12);">Branco<span>#FFFFFF · superfície</span></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="glass card"><p class="label">Tipografia</p><div style="font-size: 34px; font-weight: 800; letter-spacing: -.03em;">Inter</div><p class="muted" style="margin-top: 4px;">Regular 400 · Medium 500 · SemiBold 600 · Bold 700 · ExtraBold 800</p></div>
+        <div class="glass card"><p class="label">Slogans</p><p style="font-size: 18px; font-weight: 700; margin-top: 8px;">Seu negócio na ponta dos dedos.</p><p style="font-size: 18px; font-weight: 700;">Smart keyboard. Organized sales.</p></div>
+        <div class="glass card rules"><p class="label">Regras de uso</p>
+          <ul>
+            <li>O nome é sempre <b>KEYCON</b>, em maiúsculas.</li>
+            <li>Use só os arquivos oficiais. Nunca redesenhe, distorça ou recolora o "K".</li>
+            <li>Grafite é a cor da estrutura. Coral fica para marca e destaques, sem excesso.</li>
+            <li>Logo com texto claro em fundo escuro; com texto grafite em fundo claro.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 · CONTATO -->
+<section class="sec dark contact" id="contato">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <img class="kbg" src="img/icon-keycon.png" alt="">
+  <div class="wrap">
+    <img class="appicon" src="img/logo-app-keycon.png" alt="KEYCON">
+    <div class="eyebrow" style="margin-top: 34px;">Contato</div>
+    <h2>Vamos conversar.</h2>
+    <p class="lead">Imprensa, parcerias e conteúdo: pedidos de entrevista, logos em alta resolução e acesso para teste.</p>
+    <div class="boxes">
+      <a class="glass box" href="/"><p class="label">Site</p><p class="v">keyconapp.com</p></a>
+      <a class="glass box" href="mailto:contact@keyconapp.com"><p class="label">Contato</p><p class="v">contact@keyconapp.com</p></a>
+      <a class="glass box" href="mailto:support@keyconapp.com"><p class="label">Suporte</p><p class="v">support@keyconapp.com</p></a>
+    </div>
+    <div class="actions"><a class="btn" href="KEYCON-Media-Kit-2026.pdf" download><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>Baixar o Media Kit em PDF</a></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap"><span>O KEYCON não é afiliado ao WhatsApp nem à Meta.</span><span>© 2026 KEYCON · <a href="/privacidade.html">Privacidade</a> · <a href="/termos.html">Termos</a></span></div>
+</footer>
+
+</body>
+</html>

@@ -27,7 +27,7 @@ export const LEGAL_INFO = {
 };
 
 /** Data da última atualização dos textos (AAAA-MM-DD). */
-export const LEGAL_UPDATED = '2026-10-31';
+export const LEGAL_UPDATED = '2026-11-05';
 
 export interface LegalSection {
   title: string;
@@ -384,13 +384,14 @@ export const PRIVACY: Docs = {
           'Conta de empresa: o nome, o e-mail e a equipe das pessoas que a empresa cadastra como dependentes. A empresa vê esses dados; ela não vê os produtos, atalhos, clientes e agenda dos dependentes, que ficam no aparelho de cada um.',
           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
           'Lista de novidades do site: se você se inscrever, guardamos seu e-mail, o seu WhatsApp (se você informar), o tipo de celular que você escolheu (iPhone ou Android), o idioma da página e a sua autorização (o texto que você aceitou, com data e hora). Com essa autorização, mandamos novidades e ofertas do KEYCON, incluindo o aviso de lançamento, por e-mail e, se você informou, por WhatsApp. Você pode cancelar quando quiser: pelo link de descadastro no fim de cada e-mail, respondendo SAIR no WhatsApp ou escrevendo para {email}.',
+          'Medição de visitas e anúncios no site (pixel da Meta, Google Tag Manager e Google Analytics): só se você aceitar no aviso de cookies do keyconapp.com, o site carrega o pixel da Meta, o Google Analytics e o Google Tag Manager, com as ferramentas de medição e anúncios do Google configuradas nele. Elas registram as páginas que você visita no site, com dados do navegador e do aparelho, o endereço IP e identificadores de cookies, e enviam esses dados à Meta e ao Google. Usamos para medir as visitas e o resultado dos nossos anúncios e para mostrar anúncios a quem visitou o site. A Meta e o Google também tratam esses dados conforme as políticas de privacidade deles. Se você recusar, ou se o seu navegador enviar o sinal Global Privacy Control, essas ferramentas não são carregadas. Você pode mudar a escolha a qualquer momento em "Suas escolhas de privacidade", no rodapé do site. Elas não fazem parte do app nem do teclado.',
         ],
       },
       {
         title: '3. Dados que ficam só no seu aparelho',
         paragraphs: [
           'Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações), compromissos da agenda e as suas preferências ficam guardados apenas no seu celular, compartilhados entre o app e o teclado KEYCON. Nós não recebemos esses dados.',
-          'No navegador, o Locker web guarda no seu aparelho a sua sessão, o idioma escolhido, uma cópia da organização para abrir sem internet e, se você marcar "Disponível sem internet", cópias desses arquivos. Ao sair da conta no Locker web, apagamos essas cópias. Não usamos cookies de publicidade nem ferramentas de rastreamento.',
+          'No navegador, o Locker web guarda no seu aparelho a sua sessão, o idioma escolhido, uma cópia da organização para abrir sem internet e, se você marcar "Disponível sem internet", cópias desses arquivos. Ao sair da conta no Locker web, apagamos essas cópias. O Locker web não usa cookies de publicidade nem ferramentas de rastreamento.',
         ],
       },
       {
@@ -418,7 +419,7 @@ export const PRIVACY: Docs = {
       {
         title: '7. Com quem compartilhamos',
         paragraphs: [
-          'Com provedores que nos ajudam a prestar o serviço: banco de dados, autenticação e armazenamento (Supabase), armazenamento dos arquivos do Locker (Cloudflare) e hospedagem do site. Eles só podem usar os dados para prestar esses serviços. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
+          'Com provedores que nos ajudam a prestar o serviço: banco de dados, autenticação e armazenamento (Supabase), armazenamento dos arquivos do Locker (Cloudflare) e hospedagem do site. Eles só podem usar os dados para prestar esses serviços. Se você aceitar os cookies de medição no site, os dados de visita descritos na seção 2 também vão para a Meta e o Google, para medir e direcionar os nossos anúncios. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
           'Assinaturas: a Apple (App Store) e a Google (Google Play) fazem a cobrança e seguem as próprias políticas de privacidade. Usamos a RevenueCat, Inc. (EUA) para confirmar as compras com as lojas e saber se a assinatura está ativa; ela recebe o código da sua conta KEYCON e os dados da compra, nunca dados de cartão.',
           'Com quem você escolher, no Locker: as pessoas e equipes com quem você compartilha e quem recebe os links que você envia.',
           'Esses provedores podem manter servidores fora do Brasil. Nesses casos, adotamos as garantias previstas na LGPD para a transferência internacional.',
@@ -441,7 +442,7 @@ export const PRIVACY: Docs = {
       {
         title: '10. Seus direitos',
         paragraphs: [
-          'Você pode pedir a confirmação de que tratamos seus dados, o acesso, a correção, a anonimização, a portabilidade, a exclusão, informações sobre compartilhamento e a revogação do consentimento, além de se opor a tratamentos. Seu nome, negócio e WhatsApp podem ser corrigidos no próprio app, em Conta. Para os demais pedidos, escreva para {email}. Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD) ou à autoridade do seu país.',
+          'Você pode pedir a confirmação de que tratamos seus dados, o acesso, a correção, a anonimização, a portabilidade, a exclusão, informações sobre compartilhamento e a revogação do consentimento, além de se opor a tratamentos. Os cookies de medição do site podem ser recusados ou retirados a qualquer momento em "Suas escolhas de privacidade", no rodapé do keyconapp.com, e respeitamos o sinal Global Privacy Control do navegador. Seu nome, negócio e WhatsApp podem ser corrigidos no próprio app, em Conta. Para os demais pedidos, escreva para {email}. Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD) ou à autoridade do seu país.',
         ],
       },
       {
@@ -485,13 +486,14 @@ export const PRIVACY: Docs = {
           'Company account: the name, email and team of the people the company adds as dependents. The company can see this data; it can\'t see dependents\' products, shortcuts, clients and calendar, which stay on each person\'s device.',
           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
           'Website news list: if you sign up, we keep your email, your WhatsApp number (if you provide it), the type of phone you chose (iPhone or Android), the language of the page and your consent (the text you accepted, with date and time). With that consent, we send news and offers about KEYCON, including the launch notice, by email and, if you provided it, by WhatsApp. You can unsubscribe at any time: through the unsubscribe link at the end of every email, by replying STOP on WhatsApp or by writing to {email}.',
+          'Website visit and ad measurement (Meta Pixel, Google Tag Manager and Google Analytics): only if you accept it in the cookie notice on keyconapp.com, the website loads the Meta Pixel, Google Analytics and Google Tag Manager, with the Google measurement and advertising tools set up in it. They record the pages you visit on the website, along with browser and device information, your IP address and cookie identifiers, and send this data to Meta and Google. We use them to measure visits and the results of our ads and to show ads to people who visited the website. Meta and Google also process this data under their own privacy policies. If you decline, or if your browser sends a Global Privacy Control signal, these tools are not loaded. You can change your choice at any time under "Your Privacy Choices" at the bottom of the website. They are not part of the app or the keyboard.',
         ],
       },
       {
         title: '3. Data that stays only on your device',
         paragraphs: [
           'Your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes), calendar appointments and your preferences are stored only on your phone and shared between the KEYCON app and keyboard. We do not receive this data.',
-          'In the browser, the Locker website keeps on your device your session, the language you chose, a copy of your Locker organization to open offline and, if you mark files as "Available offline", copies of those files. When you sign out of the Locker website, we delete these copies. We do not use advertising cookies or tracking tools.',
+          'In the browser, the Locker website keeps on your device your session, the language you chose, a copy of your Locker organization to open offline and, if you mark files as "Available offline", copies of those files. When you sign out of the Locker website, we delete these copies. The Locker website does not use advertising cookies or tracking tools.',
         ],
       },
       {
@@ -519,7 +521,7 @@ export const PRIVACY: Docs = {
       {
         title: '7. Who we share data with',
         paragraphs: [
-          'With providers that help us run the service: database, authentication and storage (Supabase), Locker file storage (Cloudflare) and website hosting. They may use the data only to provide those services. We may also share data when required by law or court order. We do not sell your data.',
+          'With providers that help us run the service: database, authentication and storage (Supabase), Locker file storage (Cloudflare) and website hosting. They may use the data only to provide those services. If you accept the measurement cookies on the website, the visit data described in section 2 also goes to Meta and Google, to measure and target our ads. We may also share data when required by law or court order. We do not sell your data.',
           'Subscriptions: Apple (App Store) and Google (Google Play) handle billing and follow their own privacy policies. We use RevenueCat, Inc. (USA) to verify purchases with the stores and know whether a subscription is active; it receives your KEYCON account ID and purchase details, never card details.',
           'With whoever you choose in the Locker: the people and teams you share with and the people who receive the links you send.',
           'These providers may keep servers outside Brazil. In those cases we apply the safeguards required by the LGPD for international transfers.',
@@ -542,7 +544,7 @@ export const PRIVACY: Docs = {
       {
         title: '10. Your rights',
         paragraphs: [
-          'You can ask us to confirm that we process your data and request access, correction, anonymization, portability, deletion, information about sharing and withdrawal of consent, and you can object to processing. California residents may also request to know and delete personal information; we do not sell or share personal information for targeted advertising. Your name, business and WhatsApp can be corrected in the app under Account. For other requests, write to {email}. You may also complain to Brazil\'s National Data Protection Authority (ANPD) or to the authority in your country.',
+          'You can ask us to confirm that we process your data and request access, correction, anonymization, portability, deletion, information about sharing and withdrawal of consent, and you can object to processing. California residents may also request to know and delete personal information; we do not sell personal information. If you accept the measurement cookies on our website, the Meta Pixel, Google Analytics and Google Tag Manager share your website activity with Meta and Google, which California law may treat as "sharing" for cross-context behavioral advertising; you can opt out at any time under "Your Privacy Choices" at the bottom of keyconapp.com, and we honor Global Privacy Control signals. Your name, business and WhatsApp can be corrected in the app under Account. For other requests, write to {email}. You may also complain to Brazil\'s National Data Protection Authority (ANPD) or to the authority in your country.',
         ],
       },
       {
@@ -586,13 +588,14 @@ export const PRIVACY: Docs = {
           'Cuenta de empresa: el nombre, el correo y el equipo de las personas que la empresa registra como dependientes. La empresa ve esos datos; no ve los productos, atajos, clientes ni la agenda de los dependientes, que quedan en el dispositivo de cada uno.',
           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',
           'Lista de novedades del sitio: si te inscribes, guardamos tu correo, tu WhatsApp (si lo indicas), el tipo de celular que elegiste (iPhone o Android), el idioma de la página y tu autorización (el texto que aceptaste, con fecha y hora). Con esa autorización, enviamos novedades y ofertas de KEYCON, incluido el aviso de lanzamiento, por correo y, si lo indicaste, por WhatsApp. Puedes darte de baja cuando quieras: con el enlace al final de cada correo, respondiendo BAJA en WhatsApp o escribiendo a {email}.',
+          'Medición de visitas y anuncios en el sitio (píxel de Meta, Google Tag Manager y Google Analytics): solo si lo aceptas en el aviso de cookies de keyconapp.com, el sitio carga el píxel de Meta, Google Analytics y Google Tag Manager, con las herramientas de medición y anuncios de Google configuradas en él. Registran las páginas que visitas en el sitio, junto con datos del navegador y del dispositivo, tu dirección IP e identificadores de cookies, y envían esos datos a Meta y a Google. Las usamos para medir las visitas y el resultado de nuestros anuncios y para mostrar anuncios a quienes visitaron el sitio. Meta y Google también tratan estos datos según sus propias políticas de privacidad. Si lo rechazas, o si tu navegador envía la señal Global Privacy Control, estas herramientas no se cargan. Puedes cambiar tu elección en cualquier momento en "Tus opciones de privacidad", al pie del sitio. No forman parte de la app ni del teclado.',
         ],
       },
       {
         title: '3. Datos que quedan solo en tu dispositivo',
         paragraphs: [
           'Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas), citas de la agenda y tus preferencias se guardan solo en tu celular y se comparten entre la app y el teclado KEYCON. No recibimos estos datos.',
-          'En el navegador, el Locker web guarda en tu dispositivo tu sesión, el idioma elegido, una copia de la organización para abrir sin conexión y, si marcas archivos como "Disponible sin conexión", copias de esos archivos. Al cerrar sesión en el Locker web, borramos esas copias. No usamos cookies de publicidad ni herramientas de rastreo.',
+          'En el navegador, el Locker web guarda en tu dispositivo tu sesión, el idioma elegido, una copia de la organización para abrir sin conexión y, si marcas archivos como "Disponible sin conexión", copias de esos archivos. Al cerrar sesión en el Locker web, borramos esas copias. El Locker web no usa cookies de publicidad ni herramientas de rastreo.',
         ],
       },
       {
@@ -620,7 +623,7 @@ export const PRIVACY: Docs = {
       {
         title: '7. Con quién compartimos',
         paragraphs: [
-          'Con proveedores que nos ayudan a prestar el servicio: base de datos, autenticación y almacenamiento (Supabase), almacenamiento de los archivos del Locker (Cloudflare) y alojamiento del sitio. Solo pueden usar los datos para prestar esos servicios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
+          'Con proveedores que nos ayudan a prestar el servicio: base de datos, autenticación y almacenamiento (Supabase), almacenamiento de los archivos del Locker (Cloudflare) y alojamiento del sitio. Solo pueden usar los datos para prestar esos servicios. Si aceptas las cookies de medición en el sitio, los datos de visita descritos en la sección 2 también van a Meta y a Google, para medir y dirigir nuestros anuncios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
           'Suscripciones: Apple (App Store) y Google (Google Play) hacen el cobro y siguen sus propias políticas de privacidad. Usamos RevenueCat, Inc. (EE. UU.) para confirmar las compras con las tiendas y saber si la suscripción está activa; recibe el código de tu cuenta KEYCON y los datos de la compra, nunca datos de tarjeta.',
           'Con quien tú elijas en el Locker: las personas y equipos con quienes compartes y quienes reciben los enlaces que envías.',
           'Estos proveedores pueden tener servidores fuera de Brasil. En esos casos, aplicamos las garantías que exige la LGPD para la transferencia internacional.',
@@ -643,7 +646,7 @@ export const PRIVACY: Docs = {
       {
         title: '10. Tus derechos',
         paragraphs: [
-          'Puedes pedir la confirmación de que tratamos tus datos, el acceso, la corrección, la anonimización, la portabilidad, la eliminación, información sobre el uso compartido y la revocación del consentimiento, además de oponerte a tratamientos. Tu nombre, negocio y WhatsApp pueden corregirse en la propia app, en Cuenta. Para los demás pedidos, escribe a {email}. También puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos de Brasil (ANPD) o ante la autoridad de tu país.',
+          'Puedes pedir la confirmación de que tratamos tus datos, el acceso, la corrección, la anonimización, la portabilidad, la eliminación, información sobre el uso compartido y la revocación del consentimiento, además de oponerte a tratamientos. Las cookies de medición del sitio pueden rechazarse o retirarse en cualquier momento en "Tus opciones de privacidad", al pie de keyconapp.com, y respetamos la señal Global Privacy Control del navegador. Tu nombre, negocio y WhatsApp pueden corregirse en la propia app, en Cuenta. Para los demás pedidos, escribe a {email}. También puedes presentar un reclamo ante la Autoridad Nacional de Protección de Datos de Brasil (ANPD) o ante la autoridad de tu país.',
         ],
       },
       {
