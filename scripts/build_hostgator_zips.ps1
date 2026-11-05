@@ -25,6 +25,11 @@ function Write-Zip([string]$Source, [string]$Target) {
 }
 
 # 1. Site + app de demonstração
+# Páginas geradas: textos legais, /pt/ e /es/, SEO, blog e sitemap
+npm run -s landing:legal
+if ($LASTEXITCODE) { throw 'landing:legal falhou' }
+npm run -s landing:site
+if ($LASTEXITCODE) { throw 'landing:site falhou' }
 npm run -s web:build
 if ($LASTEXITCODE) { throw 'web:build falhou' }
 if (Test-Path hostgator) { Remove-Item -Recurse -Force hostgator -Confirm:$false }

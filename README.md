@@ -257,7 +257,7 @@ compilação. Envie **o conteúdo da pasta** para a raiz do provedor de hospedag
 | `landing/img/` | Logo e ícones; as telas do teclado ficam em `img/en`, `img/es` e `img/pt`, trocadas junto com o idioma |
 
 **Lista de espera ("Notify me"):** enquanto o app não está nas duas lojas, o topo e a chamada final
-pedem o e-mail e o celular (iPhone ou Android). Os dados vão para a tabela `waitlist` do Supabase do
+pedem o nome, o e-mail, o WhatsApp (opcional) e o celular (iPhone ou Android). Os dados vão para a tabela `waitlist` do Supabase do
 app: rode o bloco "Lista de espera" de `supabase/schema.sql` no SQL Editor (uma vez). O site só
 consegue inscrever; para ver a lista, abra Table Editor → `waitlist` no painel do Supabase.
 

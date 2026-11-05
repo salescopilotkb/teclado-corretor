@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Terms of Use · KEYCON</title>
   <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://keyconapp.com/termos.html">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,7 +16,7 @@
   <!-- Gerado por scripts/build_landing_legal.ts a partir de src/legal/legal.ts. Não edite aqui. -->
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html"><img src="img/logo-keycon.png" alt="KEYCON" width="150" height="32"></a>
+      <a class="brand" href="./"><img src="img/logo-keycon.png" alt="KEYCON" width="150" height="32"></a>
       <div class="lang-switch" role="group" aria-label="Language">
         <button type="button" data-set-lang="en" lang="en">EN</button><button type="button" data-set-lang="es" lang="es">ES</button><button type="button" data-set-lang="pt" lang="pt-BR">PT</button>
       </div>
@@ -154,7 +155,7 @@
       <h2>15. Contato</h2>
       <p>Dúvidas sobre estes Termos: contact@keyconapp.com.</p>
     </article>
-    <p class="legal-back"><a href="index.html" data-i18n="legal.back">Back to the website</a></p>
+    <p class="legal-back"><a href="./" data-i18n="legal.back">Back to the website</a></p>
   </main>
   <script>
     // Idioma: o mesmo escolhido na página inicial (ou ?lang=pt / ?lang=es)
@@ -167,7 +168,7 @@
         document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setLang === lang)); });
         var link = document.querySelector('[data-i18n="legal.back"]');
         link.textContent = back[lang];
-        link.href = 'index.html' + (lang === 'en' ? '' : '?lang=' + lang);
+        link.href = lang === 'en' ? './' : lang + '/';
         document.documentElement.lang = htmlLang[lang];
         document.title = titles[lang] + ' · KEYCON';
         try { localStorage.setItem('keycon.lang', lang); } catch (e) {}

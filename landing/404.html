@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Page not found · KEYCON</title>
+  <!-- Página de erro (404): fora dos buscadores. Caminhos absolutos (/...) porque ela
+       aparece em qualquer endereço do site (configurada no .htaccess: ErrorDocument). -->
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#14161D">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --canvas: #14161D; --graphite: #242833; --coral: #F17860; --coral-strong: #E2654D; --text-2: #C9CDD6; --text-3: #8C93A1; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; min-height: 100%; display: flex; flex-direction: column; background: radial-gradient(120% 90% at 70% 20%, var(--graphite) 0%, var(--canvas) 70%); color: #fff; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; position: relative; }
+    .glow { position: absolute; width: 720px; height: 720px; right: -240px; top: -320px; border-radius: 50%; background: radial-gradient(circle, rgba(241,120,96,.38) 0%, transparent 66%); pointer-events: none; }
+    .glow.b { right: auto; top: auto; left: -320px; bottom: -400px; background: radial-gradient(circle, rgba(59,74,107,.7) 0%, transparent 66%); }
+    header { position: relative; padding: 22px 24px; max-width: 1120px; width: 100%; margin: 0 auto; }
+    header img { height: 26px; width: auto; display: block; }
+    main { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 32px 24px 64px; }
+    .code { font-size: clamp(96px, 22vw, 180px); font-weight: 800; letter-spacing: -.06em; line-height: 1; background: linear-gradient(135deg, #FF9A82 0%, var(--coral) 45%, var(--coral-strong) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; margin: 0; }
+    h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; letter-spacing: -.025em; margin: 12px 0 0; font-weight: 800; }
+    p { color: var(--text-2); font-size: 18px; line-height: 1.6; margin: 14px auto 0; max-width: 480px; }
+    .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+    .btn { display: inline-flex; align-items: center; padding: 13px 22px; border-radius: 999px; font-weight: 700; font-size: 16px; text-decoration: none; color: #fff; background: var(--coral); box-shadow: 0 8px 22px rgba(241,120,96,.3); transition: background .2s; }
+    .btn:hover { background: var(--coral-strong); }
+    .btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.25); box-shadow: none; }
+    .btn.ghost:hover { background: rgba(255,255,255,.08); }
+    .links { margin-top: 28px; font-size: 15px; color: var(--text-3); }
+    .links a { color: var(--text-2); text-underline-offset: 3px; margin: 0 8px; }
+    :focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 6px; }
+    @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+  </style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div><div class="glow b" aria-hidden="true"></div>
+  <header><a href="/" data-home><img src="/img/logo-keycon.png" alt="KEYCON" width="150" height="32"></a></header>
+  <main>
+    <div>
+      <p class="code" aria-hidden="true">404</p>
+      <h1 data-t="title">This page doesn't exist</h1>
+      <p data-t="text">The link may be broken, or the page may have moved. Let's get you back on track.</p>
+      <div class="actions">
+        <a class="btn" href="/" data-home data-t="home">Go to the home page</a>
+        <a class="btn ghost" href="/blog/" data-blog data-t="blog">Read the blog</a>
+      </div>
+      <p class="links"><a href="/media-kit/">Media Kit</a>·<a href="/privacidade.html" data-t="privacy">Privacy Policy</a>·<a href="mailto:support@keyconapp.com" data-t="contact">Contact</a></p>
+    </div>
+  </main>
+  <script>
+    // Idioma: o do endereço (/pt/..., /es/...) ou o último escolhido no site
+    (function () {
+      var T = {
+        pt: { title: 'Esta página não existe', text: 'O link pode estar quebrado ou a página mudou de endereço. Vamos te levar de volta.', home: 'Ir para a página inicial', blog: 'Ler o blog', privacy: 'Política de Privacidade', contact: 'Contato', doc: 'Página não encontrada · KEYCON', html: 'pt-BR' },
+        es: { title: 'Esta página no existe', text: 'El enlace puede estar roto o la página cambió de dirección. Te llevamos de vuelta.', home: 'Ir a la página de inicio', blog: 'Leer el blog', privacy: 'Política de Privacidad', contact: 'Contacto', doc: 'Página no encontrada · KEYCON', html: 'es' },
+      };
+      var m = location.pathname.match(/^\/(pt|es)(\/|$)/), saved = null;
+      try { saved = localStorage.getItem('keycon.lang'); } catch (e) {}
+      var lang = m ? m[1] : saved;
+      if (!T[lang]) return;
+      var t = T[lang];
+      document.querySelectorAll('[data-t]').forEach(function (el) { el.textContent = t[el.getAttribute('data-t')]; });
+      document.querySelectorAll('[data-home]').forEach(function (el) { el.href = '/' + lang + '/'; });
+      document.querySelectorAll('[data-blog]').forEach(function (el) { el.href = '/' + lang + '/blog/'; });
+      document.documentElement.lang = t.html;
+      document.title = t.doc;
+    })();
+  </script>
+</body>
+</html>

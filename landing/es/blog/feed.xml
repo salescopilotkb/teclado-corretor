@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Blog de KEYCON</title>
+  <link>https://keyconapp.com/es/blog/</link>
+  <atom:link href="https://keyconapp.com/es/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>Guías prácticas para quien vende por chat.</description>
+  <language>es</language>
+  <item>
+    <title>Cómo responder a tus clientes más rápido: 9 hábitos para vender por WhatsApp</title>
+    <link>https://keyconapp.com/es/blog/como-responder-a-clientes-mas-rapido/</link>
+    <guid>https://keyconapp.com/es/blog/como-responder-a-clientes-mas-rapido/</guid>
+    <pubDate>Thu, 05 Nov 2026 12:00:00 GMT</pubDate>
+    <description>El cliente que te escribe por WhatsApp casi siempre les está escribiendo también a tus competidores. Nueve hábitos prácticos para responder más rápido sin sonar como un robot.</description>
+  </item>
+  <item>
+    <title>30 plantillas de mensajes de venta para WhatsApp (copiar y pegar)</title>
+    <link>https://keyconapp.com/es/blog/plantillas-de-mensajes-de-ventas/</link>
+    <guid>https://keyconapp.com/es/blog/plantillas-de-mensajes-de-ventas/</guid>
+    <pubDate>Wed, 04 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Mensajes listos para cada etapa de la venta: primer contacto, precio, objeciones, seguimiento, pago, entrega y reseñas. Cópialos, ajusta algunas palabras y guárdalos.</description>
+  </item>
+  <item>
+    <title>Agentes inmobiliarios: cómo enviar propiedades por WhatsApp en segundos</title>
+    <link>https://keyconapp.com/es/blog/agentes-inmobiliarios-enviar-propiedades-por-whatsapp/</link>
+    <guid>https://keyconapp.com/es/blog/agentes-inmobiliarios-enviar-propiedades-por-whatsapp/</guid>
+    <pubDate>Tue, 03 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Los compradores escriben a varios agentes a la vez. Un sistema práctico para que el agente inmobiliario envíe fotos, precio y detalles de cada propiedad por WhatsApp en segundos y no pierda ningún contacto.</description>
+  </item>
+  <item>
+    <title>¿Las apps de teclado leen lo que escribes? Guía sencilla de privacidad del teclado</title>
+    <link>https://keyconapp.com/es/blog/el-teclado-lee-lo-que-escribes/</link>
+    <guid>https://keyconapp.com/es/blog/el-teclado-lee-lo-que-escribes/</guid>
+    <pubDate>Mon, 02 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Qué puede y qué no puede ver un teclado de otra empresa en iPhone y Android, qué significa “Permitir acceso total” y una lista para elegir una app de teclado confiable.</description>
+  </item>
+</channel>
+</rss>

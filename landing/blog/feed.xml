@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>KEYCON Blog</title>
+  <link>https://keyconapp.com/blog/</link>
+  <atom:link href="https://keyconapp.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>Practical guides for people who sell by chat and text.</description>
+  <language>en</language>
+  <item>
+    <title>How to Reply to Customers Faster: 9 Habits for Selling by Text and WhatsApp</title>
+    <link>https://keyconapp.com/blog/reply-to-customers-faster/</link>
+    <guid>https://keyconapp.com/blog/reply-to-customers-faster/</guid>
+    <pubDate>Thu, 05 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Customers who message you are often messaging your competitors too. Nine practical habits to answer faster on WhatsApp, text and DMs without sounding like a robot.</description>
+  </item>
+  <item>
+    <title>30 Sales Message Templates for WhatsApp and Text (Copy and Paste)</title>
+    <link>https://keyconapp.com/blog/sales-message-templates/</link>
+    <guid>https://keyconapp.com/blog/sales-message-templates/</guid>
+    <pubDate>Wed, 04 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Ready-made sales messages for every stage: first reply, pricing, objections, follow-ups, payment, delivery and reviews. Copy them, adjust a few words and save them.</description>
+  </item>
+  <item>
+    <title>Real Estate Agents: How to Send Listings by Text in Seconds</title>
+    <link>https://keyconapp.com/blog/real-estate-agents-send-listings-by-text/</link>
+    <guid>https://keyconapp.com/blog/real-estate-agents-send-listings-by-text/</guid>
+    <pubDate>Tue, 03 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Buyers text several agents at once. A practical system for real estate agents to send listing photos, prices and details by text or WhatsApp in seconds, and keep every lead moving.</description>
+  </item>
+  <item>
+    <title>Do Keyboard Apps Read What You Type? A Plain-English Guide to Keyboard Privacy</title>
+    <link>https://keyconapp.com/blog/keyboard-app-privacy/</link>
+    <guid>https://keyconapp.com/blog/keyboard-app-privacy/</guid>
+    <pubDate>Mon, 02 Nov 2026 12:00:00 GMT</pubDate>
+    <description>What a third-party keyboard can and can't see on iPhone and Android, what “Allow Full Access” really means, and a checklist to choose a keyboard app you can trust.</description>
+  </item>
+</channel>
+</rss>

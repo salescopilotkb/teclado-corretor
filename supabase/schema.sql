@@ -264,6 +264,15 @@ alter table public.waitlist add column if not exists consent_at timestamptz not 
 revoke all on public.waitlist from anon, authenticated;
 grant insert (email, platform, language, whatsapp, marketing_consent, consent_text) on public.waitlist to anon, authenticated;
 
+-- Nome de quem se inscreveu (a landing pede nome, e-mail e WhatsApp). Fica opcional
+-- no banco para não recusar inscrições antigas nem a página antiga durante a troca;
+-- a landing nova sempre envia (de 2 a 80 caracteres).
+alter table public.waitlist add column if not exists name text
+  check (name is null or char_length(btrim(name)) between 2 and 80);
+
+revoke all on public.waitlist from anon, authenticated;
+grant insert (name, email, platform, language, whatsapp, marketing_consent, consent_text) on public.waitlist to anon, authenticated;
+
 drop policy if exists "inscricao na lista de espera" on public.waitlist;
 create policy "inscricao na lista de espera" on public.waitlist
   for insert to anon, authenticated

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Blog do KEYCON</title>
+  <link>https://keyconapp.com/pt/blog/</link>
+  <atom:link href="https://keyconapp.com/pt/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>Guias práticos para quem vende pelo celular.</description>
+  <language>pt-BR</language>
+  <item>
+    <title>Como responder clientes mais rápido: 9 hábitos para vender pelo WhatsApp</title>
+    <link>https://keyconapp.com/pt/blog/como-responder-clientes-mais-rapido/</link>
+    <guid>https://keyconapp.com/pt/blog/como-responder-clientes-mais-rapido/</guid>
+    <pubDate>Thu, 05 Nov 2026 12:00:00 GMT</pubDate>
+    <description>O cliente que te chama no WhatsApp quase sempre está chamando a concorrência também. Nove hábitos práticos para responder mais rápido, sem parecer um robô.</description>
+  </item>
+  <item>
+    <title>30 mensagens prontas para vendas no WhatsApp (copie e cole)</title>
+    <link>https://keyconapp.com/pt/blog/mensagens-prontas-para-vendas/</link>
+    <guid>https://keyconapp.com/pt/blog/mensagens-prontas-para-vendas/</guid>
+    <pubDate>Wed, 04 Nov 2026 12:00:00 GMT</pubDate>
+    <description>Mensagens prontas para cada etapa da venda: primeiro contato, preço, objeções, retorno, pagamento, entrega e avaliação. Copie, ajuste algumas palavras e salve.</description>
+  </item>
+  <item>
+    <title>Corretor de imóveis: como enviar imóveis pelo WhatsApp em segundos</title>
+    <link>https://keyconapp.com/pt/blog/corretor-de-imoveis-enviar-imoveis-pelo-whatsapp/</link>
+    <guid>https://keyconapp.com/pt/blog/corretor-de-imoveis-enviar-imoveis-pelo-whatsapp/</guid>
+    <pubDate>Tue, 03 Nov 2026 12:00:00 GMT</pubDate>
+    <description>O cliente chama vários corretores ao mesmo tempo. Um método prático para o corretor de imóveis enviar fotos, preço e detalhes do imóvel pelo WhatsApp em segundos e não perder nenhum contato.</description>
+  </item>
+  <item>
+    <title>O app de teclado lê o que você digita? Guia simples de privacidade no teclado</title>
+    <link>https://keyconapp.com/pt/blog/teclado-do-celular-le-o-que-voce-digita/</link>
+    <guid>https://keyconapp.com/pt/blog/teclado-do-celular-le-o-que-voce-digita/</guid>
+    <pubDate>Mon, 02 Nov 2026 12:00:00 GMT</pubDate>
+    <description>O que um teclado de outra empresa consegue ou não ver no iPhone e no Android, o que significa “Permitir Acesso Total” e um checklist para escolher um app de teclado confiável.</description>
+  </item>
+</channel>
+</rss>

@@ -2,3 +2,5 @@
 User-agent: *
 Disallow: /app/
 Disallow: /app
+
+Sitemap: https://keyconapp.com/sitemap.xml

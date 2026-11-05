@@ -2,7 +2,7 @@
 
 // Versão dos arquivos: troque a cada publicação para o navegador não usar imagens antigas
 // (a mesma usada no ?v= de index.html)
-var ASSET_VERSION = '2026110502';
+var ASSET_VERSION = '2026110504';
 
 // ── Preencha aqui quando tiver os links ────────────────────────────────
 // Enquanto um link das lojas estiver vazio, o botão mostra "Em breve".
@@ -118,9 +118,13 @@ var I18N = {
     "store.get": "Disponível no",
     "store.download": "Baixar na",
     "cta.leadLive": "Baixe o KEYCON e comece a vender pelo teclado.",
-    "meta.title": "KEYCON · Teclado inteligente para vender",
+    "meta.title": "KEYCON: teclado de vendas para iPhone e Android",
+    "foot.blog": "Blog",
     "nav.ctaLive": "Quero o KEYCON",
     "wl.platform": "Seu celular",
+    "wl.nameLabel": "Nome",
+    "wl.namePlaceholder": "Seu nome",
+    "wl.errName": "Digite o seu nome.",
     "wl.emailLabel": "E-mail",
     "wl.placeholder": "voce@seunegocio.com.br",
     "wl.submit": "Avise-me",
@@ -257,9 +261,13 @@ var I18N = {
     "ck.more": "Política de Privacidad",
     "ck.accept": "Aceptar",
     "ck.decline": "Rechazar",
-    "meta.title": "KEYCON · Teclado inteligente para vender",
+    "meta.title": "KEYCON: teclado de ventas para iPhone y Android",
+    "foot.blog": "Blog",
     "nav.ctaLive": "Quiero KEYCON",
     "wl.platform": "Tu celular",
+    "wl.nameLabel": "Nombre",
+    "wl.namePlaceholder": "Tu nombre",
+    "wl.errName": "Escribe tu nombre.",
     "wl.emailLabel": "Correo",
     "wl.placeholder": "tu@tunegocio.com",
     "wl.submit": "Avísame",
@@ -314,6 +322,7 @@ var EN_EXTRA = {
   'nav.ctaLive': 'Get KEYCON', 'wl.sending': 'Sending…',
   'story.play': 'Play the demo',
   'wl.doneText': 'We’ll email {email} when KEYCON is ready for {platform}.',
+  'wl.errName': 'Enter your name.',
   'wl.errEmail': 'Enter an email like name@yourbusiness.com.',
   'wl.errPlatform': 'Choose iPhone or Android.',
   'wl.errNetwork': 'We couldn’t save your email. Check your connection and try again.',
@@ -336,6 +345,10 @@ var EN_EXTRA = {
 
   var LANGS = ['en', 'pt', 'es'];
   var HTML_LANG = { en: 'en', pt: 'pt-BR', es: 'es' };
+  // Cada idioma tem a sua página (/, /pt/, /es/), gerada por scripts/build_landing_site.mjs
+  var PAGE_LANG = document.documentElement.getAttribute('data-lang') || 'en';
+  var ROOT = PAGE_LANG === 'en' ? '' : '../';
+  function langUrl(l) { return (ROOT + (l === 'en' ? '' : l + '/')) || './'; }
   var textEls = document.querySelectorAll('[data-i18n]:not([data-store] small)');
   var altEls = document.querySelectorAll('[data-i18n-alt]');
   var placeholderEls = document.querySelectorAll('[data-i18n-placeholder]');
@@ -380,7 +393,7 @@ var EN_EXTRA = {
     altEls.forEach(function (el) { el.alt = tr(el.dataset.i18nAlt); });
     placeholderEls.forEach(function (el) { el.placeholder = tr(el.dataset.i18nPlaceholder); });
     // Telas do teclado no idioma escolhido (img/<idioma>/<tela>.webp)
-    shotEls.forEach(function (img) { img.src = 'img/' + current + '/' + img.dataset.shot + '.webp?v=' + ASSET_VERSION; });
+    shotEls.forEach(function (img) { img.src = ROOT + 'img/' + current + '/' + img.dataset.shot + '.webp?v=' + ASSET_VERSION; });
     document.title = tr('meta.title');
     document.documentElement.lang = HTML_LANG[current];
     document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setLang === current)); });
@@ -424,6 +437,7 @@ var EN_EXTRA = {
     var box = form.querySelector('.wl-error');
     box.dataset.key = key || '';
     box.textContent = key ? tr(key) : '';
+    form.querySelector('.name').setAttribute('aria-invalid', String(key === 'wl.errName'));
     form.querySelector('.email').setAttribute('aria-invalid', String(key === 'wl.errEmail'));
     form.querySelector('.whatsapp').setAttribute('aria-invalid', String(key === 'wl.errWhatsapp'));
     if (field) field.focus();
@@ -460,8 +474,10 @@ var EN_EXTRA = {
   }
 
   forms.forEach(function (form) {
+    var name = form.querySelector('.name');
     var email = form.querySelector('.email');
     var errorKey = function () { return form.querySelector('.wl-error').dataset.key; };
+    name.addEventListener('input', function () { if (errorKey() === 'wl.errName') showError(form, ''); });
     email.addEventListener('input', function () { if (errorKey() === 'wl.errEmail') showError(form, ''); });
     var phone = form.querySelector('.whatsapp');
     var consent = form.querySelector('.consent');
@@ -473,8 +489,11 @@ var EN_EXTRA = {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (form.dataset.sending) return;
+      // Nome: espaços repetidos viram um só; de 2 a 80 caracteres
+      var fullName = name.value.replace(/\s+/g, ' ').trim();
       var value = email.value.trim();
       var picked = form.querySelector('.platform input:checked');
+      if (fullName.length < 2 || fullName.length > 80) return showError(form, 'wl.errName', name);
       if (value.length > 254 || !EMAIL_RE.test(value)) return showError(form, 'wl.errEmail', email);
       if (!picked) return showError(form, 'wl.errPlatform', form.querySelector('.platform input'));
       var whatsapp = phone.value.trim();
@@ -494,6 +513,7 @@ var EN_EXTRA = {
         headers: { apikey: wl.anonKey, Authorization: 'Bearer ' + wl.anonKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         // A autorização vai junto com o texto exato que a pessoa aceitou (prova do consentimento)
         body: JSON.stringify({
+          name: fullName,
           email: value,
           platform: picked.value,
           language: current,
@@ -527,12 +547,12 @@ var EN_EXTRA = {
     });
   });
 
-  // O botão do cabeçalho leva à inscrição e já põe o cursor no e-mail
+  // O botão do cabeçalho leva à inscrição e já põe o cursor no nome (primeiro campo)
   ctas.forEach(function (c) {
     c.addEventListener('click', function () {
       if (!waitlistOn || joined) return;
-      var email = document.querySelector('#baixar .email');
-      setTimeout(function () { email.focus({ preventScroll: true }); }, 450);
+      var first = document.querySelector('#baixar .name');
+      setTimeout(function () { first.focus({ preventScroll: true }); }, 450);
     });
   });
 
@@ -557,16 +577,23 @@ var EN_EXTRA = {
     renderHooks.push(updateBar);
   }
 
+  // Trocar de idioma = ir para a página daquele idioma
+  function goLang(l) {
+    try { localStorage.setItem('keycon.lang', l); } catch (e) {}
+    location.href = langUrl(l) + location.hash;
+  }
   document.querySelectorAll('[data-set-lang]').forEach(function (b) {
-    b.addEventListener('click', function () { apply(b.dataset.setLang); });
+    b.addEventListener('click', function () { if (b.dataset.setLang !== PAGE_LANG) goLang(b.dataset.setLang); });
   });
 
-  // Idioma inicial: ?lang= ou o último escolhido (senão, inglês)
+  // ?lang= (links antigos) leva à página do idioma. Na página inicial em inglês, quem
+  // já escolheu outro idioma aqui vai direto para ele (buscadores não guardam escolha).
   var saved = null;
   try { saved = localStorage.getItem('keycon.lang'); } catch (e) {}
   var query = new URLSearchParams(location.search).get('lang');
-  // Abre sempre em inglês; só muda se a pessoa pediu (?lang=) ou já escolheu outro idioma aqui
-  apply([query, saved].filter(function (l) { return LANGS.indexOf(l) >= 0; })[0] || 'en');
+  var wanted = LANGS.indexOf(query) >= 0 ? query : (PAGE_LANG === 'en' && LANGS.indexOf(saved) >= 0 ? saved : PAGE_LANG);
+  if (wanted !== PAGE_LANG) { location.replace(langUrl(wanted) + location.hash); return; }
+  apply(PAGE_LANG);
 
   // ── Abertura: teclado 3D que segue o mouse, digitação e linhas no fundo ──
   // Tudo para quando a abertura sai da tela, com a aba escondida ou quando a

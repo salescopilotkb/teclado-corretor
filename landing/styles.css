@@ -215,14 +215,14 @@ p { margin: 0; }
 .field-row { display: flex; gap: 8px; }
 /* E-mail e WhatsApp, um embaixo do outro */
 .wl-fields { display: grid; gap: 8px; }
-.email, .whatsapp {
+.name, .email, .whatsapp {
   flex: 1; min-width: 0; min-height: 52px; padding: 0 20px; border-radius: 999px;
   border: 1px solid #3A4050; background: #0B0C10; color: var(--text);
   font: inherit; font-size: 16px; caret-color: var(--coral);
 }
-.email::placeholder, .whatsapp::placeholder { color: var(--text-3); }
-.email:focus, .whatsapp:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-soft); }
-.email[aria-invalid="true"], .whatsapp[aria-invalid="true"] { border-color: var(--danger-text); }
+.name::placeholder, .email::placeholder, .whatsapp::placeholder { color: var(--text-3); }
+.name:focus, .email:focus, .whatsapp:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-soft); }
+.name[aria-invalid="true"], .email[aria-invalid="true"], .whatsapp[aria-invalid="true"] { border-color: var(--danger-text); }
 /* Autorização para receber novidades */
 .wl-consent { display: flex; align-items: flex-start; gap: 10px; color: var(--text-2); font-size: 14px; line-height: 1.45; cursor: pointer; text-align: left; }
 .wl-consent input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--coral); cursor: pointer; }

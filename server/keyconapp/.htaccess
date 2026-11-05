@@ -10,6 +10,12 @@
 Options -Indexes
 ServerSignature Off
 
+# Página não encontrada: a 404 do KEYCON, e não a página padrão da hospedagem.
+# O 403 (pastas sem índice, arquivos bloqueados) mostra a mesma página, sem revelar
+# que o arquivo existe; o servidor continua mandando o código certo (404/403).
+ErrorDocument 404 /404.html
+ErrorDocument 403 /404.html
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
@@ -17,6 +23,13 @@ ServerSignature Off
   RewriteCond %{HTTPS} off
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Um endereço só para cada página (SEO): www → sem www, e /index.html → /
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+  RewriteCond %{REQUEST_URI} !^/app(/|$)
+  RewriteCond %{THE_REQUEST} \s/+((?:[^\s?]*/)?)index\.html[\s?]
+  RewriteRule ^ /%1 [L,R=301]
 
   # Arquivos e pastas ocultos (.git, .env, .htpasswd...): proibido. .well-known fica aberto
   RewriteRule (^|/)\.(?!well-known(/|$)) - [F,L]

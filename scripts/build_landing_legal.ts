@@ -48,6 +48,7 @@ function page(file: string, docs: Record<Lang, LegalDocument>) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(docs.en.title)} · KEYCON</title>
   <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://keyconapp.com/${file}">
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +59,7 @@ function page(file: string, docs: Record<Lang, LegalDocument>) {
   <!-- Gerado por scripts/build_landing_legal.ts a partir de src/legal/legal.ts. Não edite aqui. -->
   <header class="site-header">
     <div class="wrap header-row">
-      <a class="brand" href="index.html"><img src="img/logo-keycon.png" alt="KEYCON" width="150" height="32"></a>
+      <a class="brand" href="./"><img src="img/logo-keycon.png" alt="KEYCON" width="150" height="32"></a>
       <div class="lang-switch" role="group" aria-label="Language">
         ${LANGS.map(l => `<button type="button" data-set-lang="${l}" lang="${HTML_LANG[l]}">${l.toUpperCase()}</button>`).join('')}
       </div>
@@ -66,7 +67,7 @@ function page(file: string, docs: Record<Lang, LegalDocument>) {
   </header>
   <main class="wrap legal-main">
 ${LANGS.map(l => section(docs[l], l)).join('\n')}
-    <p class="legal-back"><a href="index.html" data-i18n="legal.back">${UI.en.back}</a></p>
+    <p class="legal-back"><a href="./" data-i18n="legal.back">${UI.en.back}</a></p>
   </main>
   <script>
     // Idioma: o mesmo escolhido na página inicial (ou ?lang=pt / ?lang=es)
@@ -79,7 +80,7 @@ ${LANGS.map(l => section(docs[l], l)).join('\n')}
         document.querySelectorAll('[data-set-lang]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setLang === lang)); });
         var link = document.querySelector('[data-i18n="legal.back"]');
         link.textContent = back[lang];
-        link.href = 'index.html' + (lang === 'en' ? '' : '?lang=' + lang);
+        link.href = lang === 'en' ? './' : lang + '/';
         document.documentElement.lang = htmlLang[lang];
         document.title = titles[lang] + ' · KEYCON';
         try { localStorage.setItem('keycon.lang', lang); } catch (e) {}

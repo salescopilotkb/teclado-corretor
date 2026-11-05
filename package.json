@@ -18,6 +18,7 @@
     "locker:build": "vite build --config locker/vite.config.mts",
     "locker:typecheck": "tsc -p locker/tsconfig.json",
     "landing:legal": "tsx scripts/build_landing_legal.ts",
+    "landing:site": "node scripts/build_landing_site.mjs",
     "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res"
   },
   "dependencies": {
