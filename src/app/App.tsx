@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { pullProfile, pullTheme, pushTheme, restoreSession, signOut, startAuthSync } from '../services/auth';
 import { startLockerSync } from '../files/locker';
+import { onCloudBackupChange, startCloudBackup } from '../sync/cloudBackup';
 import { supabase } from '../services/supabase';
 import { getSegment } from '../segments/segments';
 import { Repo } from '../storage/storage';
@@ -156,6 +157,18 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   useEffect(() => {
     if (!isAuthenticated) return;
     return startLockerSync();
+  }, [isAuthenticated]);
+
+  // Produtos, atalhos, agenda e clientes: cópia na nuvem (Cloudflare R2). Se o que veio
+  // de lá mudou os dados (app reinstalado, outro aparelho), a tela aberta recarrega
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const stop = startCloudBackup();
+    const off = onCloudBackupChange(() => setTabVisit(v => v + 1));
+    return () => {
+      off();
+      stop();
+    };
   }, [isAuthenticated]);
 
   // Plano da conta (o que pode usar): ao entrar e a cada volta para o app

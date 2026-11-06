@@ -1,6 +1,7 @@
 /**
  * Supabase Edge Function: "Excluir minha conta" (app → Conta). Apaga de verdade:
  *  - os arquivos do Locker na nuvem (Cloudflare R2 e o bucket antigo "media");
+ *  - a cópia na nuvem dos produtos, atalhos, agenda e clientes (R2, função backup);
  *  - o cliente no RevenueCat (dados da assinatura; a cobrança em si é da loja: quem
  *    assina cancela na App Store ou na Google Play — o app avisa antes);
  *  - os logins dos dependentes, se for uma conta empresa;
@@ -59,8 +60,11 @@ Deno.serve(async req => {
   await deleteRevenueCatCustomer(userId);
 
   // 3. Os logins (o banco apaga o resto em cascata)
+  const r2 = r2FromEnv();
   for (const id of dependents) {
     await deleteRevenueCatCustomer(id);
+    // A cópia na nuvem do app do dependente (produtos, atalhos, agenda, clientes)
+    await r2?.fetch(`backup/${id}/data.json`, { method: 'DELETE' }).catch(() => {});
     await admin.auth.admin.deleteUser(id);
   }
   const { error } = await admin.auth.admin.deleteUser(userId);
@@ -95,6 +99,11 @@ async function deleteStoredFiles(admin: SupabaseClient, userId: string): Promise
       }
     }
     if (rows.length < 1000) break;
+  }
+  // Cópia na nuvem dos produtos, atalhos, agenda e clientes (função backup)
+  if (r2) {
+    const res = await r2.fetch(`backup/${userId}/data.json`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 404) failed++;
   }
   // Fotos e áudios antigos do app: media/<id da pessoa>/...
   const { data: legacy } = await admin.storage.from('media').list(userId, { limit: 1000 });

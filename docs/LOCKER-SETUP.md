@@ -51,6 +51,23 @@ As chaves do R2 ficam só nos segredos da função: nunca vão para o app.
 3. No R2 → bucket `keycon-locker`: o arquivo está numa pasta com o id do usuário.
 4. No teclado, envie a foto numa conversa: ela chega como imagem.
 
+## 4b. Cópia na nuvem de produtos, atalhos, agenda e clientes (2 min)
+
+Usa o mesmo bucket e as mesmas chaves do R2. Só falta publicar a função:
+
+```bash
+supabase functions deploy backup
+supabase functions deploy delete-account   # passa a apagar a cópia ao excluir a conta
+```
+
+Conferir: entre no app, cadastre um cliente e espere uns 5 segundos. No R2 → bucket
+`keycon-locker` → pasta `backup/<id do usuário>/` aparece `data.json`. Desinstale o app,
+instale de novo e entre na mesma conta: os produtos, atalhos, agenda e clientes voltam.
+
+Como funciona: `src/sync/cloudBackup.ts` (no app e no teclado) e
+`supabase/functions/backup/index.ts`. Antes da função publicada, nada muda: os dados ficam
+no aparelho e sobem assim que ela estiver no ar.
+
 ## 5. CORS do bucket (só para o Locker web)
 
 O navegador só envia direto para o R2 com esta regra. No bucket → **Settings** → **CORS policy**:

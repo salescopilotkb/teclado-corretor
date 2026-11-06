@@ -73,7 +73,12 @@ const USER_DATA_KEYS = [
   KEYS.stepsDone,
   // Fila do Locker (src/files/locker.ts): mudanças de uma conta não podem subir para outra
   'locker.pending',
+  // Controle da cópia na nuvem (src/sync/cloudBackup.ts): datas e exclusões de cada item
+  'backup.meta',
 ];
+
+/** Dados que têm cópia na nuvem (src/sync/cloudBackup.ts): mudou um deles, a cópia sobe. */
+export const BACKED_UP_KEYS: readonly string[] = [KEYS.folders, KEYS.shortcuts, KEYS.agenda, KEYS.crm, KEYS.crmTags];
 
 const DEFAULT_THEME: ThemePreference = 'dark';
 const EMPTY_SELLER: SellerProfile = { name: '', business: '', phone: '', segment: 'general', language: 'en', market: 'US_EN' };

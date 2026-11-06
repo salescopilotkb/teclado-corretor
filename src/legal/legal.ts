@@ -7,7 +7,7 @@
  * e-mails e equipes, lixeira de 30 a 90 dias, Locker web no navegador), planos e
  * assinaturas pelas lojas (RevenueCat), contas de empresa com dependentes, fotos/vídeos/
  * áudios do catálogo e dos atalhos em links públicos, catálogo/atalhos/clientes/
- * agenda só no aparelho, lista de espera do site (nome, e-mail,
+ * agenda no aparelho com cópia na nuvem (Cloudflare R2), lista de espera do site (nome, e-mail,
  * WhatsApp, celular e idioma), teclado que processa o que é
  * digitado só no aparelho. A IA saiu por enquanto (ver IMPLEMENTACOES-FUTURAS.md).
  * Mudou algo disso no app? Atualize aqui e a data em LEGAL_UPDATED.
@@ -27,7 +27,7 @@ export const LEGAL_INFO = {
 };
 
 /** Data da última atualização dos textos (AAAA-MM-DD). */
-export const LEGAL_UPDATED = '2026-11-05';
+export const LEGAL_UPDATED = '2026-11-06';
 
 export interface LegalSection {
   title: string;
@@ -101,13 +101,13 @@ export const TERMS: Docs = {
         title: '7. Contas de empresa',
         paragraphs: [
           'Nos planos Plus e Pro, a conta que assina (a "empresa") pode criar o acesso de pessoas da sua equipe (os "dependentes"): até 5 no Plus e até 50 no Pro, em equipes. A empresa informa o nome e o e-mail de cada pessoa e declara ter autorização para isso, e é responsável pelo uso que os dependentes fazem do KEYCON. O acesso é criado por um convite (um link que vale 7 dias, uma vez só, no qual a pessoa cria a própria senha) ou pela empresa com uma senha inicial, que a pessoa troca no primeiro acesso.',
-          'O dependente entra com o próprio e-mail e senha, vê e baixa o Locker da empresa (sem poder mudá-lo) e tem teclado, produtos, atalhos, clientes e agenda só dele, guardados no próprio aparelho. Ele não vê a assinatura nem os dados da empresa. Quando a empresa remove o acesso, a conta do dependente é excluída. O dependente também pode sair da equipe sozinho: perde o acesso ao Locker da empresa e a conta continua como uma conta comum, no plano grátis, podendo assinar um plano. Se a assinatura da empresa vencer, os dependentes ficam bloqueados, sem nada apagado, até a empresa renovar ou até saírem da equipe.',
+          'O dependente entra com o próprio e-mail e senha, vê e baixa o Locker da empresa (sem poder mudá-lo) e tem teclado, produtos, atalhos, clientes e agenda só dele. Ele não vê a assinatura nem os dados da empresa. Quando a empresa remove o acesso, a conta do dependente é excluída. O dependente também pode sair da equipe sozinho: perde o acesso ao Locker da empresa e a conta continua como uma conta comum, no plano grátis, podendo assinar um plano. Se a assinatura da empresa vencer, os dependentes ficam bloqueados, sem nada apagado, até a empresa renovar ou até saírem da equipe.',
         ],
       },
       {
         title: '8. Mensagens e dados dos seus clientes',
         paragraphs: [
-          'Você é o único responsável pelas mensagens que envia aos seus clientes e por ter a autorização deles para contatá-los. Os dados dos seus clientes que você registra no KEYCON (como nome, WhatsApp, etiquetas e anotações) ficam no seu aparelho, e você atua como controlador desses dados perante a legislação de proteção de dados.',
+          'Você é o único responsável pelas mensagens que envia aos seus clientes e por ter a autorização deles para contatá-los. Os dados dos seus clientes que você registra no KEYCON (como nome, WhatsApp, etiquetas e anotações) ficam no seu aparelho, com uma cópia privada na nuvem ligada à sua conta, e você atua como controlador desses dados perante a legislação de proteção de dados.',
         ],
       },
       {
@@ -204,13 +204,13 @@ export const TERMS: Docs = {
         title: '7. Company accounts',
         paragraphs: [
           'On the Plus and Pro plans, the subscribing account (the "company") can create access for people on its team (the "dependents"): up to 5 on Plus and up to 50 on Pro, organized in teams. The company provides each person\'s name and email, represents that it is authorized to do so, and is responsible for how dependents use KEYCON. Access is created through an invite (a link valid for 7 days, usable once, where the person creates their own password) or by the company with a starting password, which the person changes on first sign-in.',
-          'A dependent signs in with their own email and password, can view and download the company\'s Locker (without changing it) and has their own keyboard, products, shortcuts, clients and calendar, stored on their own device. They can\'t see the company\'s subscription or data. When the company removes access, the dependent\'s account is deleted. A dependent can also leave the team on their own: they lose access to the company\'s Locker and the account continues as a regular account on the free plan, and can subscribe to a plan. If the company\'s subscription expires, dependents are blocked, with nothing deleted, until the company renews or until they leave the team.',
+          'A dependent signs in with their own email and password, can view and download the company\'s Locker (without changing it) and has their own keyboard, products, shortcuts, clients and calendar. They can\'t see the company\'s subscription or data. When the company removes access, the dependent\'s account is deleted. A dependent can also leave the team on their own: they lose access to the company\'s Locker and the account continues as a regular account on the free plan, and can subscribe to a plan. If the company\'s subscription expires, dependents are blocked, with nothing deleted, until the company renews or until they leave the team.',
         ],
       },
       {
         title: '8. Messages and your clients\' data',
         paragraphs: [
-          'You are solely responsible for the messages you send to your clients and for having their permission to contact them. Your clients\' data that you record in KEYCON (such as name, WhatsApp, tags and notes) stays on your device, and you act as the controller of that data under data protection laws.',
+          'You are solely responsible for the messages you send to your clients and for having their permission to contact them. Your clients\' data that you record in KEYCON (such as name, WhatsApp, tags and notes) stays on your device, with a private cloud copy tied to your account, and you act as the controller of that data under data protection laws.',
         ],
       },
       {
@@ -307,13 +307,13 @@ export const TERMS: Docs = {
         title: '7. Cuentas de empresa',
         paragraphs: [
           'En los planes Plus y Pro, la cuenta que se suscribe (la "empresa") puede crear el acceso de personas de su equipo (los "dependientes"): hasta 5 en Plus y hasta 50 en Pro, organizadas en equipos. La empresa indica el nombre y el correo de cada persona, declara tener autorización para hacerlo y es responsable del uso que los dependientes hagan de KEYCON. El acceso se crea con una invitación (un enlace que vale 7 días, una sola vez, en el que la persona crea su propia contraseña) o por la empresa con una contraseña inicial, que la persona cambia en el primer acceso.',
-          'El dependiente entra con su propio correo y contraseña, ve y descarga el Locker de la empresa (sin poder cambiarlo) y tiene teclado, productos, atajos, clientes y agenda propios, guardados en su propio dispositivo. No ve la suscripción ni los datos de la empresa. Cuando la empresa quita el acceso, la cuenta del dependiente se elimina. El dependiente también puede salir del equipo por su cuenta: pierde el acceso al Locker de la empresa y la cuenta sigue como una cuenta común, en el plan gratis, y puede suscribirse a un plan. Si la suscripción de la empresa vence, los dependientes quedan bloqueados, sin que se borre nada, hasta que la empresa renueve o hasta que salgan del equipo.',
+          'El dependiente entra con su propio correo y contraseña, ve y descarga el Locker de la empresa (sin poder cambiarlo) y tiene teclado, productos, atajos, clientes y agenda propios. No ve la suscripción ni los datos de la empresa. Cuando la empresa quita el acceso, la cuenta del dependiente se elimina. El dependiente también puede salir del equipo por su cuenta: pierde el acceso al Locker de la empresa y la cuenta sigue como una cuenta común, en el plan gratis, y puede suscribirse a un plan. Si la suscripción de la empresa vence, los dependientes quedan bloqueados, sin que se borre nada, hasta que la empresa renueve o hasta que salgan del equipo.',
         ],
       },
       {
         title: '8. Mensajes y datos de tus clientes',
         paragraphs: [
-          'Eres el único responsable de los mensajes que envías a tus clientes y de tener su autorización para contactarlos. Los datos de tus clientes que registras en KEYCON (como nombre, WhatsApp, etiquetas y notas) quedan en tu dispositivo, y actúas como responsable de esos datos ante la legislación de protección de datos.',
+          'Eres el único responsable de los mensajes que envías a tus clientes y de tener su autorización para contactarlos. Los datos de tus clientes que registras en KEYCON (como nombre, WhatsApp, etiquetas y notas) quedan en tu dispositivo, con una copia privada en la nube vinculada a tu cuenta, y actúas como responsable de esos datos ante la legislación de protección de datos.',
         ],
       },
       {
@@ -378,19 +378,20 @@ export const PRIVACY: Docs = {
           'Conta: e-mail e senha. A senha é guardada de forma protegida pelo nosso provedor de autenticação; nós não temos acesso a ela.',
           'Perfil: seu nome, nome do negócio, WhatsApp, ramo do negócio, idioma e país onde você vende. Eles aparecem nas suas mensagens prontas e ajustam o app ao seu negócio.',
           'Locker: os arquivos que você envia (fotos, vídeos, áudios, PDFs e documentos), com nome, tipo, tamanho e datas, e a organização deles (pastas, ordem, o que aparece no teclado, estrela e lixeira). A organização fica no nosso banco de dados e sincroniza o app, o teclado e o site locker.keyconapp.com; os arquivos ficam guardados de forma privada no nosso provedor de armazenamento e são abertos por links temporários.',
+          'Cópia dos seus dados do app: seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações) e compromissos da agenda. Enquanto você está conectado à sua conta, o app guarda uma cópia desses dados, de forma privada, no nosso provedor de armazenamento. Assim, se você reinstalar o app ou entrar em outro celular, eles voltam automaticamente.',
           'Compartilhamento no Locker: os e-mails das pessoas com quem você compartilha pastas ou arquivos, as equipes que você cria (nome e e-mails dos participantes) e quem pode ver cada pasta. Quem recebe um compartilhamento vê o seu e-mail como dono.',
           'Fotos, vídeos e áudios do catálogo de produtos e dos atalhos: ficam acessíveis por um link público, para que o teclado consiga enviá-los nas conversas.',
           'Assinatura: o seu plano, a loja em que você assinou (App Store ou Google Play), se é teste grátis, as datas de início, renovação e vencimento e o código da compra na loja. Não recebemos dados de cartão ou de pagamento: a cobrança é feita pela Apple ou pela Google.',
-          'Conta de empresa: o nome, o e-mail e a equipe das pessoas que a empresa cadastra como dependentes. A empresa vê esses dados; ela não vê os produtos, atalhos, clientes e agenda dos dependentes, que ficam no aparelho de cada um.',
+          'Conta de empresa: o nome, o e-mail e a equipe das pessoas que a empresa cadastra como dependentes. A empresa vê esses dados; ela não vê os produtos, atalhos, clientes e agenda dos dependentes, que são só de cada um.',
           'Dados técnicos: registros de acesso mantidos pelos nossos provedores (como data, hora e endereço IP), exigidos para segurança e pela lei.',
           'Lista de novidades do site: se você se inscrever, guardamos o seu nome, o seu e-mail, o seu WhatsApp (se você informar), o tipo de celular que você escolheu (iPhone ou Android), o idioma da página e a sua autorização (o texto que você aceitou, com data e hora). Com essa autorização, mandamos novidades e ofertas do KEYCON, incluindo o aviso de lançamento, por e-mail e, se você informou, por WhatsApp. Você pode cancelar quando quiser: pelo link de descadastro no fim de cada e-mail, respondendo SAIR no WhatsApp ou escrevendo para {email}.',
           'Medição de visitas e anúncios no site (pixel da Meta, Google Tag Manager e Google Analytics): só se você aceitar no aviso de cookies do keyconapp.com, o site carrega o pixel da Meta, o Google Analytics e o Google Tag Manager, com as ferramentas de medição e anúncios do Google configuradas nele. Elas registram as páginas que você visita no site, com dados do navegador e do aparelho, o endereço IP e identificadores de cookies, e enviam esses dados à Meta e ao Google. Usamos para medir as visitas e o resultado dos nossos anúncios e para mostrar anúncios a quem visitou o site. A Meta e o Google também tratam esses dados conforme as políticas de privacidade deles. Se você recusar, ou se o seu navegador enviar o sinal Global Privacy Control, essas ferramentas não são carregadas. Você pode mudar a escolha a qualquer momento em "Suas escolhas de privacidade", no rodapé do site. Elas não fazem parte do app nem do teclado.',
         ],
       },
       {
-        title: '3. Dados que ficam só no seu aparelho',
+        title: '3. Dados guardados no seu aparelho',
         paragraphs: [
-          'Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM (nome, WhatsApp, etiquetas, anotações), compromissos da agenda e as suas preferências ficam guardados apenas no seu celular, compartilhados entre o app e o teclado KEYCON. Nós não recebemos esses dados.',
+          'Seus produtos e categorias, atalhos de texto, áudio e link, clientes do CRM, compromissos da agenda e as suas preferências ficam guardados no seu celular, compartilhados entre o app e o teclado KEYCON, para funcionar sem internet. A cópia desses dados na nuvem está descrita na seção 2; as preferências (como o tema e a ordem do menu do teclado) ficam só no celular.',
           'No navegador, o Locker web guarda no seu aparelho a sua sessão, o idioma escolhido, uma cópia da organização para abrir sem internet e, se você marcar "Disponível sem internet", cópias desses arquivos. Ao sair da conta no Locker web, apagamos essas cópias. O Locker web não usa cookies de publicidade nem ferramentas de rastreamento.',
         ],
       },
@@ -419,7 +420,7 @@ export const PRIVACY: Docs = {
       {
         title: '7. Com quem compartilhamos',
         paragraphs: [
-          'Com provedores que nos ajudam a prestar o serviço: banco de dados, autenticação e armazenamento (Supabase), armazenamento dos arquivos do Locker (Cloudflare) e hospedagem do site. Eles só podem usar os dados para prestar esses serviços. Se você aceitar os cookies de medição no site, os dados de visita descritos na seção 2 também vão para a Meta e o Google, para medir e direcionar os nossos anúncios. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
+          'Com provedores que nos ajudam a prestar o serviço: banco de dados, autenticação e armazenamento (Supabase), armazenamento dos arquivos do Locker e da cópia dos dados do app (Cloudflare) e hospedagem do site. Eles só podem usar os dados para prestar esses serviços. Se você aceitar os cookies de medição no site, os dados de visita descritos na seção 2 também vão para a Meta e o Google, para medir e direcionar os nossos anúncios. Também podemos compartilhar dados quando a lei ou uma ordem judicial exigir. Nós não vendemos seus dados.',
           'Assinaturas: a Apple (App Store) e a Google (Google Play) fazem a cobrança e seguem as próprias políticas de privacidade. Usamos a RevenueCat, Inc. (EUA) para confirmar as compras com as lojas e saber se a assinatura está ativa; ela recebe o código da sua conta KEYCON e os dados da compra, nunca dados de cartão.',
           'Com quem você escolher, no Locker: as pessoas e equipes com quem você compartilha e quem recebe os links que você envia.',
           'Esses provedores podem manter servidores fora do Brasil. Nesses casos, adotamos as garantias previstas na LGPD para a transferência internacional.',
@@ -428,7 +429,7 @@ export const PRIVACY: Docs = {
       {
         title: '8. Por quanto tempo guardamos',
         paragraphs: [
-          'Guardamos os dados da conta, do perfil, o Locker e os arquivos enviados enquanto sua conta existir. O que você manda para a lixeira do Locker é apagado para sempre depois de 30 dias (ou antes, se você esvaziar a lixeira). Se você pedir a exclusão da conta, apagamos esses dados, inclusive os arquivos do Locker, em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados que ficam só no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
+          'Guardamos os dados da conta, do perfil, a cópia dos dados do app, o Locker e os arquivos enviados enquanto sua conta existir. O que você manda para a lixeira do Locker é apagado para sempre depois de 30 dias (ou antes, se você esvaziar a lixeira). Se você pedir a exclusão da conta, apagamos esses dados, inclusive os arquivos do Locker e a cópia dos dados do app, em até 30 dias, exceto o que a lei nos obrigar a manter (por exemplo, registros de acesso, por 6 meses). Os dados guardados no aparelho permanecem até você apagá-los, criar outra conta no mesmo aparelho ou desinstalar o app.',
           'Quando a assinatura vence ou o plano diminui e a conta passa do limite, os arquivos do Locker ficam guardados por 30 dias e depois os que passam do limite são apagados, como explicam os Termos de Uso. Os dados da assinatura ficam guardados enquanto a conta existir, para registro das compras.',
           'Os dados da lista de novidades ficam guardados enquanto a sua autorização valer. Quando você cancela, paramos de mandar mensagens e apagamos o seu nome, o seu WhatsApp e o seu e-mail da lista em até 30 dias (guardamos só o registro de que você cancelou, para não mandar de novo). Você também pode pedir a remoção pelo e-mail {email}.',
         ],
@@ -448,7 +449,7 @@ export const PRIVACY: Docs = {
       {
         title: '11. Dados dos seus clientes',
         paragraphs: [
-          'Os dados dos seus clientes que você registra no CRM ficam no seu aparelho e são de sua responsabilidade como controlador. Use-os apenas para atender esses clientes e com a autorização deles.',
+          'Os dados dos seus clientes que você registra no CRM ficam no seu aparelho, com uma cópia privada na nuvem ligada à sua conta, e são de sua responsabilidade como controlador. Nós os tratamos só para guardar essa cópia e devolvê-la a você. Use-os apenas para atender esses clientes e com a autorização deles.',
         ],
       },
       {
@@ -480,19 +481,20 @@ export const PRIVACY: Docs = {
           'Account: email and password. The password is stored securely by our authentication provider; we do not have access to it.',
           'Profile: your name, business name, WhatsApp, line of business, language and the country where you sell. They appear in your ready-made messages and tailor the app to your business.',
           'Locker: the files you upload (photos, videos, audios, PDFs and documents), with name, type, size and dates, and how they are organized (folders, order, what shows on the keyboard, stars and trash). The organization is kept in our database and syncs the app, the keyboard and the locker.keyconapp.com website; the files are stored privately with our storage provider and opened through temporary links.',
+          'Copy of your app data: your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes) and calendar appointments. While you are signed in, the app keeps a private copy of this data with our storage provider, so if you reinstall the app or sign in on another phone, it comes back automatically.',
           'Locker sharing: the email addresses of people you share folders or files with, the teams you create (name and members\' emails) and who can see each folder. People who receive a share see your email as the owner.',
           'Photos, videos and audios in your product catalog and shortcuts: available through a public link so the keyboard can send them in your chats.',
           'Subscription: your plan, the store where you subscribed (App Store or Google Play), whether it\'s a free trial, the start, renewal and expiration dates, and the store\'s purchase ID. We don\'t receive card or payment details: billing is handled by Apple or Google.',
-          'Company account: the name, email and team of the people the company adds as dependents. The company can see this data; it can\'t see dependents\' products, shortcuts, clients and calendar, which stay on each person\'s device.',
+          'Company account: the name, email and team of the people the company adds as dependents. The company can see this data; it can\'t see dependents\' products, shortcuts, clients and calendar, which belong to each person only.',
           'Technical data: access logs kept by our providers (such as date, time and IP address), required for security and by law.',
           'Website news list: if you sign up, we keep your name, your email, your WhatsApp number (if you provide it), the type of phone you chose (iPhone or Android), the language of the page and your consent (the text you accepted, with date and time). With that consent, we send news and offers about KEYCON, including the launch notice, by email and, if you provided it, by WhatsApp. You can unsubscribe at any time: through the unsubscribe link at the end of every email, by replying STOP on WhatsApp or by writing to {email}.',
           'Website visit and ad measurement (Meta Pixel, Google Tag Manager and Google Analytics): only if you accept it in the cookie notice on keyconapp.com, the website loads the Meta Pixel, Google Analytics and Google Tag Manager, with the Google measurement and advertising tools set up in it. They record the pages you visit on the website, along with browser and device information, your IP address and cookie identifiers, and send this data to Meta and Google. We use them to measure visits and the results of our ads and to show ads to people who visited the website. Meta and Google also process this data under their own privacy policies. If you decline, or if your browser sends a Global Privacy Control signal, these tools are not loaded. You can change your choice at any time under "Your Privacy Choices" at the bottom of the website. They are not part of the app or the keyboard.',
         ],
       },
       {
-        title: '3. Data that stays only on your device',
+        title: '3. Data stored on your device',
         paragraphs: [
-          'Your products and categories, text, audio and link shortcuts, CRM clients (name, WhatsApp, tags, notes), calendar appointments and your preferences are stored only on your phone and shared between the KEYCON app and keyboard. We do not receive this data.',
+          'Your products and categories, text, audio and link shortcuts, CRM clients, calendar appointments and your preferences are stored on your phone and shared between the KEYCON app and keyboard, so they work offline. The cloud copy of this data is described in section 2; preferences (such as the theme and the keyboard menu order) stay only on your phone.',
           'In the browser, the Locker website keeps on your device your session, the language you chose, a copy of your Locker organization to open offline and, if you mark files as "Available offline", copies of those files. When you sign out of the Locker website, we delete these copies. The Locker website does not use advertising cookies or tracking tools.',
         ],
       },
@@ -521,7 +523,7 @@ export const PRIVACY: Docs = {
       {
         title: '7. Who we share data with',
         paragraphs: [
-          'With providers that help us run the service: database, authentication and storage (Supabase), Locker file storage (Cloudflare) and website hosting. They may use the data only to provide those services. If you accept the measurement cookies on the website, the visit data described in section 2 also goes to Meta and Google, to measure and target our ads. We may also share data when required by law or court order. We do not sell your data.',
+          'With providers that help us run the service: database, authentication and storage (Supabase), storage of Locker files and of the copy of your app data (Cloudflare) and website hosting. They may use the data only to provide those services. If you accept the measurement cookies on the website, the visit data described in section 2 also goes to Meta and Google, to measure and target our ads. We may also share data when required by law or court order. We do not sell your data.',
           'Subscriptions: Apple (App Store) and Google (Google Play) handle billing and follow their own privacy policies. We use RevenueCat, Inc. (USA) to verify purchases with the stores and know whether a subscription is active; it receives your KEYCON account ID and purchase details, never card details.',
           'With whoever you choose in the Locker: the people and teams you share with and the people who receive the links you send.',
           'These providers may keep servers outside Brazil. In those cases we apply the safeguards required by the LGPD for international transfers.',
@@ -530,7 +532,7 @@ export const PRIVACY: Docs = {
       {
         title: '8. How long we keep data',
         paragraphs: [
-          'We keep account and profile data, your Locker and uploaded files while your account exists. Items you move to the Locker trash are deleted forever after 30 days (or sooner, if you empty the trash). If you ask us to delete your account, we delete this data, including your Locker files, within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data that stays only on your device remains until you delete it, create another account on the same device or uninstall the app.',
+          'We keep account and profile data, the copy of your app data, your Locker and uploaded files while your account exists. Items you move to the Locker trash are deleted forever after 30 days (or sooner, if you empty the trash). If you ask us to delete your account, we delete this data, including your Locker files and the copy of your app data, within 30 days, except what the law requires us to keep (for example, access logs, for 6 months). Data stored on your device remains until you delete it, create another account on the same device or uninstall the app.',
           'When a subscription expires or a plan is reduced and the account goes over the limit, Locker files are kept for 30 days and then the files over the limit are deleted, as described in the Terms of Use. Subscription data is kept while the account exists, as a record of purchases.',
           'News list data is kept while your consent is valid. When you unsubscribe, we stop sending messages and delete your name, WhatsApp number and email from the list within 30 days (we keep only a record that you unsubscribed, so we do not contact you again). You can also ask for removal by writing to {email}.',
         ],
@@ -550,7 +552,7 @@ export const PRIVACY: Docs = {
       {
         title: '11. Your clients\' data',
         paragraphs: [
-          'Your clients\' data that you record in the CRM stays on your device and is your responsibility as controller. Use it only to serve those clients and with their permission.',
+          'Your clients\' data that you record in the CRM stays on your device, with a private cloud copy tied to your account, and is your responsibility as controller. We process it only to keep that copy and return it to you. Use it only to serve those clients and with their permission.',
         ],
       },
       {
@@ -582,19 +584,20 @@ export const PRIVACY: Docs = {
           'Cuenta: correo y contraseña. La contraseña la guarda de forma protegida nuestro proveedor de autenticación; no tenemos acceso a ella.',
           'Perfil: tu nombre, nombre del negocio, WhatsApp, rubro, idioma y país donde vendes. Aparecen en tus mensajes listos y adaptan la app a tu negocio.',
           'Locker: los archivos que subes (fotos, videos, audios, PDF y documentos), con nombre, tipo, tamaño y fechas, y su organización (carpetas, orden, lo que aparece en el teclado, destacados y papelera). La organización se guarda en nuestra base de datos y sincroniza la app, el teclado y el sitio locker.keyconapp.com; los archivos se guardan de forma privada en nuestro proveedor de almacenamiento y se abren mediante enlaces temporales.',
+          'Copia de tus datos de la app: tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas) y citas de la agenda. Mientras tienes la sesión iniciada, la app guarda una copia privada de estos datos en nuestro proveedor de almacenamiento. Así, si reinstalas la app o entras en otro celular, vuelven automáticamente.',
           'Compartir en el Locker: los correos de las personas con quienes compartes carpetas o archivos, los equipos que creas (nombre y correos de los miembros) y quién puede ver cada carpeta. Quien recibe algo compartido ve tu correo como dueño.',
           'Fotos, videos y audios del catálogo de productos y de los accesos rápidos: quedan accesibles mediante un enlace público para que el teclado pueda enviarlos en las conversaciones.',
           'Suscripción: tu plan, la tienda en la que te suscribiste (App Store o Google Play), si es prueba gratis, las fechas de inicio, renovación y vencimiento y el código de la compra en la tienda. No recibimos datos de tarjeta ni de pago: el cobro lo hacen Apple o Google.',
-          'Cuenta de empresa: el nombre, el correo y el equipo de las personas que la empresa registra como dependientes. La empresa ve esos datos; no ve los productos, atajos, clientes ni la agenda de los dependientes, que quedan en el dispositivo de cada uno.',
+          'Cuenta de empresa: el nombre, el correo y el equipo de las personas que la empresa registra como dependientes. La empresa ve esos datos; no ve los productos, atajos, clientes ni la agenda de los dependientes, que son solo de cada uno.',
           'Datos técnicos: registros de acceso que mantienen nuestros proveedores (como fecha, hora y dirección IP), exigidos por seguridad y por la ley.',
           'Lista de novedades del sitio: si te inscribes, guardamos tu nombre, tu correo, tu WhatsApp (si lo indicas), el tipo de celular que elegiste (iPhone o Android), el idioma de la página y tu autorización (el texto que aceptaste, con fecha y hora). Con esa autorización, enviamos novedades y ofertas de KEYCON, incluido el aviso de lanzamiento, por correo y, si lo indicaste, por WhatsApp. Puedes darte de baja cuando quieras: con el enlace al final de cada correo, respondiendo BAJA en WhatsApp o escribiendo a {email}.',
           'Medición de visitas y anuncios en el sitio (píxel de Meta, Google Tag Manager y Google Analytics): solo si lo aceptas en el aviso de cookies de keyconapp.com, el sitio carga el píxel de Meta, Google Analytics y Google Tag Manager, con las herramientas de medición y anuncios de Google configuradas en él. Registran las páginas que visitas en el sitio, junto con datos del navegador y del dispositivo, tu dirección IP e identificadores de cookies, y envían esos datos a Meta y a Google. Las usamos para medir las visitas y el resultado de nuestros anuncios y para mostrar anuncios a quienes visitaron el sitio. Meta y Google también tratan estos datos según sus propias políticas de privacidad. Si lo rechazas, o si tu navegador envía la señal Global Privacy Control, estas herramientas no se cargan. Puedes cambiar tu elección en cualquier momento en "Tus opciones de privacidad", al pie del sitio. No forman parte de la app ni del teclado.',
         ],
       },
       {
-        title: '3. Datos que quedan solo en tu dispositivo',
+        title: '3. Datos guardados en tu dispositivo',
         paragraphs: [
-          'Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM (nombre, WhatsApp, etiquetas, notas), citas de la agenda y tus preferencias se guardan solo en tu celular y se comparten entre la app y el teclado KEYCON. No recibimos estos datos.',
+          'Tus productos y categorías, accesos rápidos de texto, audio y enlace, clientes del CRM, citas de la agenda y tus preferencias se guardan en tu celular y se comparten entre la app y el teclado KEYCON, para funcionar sin conexión. La copia de estos datos en la nube se describe en la sección 2; las preferencias (como el tema y el orden del menú del teclado) quedan solo en el celular.',
           'En el navegador, el Locker web guarda en tu dispositivo tu sesión, el idioma elegido, una copia de la organización para abrir sin conexión y, si marcas archivos como "Disponible sin conexión", copias de esos archivos. Al cerrar sesión en el Locker web, borramos esas copias. El Locker web no usa cookies de publicidad ni herramientas de rastreo.',
         ],
       },
@@ -623,7 +626,7 @@ export const PRIVACY: Docs = {
       {
         title: '7. Con quién compartimos',
         paragraphs: [
-          'Con proveedores que nos ayudan a prestar el servicio: base de datos, autenticación y almacenamiento (Supabase), almacenamiento de los archivos del Locker (Cloudflare) y alojamiento del sitio. Solo pueden usar los datos para prestar esos servicios. Si aceptas las cookies de medición en el sitio, los datos de visita descritos en la sección 2 también van a Meta y a Google, para medir y dirigir nuestros anuncios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
+          'Con proveedores que nos ayudan a prestar el servicio: base de datos, autenticación y almacenamiento (Supabase), almacenamiento de los archivos del Locker y de la copia de los datos de la app (Cloudflare) y alojamiento del sitio. Solo pueden usar los datos para prestar esos servicios. Si aceptas las cookies de medición en el sitio, los datos de visita descritos en la sección 2 también van a Meta y a Google, para medir y dirigir nuestros anuncios. También podemos compartir datos cuando lo exija la ley o una orden judicial. No vendemos tus datos.',
           'Suscripciones: Apple (App Store) y Google (Google Play) hacen el cobro y siguen sus propias políticas de privacidad. Usamos RevenueCat, Inc. (EE. UU.) para confirmar las compras con las tiendas y saber si la suscripción está activa; recibe el código de tu cuenta KEYCON y los datos de la compra, nunca datos de tarjeta.',
           'Con quien tú elijas en el Locker: las personas y equipos con quienes compartes y quienes reciben los enlaces que envías.',
           'Estos proveedores pueden tener servidores fuera de Brasil. En esos casos, aplicamos las garantías que exige la LGPD para la transferencia internacional.',
@@ -632,7 +635,7 @@ export const PRIVACY: Docs = {
       {
         title: '8. Cuánto tiempo guardamos los datos',
         paragraphs: [
-          'Guardamos los datos de la cuenta, del perfil, el Locker y los archivos subidos mientras exista tu cuenta. Lo que mandas a la papelera del Locker se elimina para siempre después de 30 días (o antes, si vacías la papelera). Si pides la eliminación de la cuenta, borramos estos datos, incluidos los archivos del Locker, en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos que quedan solo en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
+          'Guardamos los datos de la cuenta, del perfil, la copia de los datos de la app, el Locker y los archivos subidos mientras exista tu cuenta. Lo que mandas a la papelera del Locker se elimina para siempre después de 30 días (o antes, si vacías la papelera). Si pides la eliminación de la cuenta, borramos estos datos, incluidos los archivos del Locker y la copia de los datos de la app, en un plazo de 30 días, salvo lo que la ley nos obligue a conservar (por ejemplo, registros de acceso, por 6 meses). Los datos guardados en el dispositivo permanecen hasta que los borres, crees otra cuenta en el mismo dispositivo o desinstales la app.',
           'Cuando la suscripción vence o el plan baja y la cuenta supera el límite, los archivos del Locker se guardan 30 días y después se borran los que superan el límite, como explican los Términos de Uso. Los datos de la suscripción se guardan mientras exista la cuenta, como registro de las compras.',
           'Los datos de la lista de novedades se guardan mientras tu autorización siga vigente. Cuando te das de baja, dejamos de enviar mensajes y borramos tu nombre, tu WhatsApp y tu correo de la lista en un plazo de 30 días (guardamos solo el registro de que te diste de baja, para no volver a escribirte). También puedes pedir que los borremos escribiendo a {email}.',
         ],
@@ -652,7 +655,7 @@ export const PRIVACY: Docs = {
       {
         title: '11. Datos de tus clientes',
         paragraphs: [
-          'Los datos de tus clientes que registras en el CRM quedan en tu dispositivo y son tu responsabilidad como responsable del tratamiento. Úsalos solo para atender a esos clientes y con su autorización.',
+          'Los datos de tus clientes que registras en el CRM quedan en tu dispositivo, con una copia privada en la nube vinculada a tu cuenta, y son tu responsabilidad como responsable del tratamiento. Los tratamos solo para guardar esa copia y devolvértela. Úsalos solo para atender a esos clientes y con su autorización.',
         ],
       },
       {

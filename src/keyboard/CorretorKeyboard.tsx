@@ -15,6 +15,7 @@ import { Repo } from '../storage/storage';
 import type { CRMLead, KeyboardData, MainSystemTab, MenuTab, SellerProfile, ThemePreference } from '../types';
 import { pushProfile } from '../services/auth';
 import { onLockerChange, pullLocker, startLockerSync } from '../files/locker';
+import { onCloudBackupChange, pullCloudBackup, startCloudBackup } from '../sync/cloudBackup';
 import { keyboardView } from '../files/files';
 import { FilesTab } from './components/FilesTab';
 import { KeyboardAgenda } from './components/KeyboardAgenda';
@@ -125,15 +126,21 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
     if (!loggedIn) return;
     const stop = startLockerSync();
     const offChange = onLockerChange(onDataChanged);
+    // Produtos, atalhos, agenda e clientes: o que for cadastrado aqui também vai para a nuvem
+    const stopBackup = startCloudBackup();
+    const offBackup = onCloudBackupChange(onDataChanged);
     refreshPlan().catch(() => {});
     const offShow = KeyboardBridge.onKeyboardShow(() => {
       pullLocker().catch(() => {});
+      pullCloudBackup().catch(() => {});
       // O plano pode ter mudado no app (compra, vencimento)
       refreshPlan().catch(() => {});
     });
     return () => {
       stop();
       offChange();
+      stopBackup();
+      offBackup();
       offShow();
     };
   }, [loggedIn, onDataChanged]);
