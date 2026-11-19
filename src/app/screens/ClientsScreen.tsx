@@ -13,6 +13,7 @@ import {
   countByStage,
   hasTag,
   initials,
+  lastContactDetail,
   lastContactLabel,
   newLeadId,
   sortLeads,
@@ -32,13 +33,20 @@ import { PhoneField } from '../components/PhoneField';
 import { coralGlass, glassBorder, makeStyles, onCoralText, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
 import { CoralSheen, Button, Card, CardText, CardTitle, EmptyState, Page, ScreenTitle, SubHeader } from '../components/ui';
 import { useStoredList } from '../hooks/useStoredList';
+import { FollowUpEditor } from './FollowUpEditor';
+import { formatFollowUp } from '../../utils/formatters';
 
 interface Props {
   /** "Agendar" na ficha: abre a Agenda com o cliente. */
   onSchedule: (lead: CRMLead) => void;
 }
 
-type Section = { name: 'list' } | { name: 'tags' } | { name: 'detail'; id: string } | { name: 'form'; id: string | null };
+type Section =
+  | { name: 'list' }
+  | { name: 'tags' }
+  | { name: 'detail'; id: string }
+  | { name: 'form'; id: string | null }
+  | { name: 'followup'; id: string };
 
 export function ClientsScreen({ onSchedule }: Props) {
   const [leads, reload] = useStoredList(Repo.getCRM);
@@ -57,7 +65,26 @@ export function ClientsScreen({ onSchedule }: Props) {
     Linking.openURL(link).catch(() => Alert.alert(t('Atenção'), t('Não foi possível abrir o WhatsApp.')));
     save({ ...lead, lastContactAt: new Date().toISOString() });
   };
+  /** "Enviar mensagem de retorno": abre o WhatsApp do cliente com a mensagem escolhida no app. */
+  const followUp = (lead: CRMLead) => {
+    const message = formatFollowUp(lead.clientName.split(/\s+/)[0], segment.id, Repo.getFollowUpTemplate(), Repo.getSeller());
+    const link = whatsappLink(lead.phone, message);
+    if (!link) return;
+    Linking.openURL(link).catch(() => Alert.alert(t('Atenção'), t('Não foi possível abrir o WhatsApp.')));
+    save({ ...lead, lastContactAt: new Date().toISOString() });
+  };
   const tags = allTags(leads, Repo.getCrmTags());
+
+  if (section.name === 'followup') {
+    const lead = leads.find(l => l.id === section.id);
+    return (
+      <FollowUpEditor
+        segment={segment.id}
+        exampleName={lead?.clientName ?? ''}
+        onBack={() => setSection(lead ? { name: 'detail', id: lead.id } : { name: 'list' })}
+      />
+    );
+  }
 
   if (section.name === 'tags') {
     return (
@@ -97,6 +124,8 @@ export function ClientsScreen({ onSchedule }: Props) {
           onSave={save}
           onSchedule={() => onSchedule(lead)}
           onTalk={() => talk(lead)}
+          onFollowUp={() => followUp(lead)}
+          onEditFollowUp={() => setSection({ name: 'followup', id: lead.id })}
           tags={tags}
           onDelete={() =>
             Alert.alert(t('Excluir cliente'), t('Deseja excluir "{clientName}"? Os compromissos dele continuam na agenda.', { clientName: lead.clientName }), [
@@ -363,6 +392,8 @@ function LeadDetail({
   onSchedule,
   onDelete,
   onTalk,
+  onFollowUp,
+  onEditFollowUp,
   tags,
 }: {
   lead: CRMLead;
@@ -373,6 +404,10 @@ function LeadDetail({
   onSchedule: () => void;
   onDelete: () => void;
   onTalk: () => void;
+  /** Abre o WhatsApp do cliente com a mensagem de retorno. */
+  onFollowUp: () => void;
+  /** Editor da mensagem de retorno (vale no app e no teclado). */
+  onEditFollowUp: () => void;
   /** Etiquetas usadas nos clientes (para ligar/desligar na ficha). */
   tags: string[];
 }) {
@@ -394,11 +429,24 @@ function LeadDetail({
               {link.replace('https://', '')}
             </Text>
           ) : null}
-          <Text style={styles.leadMeta}>{t('Último contato: {lastContactLabellead}', { lastContactLabellead: lastContactLabel(lead).toLowerCase() })}</Text>
+          <Text style={styles.leadMeta}>{t('Último contato: {lastContactLabellead}', { lastContactLabellead: lastContactDetail(lead).toLowerCase() })}</Text>
         </View>
       </Card>
 
+      {lead.notes ? (
+        <Card>
+          <CardTitle>{t('Anotações')}</CardTitle>
+          <CardText>{lead.notes}</CardText>
+        </Card>
+      ) : null}
+
       {link ? <Button testID="lead-talk" label={t('Conversar no WhatsApp')} icon="compartilhar" onPress={onTalk} /> : null}
+      {link ? (
+        <Button testID="lead-followup" label={t('Enviar mensagem de retorno')} variant="secondary" icon="respostas" onPress={onFollowUp} />
+      ) : null}
+      <Pressable testID="lead-edit-followup" accessibilityRole="button" hitSlop={8} onPress={onEditFollowUp} style={styles.editFollowUp}>
+        <Text style={styles.editFollowUpText}>{t('Editar mensagem de retorno')}</Text>
+      </Pressable>
 
       <Card>
         <CardTitle>{t('Etiquetas')}</CardTitle>
@@ -430,19 +478,6 @@ function LeadDetail({
         <Button label={t('Agendar')} variant="secondary" icon="calendario" onPress={onSchedule} />
       </Card>
 
-      {lead.notes ? (
-        <Card>
-          <CardTitle>{t('Anotações')}</CardTitle>
-          <CardText>{lead.notes}</CardText>
-        </Card>
-      ) : null}
-
-      <Button
-        label={t('Registrar contato agora')}
-        icon="check"
-        variant={link ? 'secondary' : 'primary'}
-        onPress={() => onSave({ ...lead, lastContactAt: new Date().toISOString() })}
-      />
       <Button label={t('Editar')} variant="secondary" onPress={onEdit} />
       <Button label={t('Excluir cliente')} variant="danger" onPress={onDelete} />
     </Page>
@@ -639,6 +674,8 @@ const useStyles = makeStyles(colors => ({
   agendaLine: { fontSize: 14, color: colors.text },
   leadBody: { gap: 3 },
   link: { fontSize: 13, color: colors.primaryText, marginTop: 2 },
+  editFollowUp: { alignSelf: 'center', paddingVertical: spacing.xs },
+  editFollowUpText: { fontSize: 14, fontWeight: '600', color: colors.primaryText },
   hint: { fontSize: 12, color: colors.textMuted },
   hintError: { color: colors.danger },
   newTag: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

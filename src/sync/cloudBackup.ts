@@ -61,6 +61,24 @@ const COLLECTIONS = {
   links: shortcutsList('links'),
   agenda: { read: () => Repo.getAgenda(), write: list => Repo.setAgenda(list as never) } as Collection,
   crm: { read: () => Repo.getCRM(), write: list => Repo.setCRM(list as never) } as Collection,
+  /** Ajustes que a pessoa escolheu: a mensagem de retorno do CRM e a barra de baixo do app. */
+  settings: {
+    read: () => {
+      const out: Item[] = [];
+      const followUp = Repo.getFollowUpTemplate();
+      if (followUp) out.push({ id: 'followUp', text: followUp } as Item);
+      const dock = Repo.getDock();
+      if (dock) out.push({ id: 'dock', ids: dock } as Item);
+      return out;
+    },
+    write: list => {
+      const items = list as Array<Item & { text?: string; ids?: unknown }>;
+      const followUp = items.find(x => x.id === 'followUp');
+      Repo.setFollowUpTemplate(typeof followUp?.text === 'string' ? followUp.text : '');
+      const dock = items.find(x => x.id === 'dock');
+      Repo.setDock(dock && Array.isArray(dock.ids) ? dock.ids.filter((x): x is string => typeof x === 'string') : null);
+    },
+  } as Collection,
   tags: {
     read: () => {
       const seen = new Set<string>();

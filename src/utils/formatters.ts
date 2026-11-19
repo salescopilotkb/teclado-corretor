@@ -74,8 +74,22 @@ export function formatProductMessage(p: Product, folder?: ProductFolder, segment
 }
 
 /** Mensagem de retorno do CRM ({{cliente}} = nome do cliente), no idioma de venda. */
-export function formatFollowUp(clientName: string, segment: SegmentId): string {
-  return getSegment(segment, getSellingLanguage()).followUp.replace(/\{\{cliente\}\}/g, clientName);
+/** Variável da mensagem de retorno que vira o nome do cliente. */
+export const CLIENT_VAR = '{{cliente}}';
+
+/** Mensagem de retorno padrão do ramo, no idioma de venda (com {{cliente}}). */
+export function defaultFollowUp(segment: SegmentId): string {
+  return getSegment(segment, getSellingLanguage()).followUp;
+}
+
+/**
+ * Mensagem de retorno pronta para o cliente: a que a pessoa escreveu no app (ou a
+ * padrão do ramo), com {{cliente}} trocado pelo nome e, com o perfil, também
+ * {{nome}}, {{empresa}} e {{telefone}}.
+ */
+export function formatFollowUp(clientName: string, segment: SegmentId, template = '', seller?: SellerProfile): string {
+  const body = (template.trim() ? template : defaultFollowUp(segment)).replace(/\{\{cliente\}\}/g, clientName);
+  return seller ? applyTemplate(body, seller) : body;
 }
 
 /**

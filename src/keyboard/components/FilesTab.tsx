@@ -41,6 +41,7 @@ import { CoralSheen } from './Glass';
 import { fileIcon, Icon } from './Icon';
 import { ResizeHandle } from './ResizeHandle';
 import type { IconName } from './Icon';
+import { VideoCover } from './VideoCover';
 import { ItemCard } from './ItemCard';
 import { DEMO_MODE } from '../../config/demo';
 import { ActionButton, AppOnlyNote, BarButton, ConfirmDelete, UseButton } from './KeyboardButtons';
@@ -49,10 +50,13 @@ import { MAX_RESULTS, NoResults, ResultsSection, SearchLauncher, SearchPanel, ma
 import { KeyboardFormField, KeyboardFormKeys, useKeyboardForm } from './KeyboardForm';
 import type { FormFieldSpec } from './KeyboardForm';
 
-/** Abre o app KEYCON na aba Locker (Android: link keycon://locker; página de teste: direto). */
+/**
+ * Abre o app KEYCON na aba Locker. O pedido fica gravado antes (o app o consome ao
+ * abrir, mesmo vindo do zero); o link keycon://locker abre o app.
+ */
 async function openLockerInApp(): Promise<void> {
+  requestAppTab('files');
   if (Platform.OS === 'web') {
-    requestAppTab('files');
     await KeyboardBridge.openApp();
     return;
   }
@@ -623,6 +627,8 @@ function Thumb({ file, onPress, onUse, onUseLink }: { file: SavedFile; onPress: 
         style={({ pressed }) => [styles.thumb, pressed && styles.pressed]}>
         {file.type === 'image' ? (
           <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
+        ) : file.type === 'video' ? (
+          <VideoCover file={file} style={styles.thumbImage} iconSize={24} playSize={24} />
         ) : (
           <View style={styles.thumbVideo}>
             <Icon name={fileIcon(file.type)} size={24} color={colors.textSecondary} />
@@ -646,6 +652,7 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
     { source: 'gallery', icon: 'galeria', label: t('Galeria') },
     { source: 'camera-photo', icon: 'foto', label: t('Tirar foto') },
     { source: 'camera-video', icon: 'video', label: t('Gravar vídeo') },
+    { source: 'document', icon: 'arquivos', label: t('Documento') },
   ];
   return (
     <View style={styles.flex}>
@@ -667,7 +674,9 @@ function AddSheet({ inFolder, onPick, onCancel }: { inFolder?: string; onPick: (
               style={({ pressed }) => [styles.source, pressed && styles.pressed]}
               onPress={() => onPick(o.source)}>
               <Icon name={o.icon} size={26} />
-              <Text style={styles.sourceText}>{o.label}</Text>
+              <Text style={styles.sourceText} numberOfLines={2}>
+                {o.label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -717,6 +726,8 @@ function FileDetail({
         <View style={styles.previewRow}>
           {file.type === 'image' ? (
             <Image source={{ uri: file.url }} style={styles.preview} resizeMode="cover" />
+          ) : file.type === 'video' ? (
+            <VideoCover file={file} style={styles.preview} iconSize={32} playSize={40} />
           ) : (
             <View style={[styles.preview, styles.thumbVideo]}>
               <Icon name={fileIcon(file.type)} size={32} color={colors.textSecondary} />
@@ -947,7 +958,7 @@ const useStyles = makeStyles(colors => ({
     backgroundColor: colors.surface,
     ...glassBorder(colors),
   },
-  sourceText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  sourceText: { fontSize: 13, fontWeight: '600', color: colors.text, textAlign: 'center' },
   hint: { fontSize: 12, lineHeight: 17, color: colors.textMuted },
   detail: { padding: spacing.sm, gap: spacing.sm },
   previewRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },

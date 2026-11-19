@@ -40,6 +40,10 @@ const KEYS = {
   crm: 'user.crm',
   /** Etiquetas criadas sem estar em nenhum cliente ainda (botão "Etiqueta" em Clientes). */
   crmTags: 'user.crmTags',
+  /** Mensagem de retorno escolhida pela pessoa (vazio = a padrão do ramo). */
+  followUp: 'user.followUp',
+  /** Ícones da barra de baixo do app, escolhidos pela pessoa (Início › Personalizar a barra). */
+  dock: 'user.dock',
   files: 'user.files',
   theme: 'user.theme',
   authToken: 'auth.token',
@@ -55,6 +59,12 @@ const KEYS = {
   legacyDemoPurged: 'app.legacyDemoPurged',
   /** Ordem dos botões do menu do teclado (segurar e arrastar). */
   menuOrder: 'keyboard.menuOrder',
+  /**
+   * Última vez que o teclado KEYCON abriu (ms). No iPhone é o único jeito de o app
+   * saber que o teclado está ativo: o teclado só alcança este armazenamento
+   * (compartilhado pelo App Group) com o Acesso Total ligado.
+   */
+  keyboardSeenAt: 'keyboard.seenAt',
 } as const;
 
 /** Ordem padrão do menu do teclado. */
@@ -68,6 +78,8 @@ const USER_DATA_KEYS = [
   KEYS.agenda,
   KEYS.crm,
   KEYS.crmTags,
+  KEYS.followUp,
+  KEYS.dock,
   KEYS.files,
   KEYS.tutorialSeen,
   KEYS.stepsDone,
@@ -78,7 +90,7 @@ const USER_DATA_KEYS = [
 ];
 
 /** Dados que têm cópia na nuvem (src/sync/cloudBackup.ts): mudou um deles, a cópia sobe. */
-export const BACKED_UP_KEYS: readonly string[] = [KEYS.folders, KEYS.shortcuts, KEYS.agenda, KEYS.crm, KEYS.crmTags];
+export const BACKED_UP_KEYS: readonly string[] = [KEYS.folders, KEYS.shortcuts, KEYS.agenda, KEYS.crm, KEYS.crmTags, KEYS.followUp, KEYS.dock];
 
 const DEFAULT_THEME: ThemePreference = 'dark';
 const EMPTY_SELLER: SellerProfile = { name: '', business: '', phone: '', segment: 'general', language: 'en', market: 'US_EN' };
@@ -186,6 +198,23 @@ export const Repo = {
     );
   },
 
+  /** Mensagem de retorno do CRM ("" = usar a padrão do ramo). */
+  getFollowUpTemplate: (): string => storage.getString(KEYS.followUp) ?? '',
+  setFollowUpTemplate: (text: string) => {
+    if (text.trim()) storage.set(KEYS.followUp, text);
+    else storage.delete(KEYS.followUp);
+  },
+
+  /** Barra de baixo do app (null = a padrão). Os ids ficam em src/app/homeApps.ts. */
+  getDock: (): string[] | null => {
+    const ids = getJSON<unknown>(KEYS.dock, null);
+    return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : null;
+  },
+  setDock: (ids: string[] | null) => {
+    if (ids) storage.set(KEYS.dock, JSON.stringify(ids));
+    else storage.delete(KEYS.dock);
+  },
+
   getFiles: (): FilesData => {
     const data = getJSON<FilesData>(KEYS.files, EMPTY_FILES);
     return {
@@ -241,6 +270,10 @@ export const Repo = {
   clearUserData(): void {
     for (const key of USER_DATA_KEYS) storage.delete(key);
   },
+
+  /** O teclado abriu: grava a hora (o app usa para saber que ele está ativo). */
+  markKeyboardSeen: () => storage.set(KEYS.keyboardSeenAt, Date.now()),
+  getKeyboardSeenAt: (): number => storage.getNumber(KEYS.keyboardSeenAt) ?? 0,
 
   isTutorialSeen: (): boolean => storage.getBoolean(KEYS.tutorialSeen) === true,
   setTutorialSeen: () => storage.set(KEYS.tutorialSeen, true),

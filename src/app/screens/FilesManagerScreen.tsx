@@ -4,7 +4,8 @@
  * foi feito pelo teclado nesse meio-tempo.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, AppState, Image, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, AppState, Image, Linking, Pressable, Switch, Text, TextInput, View } from 'react-native';
+import { VideoCover } from '../../keyboard/components/VideoCover';
 import { t } from '../../i18n';
 import { useAppBack } from '../../navigation/back';
 import {
@@ -35,7 +36,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { ChoiceRow } from '../../keyboard/components/KeyboardForm';
 import { fileIcon, Icon } from '../../keyboard/components/Icon';
 import { makeStyles, radius, spacing, touchTarget, typography, useColors } from '../../keyboard/theme';
-import { canUseCamera, captureWithCamera, pickPhotoOrVideo } from '../../native/MediaPicker';
+import { canUseCamera, captureWithCamera, pickDocument, pickPhotoOrVideo } from '../../native/MediaPicker';
 import { deleteUploadedMedia } from '../../services/mediaUpload';
 import type { LocalMedia } from '../../services/mediaUpload';
 import { Repo } from '../../storage/storage';
@@ -219,7 +220,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
         </Card>
       ) : mode === 'add' ? (
         <Card>
-          <CardTitle>{t('Adicionar foto ou vídeo')}</CardTitle>
+          <CardTitle>{t('Adicionar arquivo')}</CardTitle>
           <SourceButtons
             options={[
               { key: 'gallery', icon: 'galeria', label: t('Galeria'), onPress: () => add(pickPhotoOrVideo) },
@@ -229,6 +230,7 @@ export function FilesManagerScreen({ onBack }: { onBack?: () => void } = {}) {
                     { key: 'camera-video', icon: 'video' as const, label: t('Gravar vídeo'), onPress: () => add(() => captureWithCamera('video')) },
                   ]
                 : []),
+              { key: 'document', icon: 'arquivos', label: t('Documento'), onPress: () => add(pickDocument) },
               { key: 'link', icon: 'compartilhar', label: t('Link'), onPress: () => setMode('link') },
             ]}
           />
@@ -456,6 +458,8 @@ function Thumb({ file, onPress }: { file: SavedFile; onPress: () => void }) {
     <Pressable testID={`file-${file.id}`} accessibilityRole="button" accessibilityLabel={file.title} style={({ pressed }) => [styles.thumb, pressed && styles.pressed]} onPress={onPress}>
       {file.type === 'image' ? (
         <Image source={{ uri: file.url }} style={styles.thumbImage} resizeMode="cover" />
+      ) : file.type === 'video' ? (
+        <VideoCover file={file} style={styles.thumbImage} iconSize={28} />
       ) : (
         <View style={[styles.thumbImage, styles.video]}>
           <Icon name={fileIcon(file.type)} size={28} color={colors.textSecondary} />
@@ -625,6 +629,11 @@ function FileDetail({
       <SubHeader title={file.title} onBack={onBack} />
       {file.type === 'image' ? (
         <Image source={{ uri: file.url }} style={styles.preview} resizeMode="contain" />
+      ) : file.type === 'video' ? (
+        // Toque na capa: o vídeo abre no player do celular
+        <Pressable accessibilityRole="button" accessibilityLabel={t('Assistir')} onPress={() => Linking.openURL(file.url).catch(() => {})}>
+          <VideoCover file={file} style={styles.preview} iconSize={40} playSize={56} />
+        </Pressable>
       ) : (
         <View style={[styles.preview, styles.video]}>
           <Icon name={fileIcon(file.type)} size={40} color={colors.textSecondary} />

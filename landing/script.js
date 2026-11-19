@@ -2,13 +2,13 @@
 
 // Versão dos arquivos: troque a cada publicação para o navegador não usar imagens antigas
 // (a mesma usada no ?v= de index.html)
-var ASSET_VERSION = '2026110504';
+var ASSET_VERSION = '2026110601';
 
 // ── Preencha aqui quando tiver os links ────────────────────────────────
 // Enquanto um link das lojas estiver vazio, o botão mostra "Em breve".
 // Sem e-mail, o botão "Fale com a gente" fica escondido.
 var CONFIG = {
-  googlePlayUrl: '',  // ex.: 'https://play.google.com/store/apps/details?id=com.keycon.app'
+  googlePlayUrl: 'https://play.google.com/store/apps/details?id=com.keycon.app',
   appStoreUrl: '',    // ex.: 'https://apps.apple.com/app/idXXXXXXXXXX'
   contactEmail: 'support@keyconapp.com',
   // Pixel da Meta: só carrega depois do "Aceitar" no aviso de cookies (veja o fim do arquivo)

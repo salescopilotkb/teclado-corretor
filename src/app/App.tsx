@@ -25,8 +25,6 @@ import { supabase } from '../services/supabase';
 import { getSegment } from '../segments/segments';
 import { Repo } from '../storage/storage';
 import type { SellerProfile, ThemePreference } from '../types';
-import { Icon } from '../keyboard/components/Icon';
-import type { IconName } from '../keyboard/components/Icon';
 import { KeyconLogo } from '../keyboard/components/KeyconLogo';
 import { glassBorder, makeStyles, onCoralText, radius, spacing, ThemeProvider, useColors } from '../keyboard/theme';
 import { Aurora } from '../keyboard/components/Glass';
@@ -35,7 +33,10 @@ import { applyProfileLanguages } from '../i18n/profile';
 import { useLanguage } from '../i18n/useLanguage';
 import { AuthScreen } from './screens/AuthScreen';
 import { HomeScreen } from './screens/HomeScreen';
-import type { AppTarget } from './screens/HomeScreen';
+import type { AppTarget, HomeSection } from './screens/HomeScreen';
+import { AppIcon } from './components/AppIcon';
+import { getDock, homeApp } from './homeApps';
+import type { HomeAppId } from './homeApps';
 import { ProductsManagerScreen } from './screens/ProductsManagerScreen';
 import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
 import type { AccountSection } from './screens/ProfileSettingsScreen';
@@ -44,13 +45,17 @@ import { ClientsScreen } from './screens/ClientsScreen';
 import { FilesManagerScreen } from './screens/FilesManagerScreen';
 import { LockerFrame } from './components/LockerFrame';
 import { TutorialScreen } from './screens/TutorialScreen';
+import { KeyboardActivationScreen } from './screens/KeyboardActivationScreen';
+import { isKeyboardReadyNow } from './screens/KeyboardSetupScreen';
+import { DEMO_MODE } from '../config/demo';
 import { PlanLocked } from './components/PlanLocked';
-import { onOpenPlans, refreshPlan } from '../plans/plan';
+import { onOpenPlans, openPlans, refreshPlan } from '../plans/plan';
 import type { PlanScreen } from '../plans/plan';
 import { PlansScreen } from './screens/PlansScreen';
 import { KeepFilesScreen } from './screens/KeepFilesScreen';
 import { CompanyScreen } from './screens/CompanyScreen';
 import { KeyboardBridge } from '../native/KeyboardBridge';
+import { LiquidGlass } from '../native/LiquidGlass';
 import { CompanyBlocked } from './components/PlanLocked';
 import { dependentNotice, getPlan, watchPlan } from '../plans/plan';
 import { startBilling, stopBilling } from '../plans/billing';
@@ -61,16 +66,20 @@ import { onAppTab, startAppLinks } from '../navigation/appLink';
 
 type AppTab = 'home' | 'products' | 'clients' | 'agenda' | 'files' | 'profile';
 
-const NAV_ITEMS: Array<{ key: AppTab; label: string; icon: IconName }> = [
-  { key: 'home', label: 'Início', icon: 'casa' },
-  // Mesmos dados do CRM e da Agenda do teclado
-  { key: 'clients', label: 'Clientes', icon: 'clientes' },
-  { key: 'agenda', label: 'Agenda', icon: 'calendario' },
-  // Locker: os arquivos na nuvem (marca: o mesmo nome nos 3 idiomas)
-  { key: 'files', label: 'Locker', icon: 'galeria' },
-  // Configurações = engrenagem (manual de marca)
-  { key: 'profile', label: 'Conta', icon: 'configuracoes' },
-];
+/** Apps do Início que são abas do app (os outros abrem dentro do Início ou por cima). */
+const APP_TABS: Partial<Record<HomeAppId, AppTab>> = {
+  products: 'products',
+  clients: 'clients',
+  agenda: 'agenda',
+  files: 'files',
+  profile: 'profile',
+};
+/** Apps que abrem num submenu do Início. */
+const HOME_SECTIONS: Partial<Record<HomeAppId, HomeSection>> = {
+  shortcuts: 'shortcuts',
+  keyboard: 'keyboard',
+  steps: 'steps',
+};
 
 // Idioma e moeda do perfil salvo, antes da primeira tela
 applyProfileLanguages(Repo.getSeller());
@@ -105,10 +114,16 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   /** Muda a cada toque no menu: a aba volta para a tela principal dela. */
   const [tabVisit, setTabVisit] = useState(0);
   const [accountSection, setAccountSection] = useState<AccountSection>('root');
+  /** Submenu do Início aberto pela barra (ex.: Atalhos). */
+  const [homeSection, setHomeSection] = useState<HomeSection>('root');
+  /** Barra de baixo: o Início + os ícones que a pessoa escolheu. */
+  const [dock, setDock] = useState<HomeAppId[]>(getDock);
   /** Ficha do cliente → "Agendar": a Agenda abre o cadastro com ele. */
   const [scheduleClientId, setScheduleClientId] = useState<string | null>(null);
   // Tutorial abre sozinho no primeiro acesso da conta
   const [showTutorial, setShowTutorial] = useState(() => Repo.isLoggedIn() && !Repo.isTutorialSeen());
+  // Depois do tutorial, antes de entrar no app: ativar o teclado (se ainda não estiver ativo)
+  const [showActivation, setShowActivation] = useState(false);
   // Perfil (nome no avatar, ramo nos menus); as telas releem o ramo ao abrir
   const [seller, setSeller] = useState<SellerProfile>(() => Repo.getSeller());
   const segment = getSegment(seller.segment);
@@ -164,7 +179,10 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
   useEffect(() => {
     if (!isAuthenticated) return;
     const stop = startCloudBackup();
-    const off = onCloudBackupChange(() => setTabVisit(v => v + 1));
+    const off = onCloudBackupChange(() => {
+      setDock(getDock());
+      setTabVisit(v => v + 1);
+    });
     return () => {
       off();
       stop();
@@ -263,13 +281,35 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     );
   }
 
-  const openTab = (tab: AppTab, section: AccountSection = 'root') => {
+  const openTab = (tab: AppTab, section: AccountSection = 'root', home: HomeSection = 'root') => {
     setPlanScreen(null);
     setAccountSection(section);
+    setHomeSection(home);
     setScheduleClientId(null);
     setCurrentTab(tab);
     setTabVisit(v => v + 1);
   };
+
+  /** Toque num ícone do Início ou da barra. */
+  const openApp = (id: HomeAppId) => {
+    const tab = APP_TABS[id];
+    const section = HOME_SECTIONS[id];
+    if (tab) openTab(tab);
+    else if (section) openTab('home', 'root', section);
+    else if (id === 'tutorial') setShowTutorial(true);
+    else if (id === 'plans') openPlans();
+  };
+  /** Ícone da barra está aberto agora? */
+  const isOpen = (id: HomeAppId | 'home') => {
+    if (planScreen) return id === 'plans' && planScreen === 'plans';
+    if (id === 'home') return currentTab === 'home' && homeSection === 'root';
+    const tab = APP_TABS[id];
+    if (tab) return currentTab === tab;
+    return currentTab === 'home' && homeSection === HOME_SECTIONS[id];
+  };
+  // Quem usa a conta da empresa não vê os planos (a assinatura é da empresa)
+  const hiddenApps: HomeAppId[] = plan.role === 'dependent' ? ['plans'] : [];
+  const dockApps = dock.filter(id => !hiddenApps.includes(id)).map(homeApp);
 
   const navigateFromHome = (target: AppTarget) => {
     if (target === 'catalog') openTab('products');
@@ -304,8 +344,19 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
           onClose={() => {
             Repo.setTutorialSeen();
             setShowTutorial(false);
+            if (!DEMO_MODE && !isKeyboardReadyNow()) setShowActivation(true);
           }}
         />
+      </SafeAreaView>
+    );
+  }
+
+  if (showActivation) {
+    return (
+      <SafeAreaView key={language} style={styles.root}>
+        <Aurora />
+        <StatusBar barStyle={barStyle} backgroundColor={colors.canvas} />
+        <KeyboardActivationScreen onFinish={() => setShowActivation(false)} />
       </SafeAreaView>
     );
   }
@@ -345,7 +396,15 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
         {/* Escondida (não desmontada) atrás dos planos: ao voltar, a tela está como estava */}
         <View style={showPlans || plan.status === 'blocked' ? styles.hidden : styles.fill}>
         {currentTab === 'home' && (
-          <HomeScreen key={tabVisit} onNavigate={navigateFromHome} onOpenTutorial={() => setShowTutorial(true)} />
+          <HomeScreen
+            key={tabVisit}
+            initialSection={homeSection}
+            onNavigate={navigateFromHome}
+            onOpenApp={openApp}
+            dock={dock}
+            onDockChange={setDock}
+            hidden={hiddenApps}
+          />
         )}
         {/* key: trocar de ramo recarrega a tela com os novos campos */}
         {currentTab === 'products' && (
@@ -395,26 +454,41 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
       {/* Primeiro acesso no plano grátis: oferta do teste de 7 dias do Plus (uma vez por conta) */}
       <TrialOffer enabled={!showPlans} />
 
-      {/* Dock: menu inferior flutuante em vidro leve (o ativo em laranja leve) */}
-      <View style={styles.navBar}>
-        {NAV_ITEMS.map(item => {
-          const active = currentTab === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              style={styles.navBtn}
-              onPress={() => openTab(item.key)}>
-              {/* Selecionado: só o ícone muda de cor (o salmão do teclado), sem fundo */}
-              <Icon name={item.icon} size={22} color={active ? colors.primary : colors.textSecondary} />
-              <Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>
-                {t(item.label)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Barra de baixo (dock) em vidro leve: o Início + os ícones escolhidos pela pessoa.
+          Segurar um ícone abre "Personalizar a barra". */}
+      {/* iOS 26: vidro Liquid Glass do sistema; nos outros, o vidro desenhado pelo app */}
+      <LiquidGlass style={styles.navBar} fallbackStyle={styles.navBarGlass} interactive>
+        <View style={styles.navBtn}>
+          <AppIcon
+            testID="dock-home"
+            label={t('Início')}
+            icon="casa"
+            tint={c => c.primary}
+            size={38}
+            labelLines={1}
+            labelSize={11}
+            active={isOpen('home')}
+            onPress={() => openTab('home')}
+            onLongPress={() => openTab('home', 'root', 'dock')}
+          />
+        </View>
+        {dockApps.map(app => (
+          <View key={app.id} style={styles.navBtn}>
+            <AppIcon
+              testID={`dock-${app.id}`}
+              label={app.label}
+              icon={app.icon}
+              tint={app.tint}
+              size={38}
+              labelLines={1}
+              labelSize={11}
+              active={isOpen(app.id)}
+              onPress={() => openApp(app.id)}
+              onLongPress={() => openTab('home', 'root', 'dock')}
+            />
+          </View>
+        ))}
+      </LiquidGlass>
     </SafeAreaView>
   );
 }
@@ -467,8 +541,12 @@ const useStyles = makeStyles(colors => ({
     gap: 2,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
-    padding: spacing.xs,
-    borderRadius: 32,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: 28,
+  },
+  /** Vidro do app (sem o Liquid Glass do iOS 26): fundo translúcido, borda e sombra. */
+  navBarGlass: {
     backgroundColor: colors.glassFillStrong,
     ...glassBorder(colors),
     // Sombra do dock (iOS/web); no Android a elevação marcaria o vidro translúcido
@@ -479,20 +557,8 @@ const useStyles = makeStyles(colors => ({
   },
   navBtn: {
     flex: 1,
-    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    borderRadius: radius.pill,
-  },
-  navLabel: {
-    // 11 px para "Clientes" e "Locker" caberem num celular de 360 dp
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  navLabelActive: {
-    color: colors.primaryText,
-    fontWeight: '600',
+    paddingVertical: spacing.xs,
   },
 }));

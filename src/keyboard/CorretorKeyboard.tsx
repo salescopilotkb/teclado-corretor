@@ -144,6 +144,11 @@ function CorretorKeyboardContent({ data, loggedIn, onThemeChange, onDataChanged 
       offShow();
     };
   }, [loggedIn, onDataChanged]);
+  // Avisa o app que o teclado está ativo (no iPhone, o app só sabe por aqui)
+  useEffect(() => {
+    Repo.markKeyboardSeen();
+    return KeyboardBridge.onKeyboardShow(() => Repo.markKeyboardSeen());
+  }, []);
   useLanguage();
   const styles = useStyles();
   const plan = usePlan();

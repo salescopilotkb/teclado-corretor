@@ -6,7 +6,7 @@
  * simulada) e o teclado escreve nele. Mesma API do KeyboardBridge.ts.
  */
 import type { LocalMedia } from '../services/mediaUpload';
-import { captureWithCamera, pickAudioFile, pickFromGallery, pickPhotoOrVideo } from './MediaPicker';
+import { captureWithCamera, pickAudioFile, pickDocument, pickFromGallery, pickPhotoOrVideo } from './MediaPicker';
 import { IOS_SIMULATION } from './platformSim';
 import { t } from '../i18n';
 
@@ -26,7 +26,7 @@ export interface KeyboardHeights {
   max: number;
 }
 
-export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
+export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio' | 'document';
 
 export type MicPermission = 'granted' | 'denied' | 'blocked';
 
@@ -215,7 +215,9 @@ export const KeyboardBridge = {
           ? pickFromGallery('image')
           : source === 'audio'
             ? pickAudioFile()
-            : captureWithCamera(source === 'camera-video' ? 'video' : 'image');
+            : source === 'document'
+              ? pickDocument()
+              : captureWithCamera(source === 'camera-video' ? 'video' : 'image');
     return pick.finally(() => {
       picking = false;
       pickingUntil = Date.now() + 3000;

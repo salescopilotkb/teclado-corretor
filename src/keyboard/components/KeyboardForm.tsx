@@ -14,6 +14,7 @@ import { TypingKeyboard } from './TypingKeyboard';
 import type { TextSink } from './TypingKeyboard';
 
 import { NO_AUTO_CAPS } from '../typing/typingContext';
+import { phoneInputDigits } from '../../crm/crm';
 
 /** Tipos de campo do Android: o teclado usa para maiúscula automática e sugestões. */
 const INPUT_TYPE = {
@@ -79,12 +80,18 @@ export function useKeyboardForm(fields: FormFieldSpec[], initial: Record<string,
   const update = useCallback(
     (fn: (before: string) => string) => {
       const key = activeRef.current;
-      const money = fieldsRef.current.find(f => f.key === key)?.kind === 'money';
+      const kind = fieldsRef.current.find(f => f.key === key)?.kind;
+      const money = kind === 'money';
       const value = valuesRef.current[key] ?? '';
       const at = caretOf(key);
       const atEnd = caretsRef.current[key] === undefined || at >= value.length;
-      const before = fn(value.slice(0, at));
-      const after = value.slice(at);
+      let before = fn(value.slice(0, at));
+      let after = value.slice(at);
+      // Telefone: só números (e o "+" do DDI no começo); o resto nem entra no campo
+      if (kind === 'phone') {
+        before = phoneInputDigits(before);
+        after = phoneInputDigits(after, false).slice(0, Math.max(0, 15 - before.replace('+', '').length));
+      }
       // Preço: o valor é montado como em maquininha, o cursor fica sempre no fim
       const nextValue = money ? onlyDigits(before + after) : before + after;
       const next = { ...valuesRef.current, [key]: nextValue };

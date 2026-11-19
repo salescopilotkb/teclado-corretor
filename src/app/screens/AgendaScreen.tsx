@@ -5,7 +5,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { TIME_SLOTS, addDays, busyDays, confirmationMessage, formatDayLong, itemsOn, newAgendaId, todayISO } from '../../agenda/agenda';
-import { whatsappLink } from '../../crm/crm';
+import { phoneInputDigits, whatsappLink } from '../../crm/crm';
 import { Repo } from '../../storage/storage';
 import type { AgendaKind, CRMLead, ScheduleItem } from '../../types';
 import { Icon } from '../../keyboard/components/Icon';
@@ -52,7 +52,10 @@ export function AgendaScreen({ presetClientId }: Props) {
     );
   }
 
-  const dayItems = itemsOn(agenda, selected);
+  // Reuniões primeiro, depois as tarefas; em cada grupo, pela hora (dia todo antes)
+  const dayItems = itemsOn(agenda, selected).sort(
+    (x, y) => (x.kind === y.kind ? 0 : x.kind === 'meeting' ? -1 : 1) || (x.time ?? '').localeCompare(y.time ?? ''),
+  );
   return (
     <Page>
       <ScreenTitle title={t('Agenda')} subtitle={t('Reuniões e tarefas, também no teclado.')} />
@@ -210,7 +213,8 @@ function AgendaForm({
         <TextInput
           style={styles.input}
           value={clientPhone}
-          onChangeText={setClientPhone}
+          // Só números (e o "+" do DDI no começo): letras e símbolos não entram
+          onChangeText={v => setClientPhone(phoneInputDigits(v))}
           placeholder={t('WhatsApp do cliente (opcional)')}
           placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"

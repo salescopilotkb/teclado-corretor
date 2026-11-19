@@ -89,8 +89,16 @@ Confira em Supabase → **Edge Functions**: as quatro aparecem.
 1. **Authentication** → **URL Configuration** → **Redirect URLs** → **Add URL**:
    `https://locker.keyconapp.com/**`
 2. **Authentication** → **SMTP Settings** → ligue o SMTP próprio (sem ele o Supabase não deixa
-   mudar os e-mails e só manda para a equipe do projeto). Sem custo: uma conta de e-mail do
-   HostGator, por exemplo `nao-responda@keyconapp.com`, host `mail.keyconapp.com`, porta `465`.
+   mudar os e-mails e só manda para a equipe do projeto). Os e-mails do `keyconapp.com` ficam na
+   **Titan** (e-mail gratuito da hospedagem HostGator; o DNS aponta MX e SPF para a Titan), e
+   **não** no "Contas de e-mail" do cPanel:
+   - Host `smtp.titan.email`, porta `465`
+   - Usuário e remetente: `no-reply@keyconapp.com`; senha: a da caixa **na Titan**
+     (Portal do Cliente HostGator → E-mail gratuito da hospedagem → Gerenciar E-mails)
+   - Não use `mail.keyconapp.com` (servidor do cPanel): dá `535 Incorrect authentication data`
+     ou o Gmail recusa o e-mail, porque o SPF do domínio só autoriza a Titan.
+   - Para conferir um envio: **Authentication** → **Logs**, registro `/recover` (senha) ou
+     `/signup` (cadastro). `status 200` = enviado.
 3. **Authentication** → **Email Templates**: os e-mails são sempre em **inglês** (o público do app
    é americano) e com a identidade da KEYCON. Em cada modelo abaixo, troque o assunto e cole
    **todo** o conteúdo do arquivo no corpo (aba *Source*) → **Save**:
