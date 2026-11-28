@@ -26,15 +26,16 @@ import { getSegment } from '../segments/segments';
 import { Repo } from '../storage/storage';
 import type { SellerProfile, ThemePreference } from '../types';
 import { KeyconLogo } from '../keyboard/components/KeyconLogo';
-import { glassBorder, makeStyles, onCoralText, radius, spacing, ThemeProvider, useColors } from '../keyboard/theme';
+import { makeStyles, onCoralText, radius, spacing, ThemeProvider, useColors } from '../keyboard/theme';
 import { Aurora } from '../keyboard/components/Glass';
+import { GlassScene } from './glass/GlassScene';
+import { LiquidTabBar } from './components/LiquidTabBar';
 import { t } from '../i18n';
 import { applyProfileLanguages } from '../i18n/profile';
 import { useLanguage } from '../i18n/useLanguage';
 import { AuthScreen } from './screens/AuthScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import type { AppTarget, HomeSection } from './screens/HomeScreen';
-import { AppIcon } from './components/AppIcon';
 import { getDock, homeApp } from './homeApps';
 import type { HomeAppId } from './homeApps';
 import { ProductsManagerScreen } from './screens/ProductsManagerScreen';
@@ -360,9 +361,12 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
     );
   }
 
+  // Cena do liquid glass: a aurora atrás de tudo; os ícones do Início e a barra de
+  // baixo refratam o pedaço dela que fica atrás de cada um (Skia no celular,
+  // <liquid-glass> na web)
   return (
-    <SafeAreaView key={language} style={styles.root}>
-      <Aurora />
+    <GlassScene key={language} style={styles.root}>
+    <SafeAreaView style={styles.fill}>
       <StatusBar barStyle={barStyle} backgroundColor={colors.canvas} />
 
       {/* Cabeçalho: logotipo KEYCON + atalho para a conta */}
@@ -453,41 +457,34 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
       {/* Primeiro acesso no plano grátis: oferta do teste de 7 dias do Plus (uma vez por conta) */}
       <TrialOffer enabled={!showPlans} />
 
-      {/* Barra de baixo (dock) em vidro leve: o Início + os ícones escolhidos pela pessoa.
-          Segurar um ícone abre "Personalizar a barra". */}
-      <View style={[styles.navBar, styles.navBarGlass]}>
-        <View style={styles.navBtn}>
-          <AppIcon
-            testID="dock-home"
-            label={t('Início')}
-            icon="casa"
-            tint={c => c.primary}
-            size={38}
-            labelLines={1}
-            labelSize={11}
-            active={isOpen('home')}
-            onPress={() => openTab('home')}
-            onLongPress={() => openTab('home', 'root', 'dock')}
-          />
-        </View>
-        {dockApps.map(app => (
-          <View key={app.id} style={styles.navBtn}>
-            <AppIcon
-              testID={`dock-${app.id}`}
-              label={app.label}
-              icon={app.icon}
-              tint={app.tint}
-              size={38}
-              labelLines={1}
-              labelSize={11}
-              active={isOpen(app.id)}
-              onPress={() => openApp(app.id)}
-              onLongPress={() => openTab('home', 'root', 'dock')}
-            />
-          </View>
-        ))}
-      </View>
+      {/* Barra de baixo em liquid glass: o Início + os ícones escolhidos pela pessoa, lado a
+          lado; a bolha de vidro escorre até o item tocado. Segurar um ícone abre "Personalizar a barra". */}
+      <LiquidTabBar
+        items={[
+          {
+            key: 'home',
+            testID: 'dock-home',
+            label: t('Início'),
+            icon: 'casa',
+            tint: c => c.primary,
+            active: isOpen('home'),
+            onPress: () => openTab('home'),
+            onLongPress: () => openTab('home', 'root', 'dock'),
+          },
+          ...dockApps.map(app => ({
+            key: app.id,
+            testID: `dock-${app.id}`,
+            label: app.label,
+            icon: app.icon,
+            tint: app.tint,
+            active: isOpen(app.id),
+            onPress: () => openApp(app.id),
+            onLongPress: () => openTab('home', 'root', 'dock'),
+          })),
+        ]}
+      />
     </SafeAreaView>
+    </GlassScene>
   );
 }
 
@@ -533,30 +530,5 @@ const useStyles = makeStyles(colors => ({
   fill: { flex: 1 },
   screenBody: {
     flex: 1,
-  },
-  navBar: {
-    flexDirection: 'row',
-    gap: 2,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.sm,
-    borderRadius: 28,
-  },
-  /** Vidro do app: fundo translúcido, borda e sombra. */
-  navBarGlass: {
-    backgroundColor: colors.glassFillStrong,
-    ...glassBorder(colors),
-    // Sombra do dock (iOS/web); no Android a elevação marcaria o vidro translúcido
-    shadowColor: '#000',
-    shadowOpacity: colors.scheme === 'dark' ? 0.4 : 0.12,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  navBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
   },
 }));

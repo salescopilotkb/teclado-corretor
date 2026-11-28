@@ -48,11 +48,13 @@ export function DockEditorScreen({ dock, hidden, onChange, onBack }: Props) {
       <Card>
         <CardTitle>{t('Sua barra')}</CardTitle>
         <View style={styles.preview}>
-          <AppIcon label={t('Início')} icon="casa" tint={c => c.primary} size={40} labelLines={1} labelSize={11} onPress={() => {}} />
+          <AppIcon
+                      plain label={t('Início')} icon="casa" tint={c => c.primary} size={40} labelLines={1} labelSize={11} onPress={() => {}} />
           {selected.map(id => {
             const app = homeApp(id);
             return (
               <AppIcon
+                      plain
                 key={id}
                 label={app.label}
                 icon={app.icon}
@@ -83,6 +85,7 @@ export function DockEditorScreen({ dock, hidden, onChange, onBack }: Props) {
                 return (
                   <View key={app.id} style={styles.gridCell}>
                     <AppIcon
+                      plain
                       testID={`dock-choice-${app.id}`}
                       label={app.label}
                       icon={app.icon}
