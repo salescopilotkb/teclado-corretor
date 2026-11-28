@@ -64,10 +64,10 @@ insert into public.plan_limits (
   folder_links, offline_web, locker, agenda, crm, trash_days, priority_support
 ) values
   -- Sem assinatura: 1 pasta com 3 arquivos, 1 pasta com 3 produtos, 1 atalho de cada formato
-  ('free',       'Free',        209715200,    16777216,   67108864, 10485760,  3,    1,    3,    1,    1,    0,    0,    0,    false, false, false, false, false, 30, false),
-  ('basic',      'Basic',       5368709120,   16777216,   67108864, 10485760,  null, null, null, null, null, 3,    0,    0,    false, false, true,  true,  true,  30, false),
-  ('plus',       'Plus',        21474836480,  33554432,  268435456, 52428800,  null, null, null, null, null, null, 1,    5,    true,  true,  true,  true,  true,  60, false),
-  ('pro',        'Pro',         107374182400, 67108864, 1073741824, 209715200, null, null, null, null, null, null, 5,    50,   true,  true,  true,  true,  true,  90, true),
+  ('free',       'Free',        5368709120,   16777216,   67108864, 10485760,  3,    1,    3,    1,    1,    0,    0,    0,    false, false, false, false, false, 30, false),
+  ('basic',      'Basic',       107374182400, 16777216,   67108864, 10485760,  null, null, null, null, null, 3,    0,    0,    false, false, true,  true,  true,  30, false),
+  ('plus',       'Plus',        536870912000, 33554432,  268435456, 52428800,  null, null, null, null, null, null, 1,    5,    true,  true,  true,  true,  true,  60, false),
+  ('pro',        'Pro',         1099511627776, 67108864, 1073741824, 209715200, null, null, null, null, null, null, 5,    50,   true,  true,  true,  true,  true,  90, true),
   -- Enterprise: espaço combinado (locker_plans.limit_bytes); equipes sem limite (futuro)
   ('enterprise', 'Enterprise',  null,         67108864, 1073741824, 209715200, null, null, null, null, null, null, null, null, true,  true,  true,  true,  true,  90, true)
 on conflict (plan) do update set

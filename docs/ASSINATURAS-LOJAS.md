@@ -26,7 +26,7 @@ Play Console → app KEYCON → **Monetizar com o Google Play** → **Produtos**
 
 1. **ID do produto:** o código da tabela (ex.: `keycon_basic_monthly`). Não muda depois.
 2. **Nome:** `KEYCON Basic` (Plus, Pro). → **Criar**.
-3. **Detalhes da assinatura:** nome e benefícios em inglês, português e espanhol (ex.: "5 GB
+3. **Detalhes da assinatura:** nome e benefícios em inglês, português e espanhol (ex.: "100 GB
    in the Locker", "Calendar and clients").
 4. **Adicionar plano básico:**
    - ID do plano básico: `monthly`;
@@ -49,27 +49,27 @@ Benefícios: até 4, com no máximo 40 caracteres cada.
 | Campo | Basic | Plus | Pro |
 | --- | --- | --- | --- |
 | Nome | KEYCON Basic | KEYCON Plus | KEYCON Pro |
-| Benefício 1 | 5 GB Locker storage | 20 GB Locker storage | 100 GB Locker storage |
+| Benefício 1 | 100 GB Locker storage | 500 GB Locker storage | 1 TB Locker storage |
 | Benefício 2 | Unlimited products and shortcuts | Team of up to 5 people | 5 teams, up to 50 people |
 | Benefício 3 | Calendar and clients (CRM) | Shareable folder links | Priority support |
 | Benefício 4 | Share folders with up to 3 people | Everything in Basic | Everything in Plus |
-| Descrição (interna) | Monthly KEYCON Basic plan: 5 GB in the Locker, unlimited products and shortcuts, calendar and clients (CRM). | Monthly KEYCON Plus plan: 20 GB in the Locker, a team of up to 5 people, shareable folder links. 7-day free trial for new subscribers. | Monthly KEYCON Pro plan: 100 GB in the Locker, 5 teams with up to 50 people, priority support. |
+| Descrição (interna) | Monthly KEYCON Basic plan: 100 GB in the Locker, unlimited products and shortcuts, calendar and clients (CRM). | Monthly KEYCON Plus plan: 500 GB in the Locker, a team of up to 5 people, shareable folder links. 7-day free trial for new subscribers. | Monthly KEYCON Pro plan: 1 TB in the Locker, 5 teams with up to 50 people, priority support. |
 
 Traduções dos benefícios:
 
 | Plano | Espanhol (es-US) | Português (pt-BR) |
 | --- | --- | --- |
-| Basic | 5 GB de almacenamiento en el Locker · Productos y atajos ilimitados · Calendario y clientes (CRM) · Compartir carpetas con hasta 3 personas | 5 GB de armazenamento no Locker · Produtos e atalhos ilimitados · Agenda e clientes (CRM) · Compartilhe pastas com até 3 pessoas |
-| Plus | 20 GB de almacenamiento en el Locker · Equipo de hasta 5 personas · Enlaces de carpetas para compartir · Todo lo de Basic | 20 GB de armazenamento no Locker · Equipe de até 5 pessoas · Links de pastas para compartilhar · Tudo do Basic |
-| Pro | 100 GB de almacenamiento en el Locker · 5 equipos, hasta 50 personas · Soporte prioritario · Todo lo de Plus | 100 GB de armazenamento no Locker · 5 equipes, até 50 pessoas · Suporte prioritário · Tudo do Plus |
+| Basic | 100 GB de almacenamiento en el Locker · Productos y atajos ilimitados · Calendario y clientes (CRM) · Compartir carpetas con hasta 3 personas | 100 GB de armazenamento no Locker · Produtos e atalhos ilimitados · Agenda e clientes (CRM) · Compartilhe pastas com até 3 pessoas |
+| Plus | 500 GB de almacenamiento en el Locker · Equipo de hasta 5 personas · Enlaces de carpetas para compartir · Todo lo de Basic | 500 GB de armazenamento no Locker · Equipe de até 5 pessoas · Links de pastas para compartilhar · Tudo do Basic |
+| Pro | 1 TB de almacenamiento en el Locker · 5 equipos, hasta 50 personas · Soporte prioritario · Todo lo de Plus | 1 TB de armazenamento no Locker · 5 equipes, até 50 pessoas · Suporte prioritário · Tudo do Plus |
 
 Traduções da descrição:
 
 | Plano | Espanhol (es-US) | Português (pt-BR) |
 | --- | --- | --- |
-| Basic | Plan mensual KEYCON Basic: 5 GB en el Locker, productos y atajos ilimitados, agenda y clientes (CRM). | Plano mensal KEYCON Basic: 5 GB no Locker, produtos e atalhos ilimitados, agenda e clientes (CRM). |
-| Plus | Plan mensual KEYCON Plus: 20 GB en el Locker, un equipo de hasta 5 personas, enlaces de carpetas para compartir. Prueba gratis de 7 días para nuevos suscriptores. | Plano mensal KEYCON Plus: 20 GB no Locker, uma equipe de até 5 pessoas, links de pastas para compartilhar. Teste grátis de 7 dias para novos assinantes. |
-| Pro | Plan mensual KEYCON Pro: 100 GB en el Locker, 5 equipos con hasta 50 personas, soporte prioritario. | Plano mensal KEYCON Pro: 100 GB no Locker, 5 equipes com até 50 pessoas, suporte prioritário. |
+| Basic | Plan mensual KEYCON Basic: 100 GB en el Locker, productos y atajos ilimitados, agenda y clientes (CRM). | Plano mensal KEYCON Basic: 100 GB no Locker, produtos e atalhos ilimitados, agenda e clientes (CRM). |
+| Plus | Plan mensual KEYCON Plus: 500 GB en el Locker, un equipo de hasta 5 personas, enlaces de carpetas para compartir. Prueba gratis de 7 días para nuevos suscriptores. | Plano mensal KEYCON Plus: 500 GB no Locker, uma equipe de até 5 pessoas, links de pastas para compartilhar. Teste grátis de 7 dias para novos assinantes. |
+| Pro | Plan mensual KEYCON Pro: 1 TB en el Locker, 5 equipos con hasta 50 personas, soporte prioritario. | Plano mensal KEYCON Pro: 1 TB no Locker, 5 equipes com até 50 pessoas, suporte prioritário. |
 
 Iguais nos três planos:
 
@@ -91,7 +91,7 @@ App Store Connect → app KEYCON → **Monetização** → **Assinaturas**:
    - **Preço:** US$ 24,99 (49,99 / 99,99), deixando a Apple calcular os outros países;
    - **Localização** (inglês, português, espanhol): nome de exibição e descrição;
    - **Revisão:** uma captura da tela de planos do app e uma nota (ex.: "Monthly plan with
-     5 GB of storage in the KEYCON Locker").
+     100 GB of storage in the KEYCON Locker").
 3. **Níveis** (no grupo, arraste para ordenar): **Pro = nível 1**, **Plus = nível 2**,
    **Basic = nível 3**. Assim, subir de plano vale na hora e descer vale na renovação.
 4. Só no **Plus**: **Preços da assinatura** → **Ofertas introdutórias** → **Criar** → **Grátis**,

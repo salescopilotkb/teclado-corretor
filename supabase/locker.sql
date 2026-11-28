@@ -85,7 +85,7 @@ create index if not exists locker_folders_user_idx on public.locker_folders (use
 create index if not exists locker_files_user_idx on public.locker_files (user_id);
 create index if not exists locker_files_folder_idx on public.locker_files (folder_id);
 
--- Plano de armazenamento de cada pessoa: basic 5 GB, plus 20 GB, pro 100 GB ou
+-- Plano de armazenamento de cada pessoa: basic 100 GB, plus 500 GB, pro 1 TB ou
 -- enterprise (espaço combinado com o suporte, gravado em limit_bytes).
 -- A pessoa só LÊ o próprio plano: quem muda é o servidor (cobrança da assinatura,
 -- com a chave service_role). Sem linha aqui = sem assinatura (free): os limites de
@@ -93,7 +93,7 @@ create index if not exists locker_files_folder_idx on public.locker_files (folde
 create table if not exists public.locker_plans (
   user_id     uuid primary key references auth.users (id) on delete cascade,
   plan        text not null default 'basic',
-  limit_bytes bigint not null default 5368709120,
+  limit_bytes bigint not null default 107374182400,
   updated_at  timestamptz not null default now()
 );
 
@@ -158,7 +158,7 @@ begin
       as $q$
         select
           coalesce((select sum(f.size_bytes) from public.locker_files f where f.user_id = auth.uid() and f.storage <> 'link'), 0)::bigint,
-          coalesce((select p.limit_bytes from public.locker_plans p where p.user_id = auth.uid()), 5368709120)::bigint,
+          coalesce((select p.limit_bytes from public.locker_plans p where p.user_id = auth.uid()), 107374182400)::bigint,
           coalesce((select p.plan from public.locker_plans p where p.user_id = auth.uid()), 'basic');
       $q$
     $f$;

@@ -187,7 +187,7 @@ async function usageOf(
   const row = Array.isArray(data) ? data[0] : data;
   return {
     used: Number(row?.used_bytes ?? 0),
-    limit: Number(row?.limit_bytes ?? 5368709120),
+    limit: Number(row?.limit_bytes ?? 107374182400),
     plan: String(row?.plan ?? 'basic'),
   };
 }

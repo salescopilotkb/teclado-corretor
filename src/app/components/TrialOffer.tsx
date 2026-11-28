@@ -22,7 +22,7 @@ import { Button } from './ui';
 const seenKey = (userId: string) => `plan.trialOffer.${userId}`;
 
 const BENEFITS = [
-  '20 GB no Locker para fotos e vídeos',
+  '500 GB no Locker para fotos e vídeos',
   'Agenda e Clientes (CRM)',
   'Produtos, atalhos e arquivos sem limite',
   '1 equipe com até 5 pessoas',

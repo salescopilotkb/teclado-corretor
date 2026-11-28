@@ -37,7 +37,7 @@ import { LegalScreen } from './ProfileSettingsScreen';
 /** O que cada plano inclui (o mesmo de supabase/plans.sql). */
 const FEATURES: Record<PaidPlan, { storage: string; items: string[] }> = {
   basic: {
-    storage: '5 GB',
+    storage: '100 GB',
     items: [
       'Teclado completo, Agenda e Clientes (CRM)',
       'Produtos, atalhos e arquivos sem limite',
@@ -48,7 +48,7 @@ const FEATURES: Record<PaidPlan, { storage: string; items: string[] }> = {
     ],
   },
   plus: {
-    storage: '20 GB',
+    storage: '500 GB',
     items: [
       'Tudo do Basic',
       'Compartilhe com quantas pessoas quiser',
@@ -60,7 +60,7 @@ const FEATURES: Record<PaidPlan, { storage: string; items: string[] }> = {
     ],
   },
   pro: {
-    storage: '100 GB',
+    storage: '1 TB',
     items: ['Tudo do Plus', '5 equipes com até 50 pessoas', 'Vídeos de até 1 GB', 'Lixeira guarda por 90 dias', 'Suporte prioritário'],
   },
 };

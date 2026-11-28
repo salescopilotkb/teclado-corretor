@@ -1,6 +1,6 @@
 /**
- * Medidor de espaço do Locker: quanto a pessoa já usou do plano (Basic 5 GB,
- * Plus 20 GB, Pro 100 GB ou Enterprise personalizado). Relê quando os arquivos
+ * Medidor de espaço do Locker: quanto a pessoa já usou do plano (Basic 100 GB,
+ * Plus 500 GB, Pro 1 TB ou Enterprise personalizado). Relê quando os arquivos
  * mudam (envio, exclusão, outro aparelho, Locker web).
  */
 import React, { useEffect, useState } from 'react';
@@ -55,7 +55,7 @@ export function LockerUsageCard({ refreshKey }: { refreshKey?: unknown }) {
         <Text style={styles.note}>{t('Espaço personalizado do seu plano. Para mudar, fale com o suporte.')}</Text>
       ) : almostFull ? (
         <Text style={[styles.note, styles.noteFull]}>
-          {t('Seu Locker está quase cheio. Libere espaço ou mude de plano: Basic 5 GB, Plus 20 GB, Pro 100 GB ou Enterprise.')}
+          {t('Seu Locker está quase cheio. Libere espaço ou mude de plano: Basic 100 GB, Plus 500 GB, Pro 1 TB ou Enterprise.')}
         </Text>
       ) : null}
     </Card>

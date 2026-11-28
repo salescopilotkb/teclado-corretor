@@ -52,10 +52,10 @@ export type LockerPlanId = 'free' | 'basic' | 'plus' | 'pro' | 'enterprise';
  * servidor (supabase/plans.sql, tabela plan_limits).
  */
 export const LOCKER_PLANS: Record<LockerPlanId, { name: string; bytes: number | null }> = {
-  free: { name: 'Free', bytes: 200 * MB },
-  basic: { name: 'Basic', bytes: 5 * GB },
-  plus: { name: 'Plus', bytes: 20 * GB },
-  pro: { name: 'Pro', bytes: 100 * GB },
+  free: { name: 'Free', bytes: 5 * GB },
+  basic: { name: 'Basic', bytes: 100 * GB },
+  plus: { name: 'Plus', bytes: 500 * GB },
+  pro: { name: 'Pro', bytes: 1024 * GB },
   enterprise: { name: 'Enterprise', bytes: null },
 };
 
