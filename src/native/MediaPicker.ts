@@ -8,7 +8,7 @@
  */
 import { t } from '../i18n';
 import { Platform } from 'react-native';
-import DocumentPicker from 'react-native-document-picker';
+import { errorCodes, isErrorWithCode, keepLocalCopy, pick, types } from '@react-native-documents/picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import type { Asset, ImagePickerResponse } from 'react-native-image-picker';
 import type { LocalMedia } from '../services/mediaUpload';
@@ -78,61 +78,75 @@ export async function captureWithCamera(kind: MediaKind): Promise<LocalMedia | n
   return handle(response, kind);
 }
 
-/** Arquivo de áudio do celular (mp3, m4a, ogg, wav...). null = cancelou. */
-export async function pickAudioFile(): Promise<LocalMedia | null> {
+/** Arquivo escolhido e copiado para o cache do app. */
+interface PickedFile {
+  uri: string;
+  name: string | null;
+  type: string | null;
+  size: number | null;
+}
+
+/**
+ * Abre o seletor de arquivos do sistema e guarda uma cópia no cache do app: o link
+ * content:// de outro app pode expirar antes do envio. null = a pessoa cancelou.
+ */
+async function pickOne(type: string[], fallbackName: string): Promise<PickedFile | null> {
   try {
-    // Cópia no cache do app: o link content:// de outro app pode expirar antes do envio
-    const file = await DocumentPicker.pickSingle({ type: [DocumentPicker.types.audio], copyTo: 'cachesDirectory' });
-    if (file.copyError) throw new PickError(t('Não foi possível ler o arquivo escolhido.'));
-    if (file.size && file.size > MAX_PICK_BYTES) throw new PickError(t('O áudio passa de 64 MB.'));
-    return {
-      uri: file.fileCopyUri ?? file.uri,
-      name: file.name ?? `audio-${Date.now()}`,
-      mimeType: file.type ?? 'audio/mpeg',
-      size: file.size ?? undefined,
-    };
+    const [file] = await pick({ type, mode: 'import' });
+    if (!file || file.error) throw new PickError(t('Não foi possível ler o arquivo escolhido.'));
+    const name = file.name ?? fallbackName;
+    const [copy] = await keepLocalCopy({ files: [{ uri: file.uri, fileName: name }], destination: 'cachesDirectory' });
+    if (copy.status !== 'success') throw new PickError(t('Não foi possível ler o arquivo escolhido.'));
+    return { uri: copy.localUri, name: file.name, type: file.type, size: file.size };
   } catch (e) {
-    if (DocumentPicker.isCancel(e)) return null;
+    if (isErrorWithCode(e) && e.code === errorCodes.OPERATION_CANCELED) return null;
     if (e instanceof PickError) throw e;
     throw new PickError(t('Não foi possível abrir os arquivos do celular.'));
   }
 }
 
+/** Arquivo de áudio do celular (mp3, m4a, ogg, wav...). null = cancelou. */
+export async function pickAudioFile(): Promise<LocalMedia | null> {
+  const file = await pickOne([types.audio], `audio-${Date.now()}`);
+  if (!file) return null;
+  if (file.size && file.size > MAX_PICK_BYTES) throw new PickError(t('O áudio passa de 64 MB.'));
+  return {
+    uri: file.uri,
+    name: file.name ?? `audio-${Date.now()}`,
+    mimeType: file.type ?? 'audio/mpeg',
+    size: file.size ?? undefined,
+  };
+}
+
 /** Documentos do celular: PDF, Word, Excel, PowerPoint, TXT, CSV e outros. null = cancelou. */
 export async function pickDocument(): Promise<LocalMedia | null> {
-  try {
-    const file = await DocumentPicker.pickSingle({
-      type: [
-        DocumentPicker.types.pdf,
-        DocumentPicker.types.doc,
-        DocumentPicker.types.docx,
-        DocumentPicker.types.xls,
-        DocumentPicker.types.xlsx,
-        DocumentPicker.types.ppt,
-        DocumentPicker.types.pptx,
-        DocumentPicker.types.plainText,
-        DocumentPicker.types.csv,
-        // Qualquer outro documento (ODT, RTF, Pages, Numbers, ZIP...)
-        ...(Platform.OS === 'ios' ? ['public.content', 'public.data'] : ['application/*', 'text/*']),
-      ],
-      copyTo: 'cachesDirectory',
-    });
-    if (file.copyError) throw new PickError(t('Não foi possível ler o arquivo escolhido.'));
-    const mimeType = file.type || mimeFromName(file.name) || 'application/octet-stream';
-    const media: LocalMedia = {
-      uri: file.fileCopyUri ?? file.uri,
-      name: file.name ?? `documento-${Date.now()}`,
-      mimeType,
-      size: file.size ?? undefined,
-    };
-    const tooBig = media.size ? lockerSizeError(mimeType, media.size, getPlan().limits) : null;
-    if (tooBig) throw new PickError(tooBig);
-    return media;
-  } catch (e) {
-    if (DocumentPicker.isCancel(e)) return null;
-    if (e instanceof PickError) throw e;
-    throw new PickError(t('Não foi possível abrir os arquivos do celular.'));
-  }
+  const file = await pickOne(
+    [
+      types.pdf,
+      types.doc,
+      types.docx,
+      types.xls,
+      types.xlsx,
+      types.ppt,
+      types.pptx,
+      types.plainText,
+      ...types.csv,
+      // Qualquer outro documento (ODT, RTF, Pages, Numbers, ZIP...)
+      ...(Platform.OS === 'ios' ? ['public.content', 'public.data'] : ['application/*', 'text/*']),
+    ],
+    `documento-${Date.now()}`,
+  );
+  if (!file) return null;
+  const mimeType = file.type || mimeFromName(file.name) || 'application/octet-stream';
+  const media: LocalMedia = {
+    uri: file.uri,
+    name: file.name ?? `documento-${Date.now()}`,
+    mimeType,
+    size: file.size ?? undefined,
+  };
+  const tooBig = media.size ? lockerSizeError(mimeType, media.size, getPlan().limits) : null;
+  if (tooBig) throw new PickError(tooBig);
+  return media;
 }
 
 /** Tipo pela extensão, quando o sistema não informa (comum em .docx e .txt). */
