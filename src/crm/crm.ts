@@ -1,7 +1,7 @@
 /**
  * Regras do CRM usadas pelo app e pelo teclado.
  */
-import { t } from '../i18n';
+import { getLanguage, t } from '../i18n';
 import { currentMarketInfo, DIALING } from '../i18n/markets';
 import type { SegmentProfile } from '../segments/segments';
 import type { CRMLead } from '../types';
@@ -16,6 +16,39 @@ export function initials(name?: string): string {
   const parts = (name || '').trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return '?';
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+/**
+ * Campo de telefone/WhatsApp: só números. O "+" fica só no começo (DDI de outro
+ * país, como +1 ou +55); letras, espaços, traços e parênteses saem. Até 15
+ * dígitos, o máximo de um número internacional.
+ */
+export function phoneInputDigits(value: string, allowPlus = true): string {
+  const plus = allowPlus && value.trimStart().startsWith('+');
+  return (plus ? '+' : '') + value.replace(/\D/g, '').slice(0, 15);
+}
+
+/** Hora do contato no jeito do idioma: "14:32" (pt, es) ou "2:32 PM" (en). */
+function contactTime(d: Date): string {
+  const h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, '0');
+  if (getLanguage() === 'en') return `${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
+  return `${String(h).padStart(2, '0')}:${m}`;
+}
+
+/**
+ * Último contato com a hora, para a ficha do cliente: "Hoje às 14:32",
+ * "Ontem às 09:10", "Há 5 dias". Com a hora, quem toca em "Registrar contato"
+ * vê a mudança mesmo quando o último contato já era de hoje.
+ */
+export function lastContactDetail(lead: CRMLead): string {
+  if (!lead.lastContactAt) return lastContactLabel(lead);
+  const at = new Date(lead.lastContactAt);
+  const day = toISODate(at);
+  if (day === todayISO()) return t('Hoje às {time}', { time: contactTime(at) });
+  const diff = Math.round((parseISODate(todayISO()).getTime() - parseISODate(day).getTime()) / 86_400_000);
+  if (diff === 1) return t('Ontem às {time}', { time: contactTime(at) });
+  return lastContactLabel(lead);
 }
 
 /** "Hoje", "Ontem", "Há 5 dias", "Sem contato". */

@@ -84,6 +84,10 @@ const NAV: Array<{ section: Section; label: string; icon: IconName; group: numbe
 
 const TRASH_DAYS = 30;
 
+/** Tipos do "Enviar documentos" (PDF, Word, Excel, PowerPoint, TXT e outros documentos). */
+const DOCUMENT_ACCEPT =
+  '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,application/pdf,text/*'
+
 /** Filtros da busca (como os do Drive): tipo e data de modificação. */
 type TypeFilter = Exclude<FileType, 'other'> | 'folder';
 type DateFilter = 'today' | '7d' | '30d' | 'year';
@@ -197,6 +201,8 @@ export function Drive({ session, plan }: { session: Session; plan: PlanInfo }) {
   const [dateFilter, setDateFilter] = useState<DateFilter | null>(null);
   const [filterMenu, setFilterMenu] = useState<{ kind: 'type' | 'date'; x: number; y: number } | null>(null);
   const filesInput = useRef<HTMLInputElement>(null);
+  /** "Enviar documentos": o seletor já abre filtrando PDF, Word, Excel, TXT... */
+  const docsInput = useRef<HTMLInputElement>(null);
   const folderInput = useRef<HTMLInputElement>(null);
   /** "Trocar por nova versão": o campo de escolher e o arquivo que vai ser trocado. */
   const versionInput = useRef<HTMLInputElement>(null);
@@ -700,6 +706,7 @@ export function Drive({ session, plan }: { session: Session; plan: PlanInfo }) {
         { icon: 'folder', label: t('Nova pasta'), onClick: () => setCreating(true) },
         'sep',
         { icon: 'arrowUp', label: t('Enviar arquivos'), onClick: () => pick(filesInput) },
+        { icon: 'document', label: t('Enviar documentos'), onClick: () => pick(docsInput) },
         { icon: 'drive', label: t('Enviar pasta'), onClick: () => pick(folderInput) },
       ];
     }
@@ -876,6 +883,16 @@ export function Drive({ session, plan }: { session: Session; plan: PlanInfo }) {
                   }}>
                   <Icon name="arrowUp" size={18} />
                   {t('Enviar arquivos')}
+                </button>
+                <button
+                  role="menuitem"
+                  className="menu-item"
+                  onClick={() => {
+                    setNewOpen(false);
+                    pick(docsInput);
+                  }}>
+                  <Icon name="document" size={18} />
+                  {t('Enviar documentos')}
                 </button>
                 <button
                   role="menuitem"
@@ -1147,6 +1164,17 @@ export function Drive({ session, plan }: { session: Session; plan: PlanInfo }) {
         type="file"
         multiple
         hidden
+        onChange={e => {
+          upload(pickedFromInput(e.target.files), here);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={docsInput}
+        type="file"
+        multiple
+        hidden
+        accept={DOCUMENT_ACCEPT}
         onChange={e => {
           upload(pickedFromInput(e.target.files), here);
           e.target.value = '';

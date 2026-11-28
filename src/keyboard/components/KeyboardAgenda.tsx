@@ -1,7 +1,7 @@
 import { t } from '../../i18n';
 /**
- * Agenda no teclado expandido: calendário do mês e, embaixo, as tarefas e reuniões
- * (em abas) do mês inteiro. Tocar num dia mostra só as daquele dia; "Mês" volta
+ * Agenda no teclado expandido: calendário do mês e, embaixo, as reuniões e tarefas
+ * (em abas, reuniões primeiro) do mês inteiro. Tocar num dia mostra só as daquele dia; "Mês" volta
  * para o mês todo. Cadastro de reunião ou tarefa. Grava no mesmo lugar que a
  * Agenda do app.
  */
@@ -140,7 +140,8 @@ function AgendaCalendar({
   const styles = useStyles();
   const safeAgenda = agenda || [];
   const busy = useMemo(() => busyDays(safeAgenda), [safeAgenda]);
-  const [tab, setTab] = useState<AgendaKind>('task');
+  // Reuniões primeiro (aba aberta ao entrar), tarefas em segundo
+  const [tab, setTab] = useState<AgendaKind>('meeting');
   // O mês inteiro ou só o dia tocado, em ordem de dia e horário (dia todo primeiro)
   const monthPrefix = `${view.year}-${String(view.month + 1).padStart(2, '0')}-`;
   const scope = (day ? itemsOn(safeAgenda, day) : safeAgenda.filter(i => i.date.startsWith(monthPrefix))).sort(
@@ -190,9 +191,9 @@ function AgendaCalendar({
                 </Pressable>
               ) : null}
             </View>
-            {/* Abas: tarefas e reuniões (com quantas há no mês ou no dia) */}
+            {/* Abas: reuniões e tarefas (com quantas há no mês ou no dia) */}
             <View style={styles.tabs}>
-              {(['task', 'meeting'] as AgendaKind[]).map(k => {
+              {(['meeting', 'task'] as AgendaKind[]).map(k => {
                 const on = tab === k;
                 return (
                   <Pressable

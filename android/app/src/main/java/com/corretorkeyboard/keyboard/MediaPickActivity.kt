@@ -64,6 +64,7 @@ class MediaPickActivity : Activity() {
                 SOURCE_CAMERA_PHOTO, SOURCE_CAMERA_VIDEO -> openCamera(source == SOURCE_CAMERA_VIDEO)
                 SOURCE_GALLERY_PHOTO -> openGallery(photosOnly = true)
                 SOURCE_AUDIO -> openAudioFiles()
+                SOURCE_DOCUMENT -> openDocuments()
                 SOURCE_MIC_PERMISSION -> requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC)
                 else -> openGallery(photosOnly = false)
             }
@@ -105,6 +106,18 @@ class MediaPickActivity : Activity() {
             .setType("audio/*")
             .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/*", "application/ogg"))
         startActivityForResult(intent, REQUEST_AUDIO)
+    }
+
+    /**
+     * Documentos (PDF, Word, Excel, PowerPoint, TXT, CSV...) pelo seletor de arquivos
+     * do sistema. "application" e "text" cobrem qualquer formato de documento.
+     */
+    private fun openDocuments() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("*/*")
+            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/*", "text/*"))
+        startActivityForResult(intent, REQUEST_DOCUMENT)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -152,7 +165,7 @@ class MediaPickActivity : Activity() {
                     requestCode == REQUEST_CAMERA && camera != null && camera.length() > 0 ->
                         Result.Ok(prepareFile(appContext, camera, cameraType ?: "image/jpeg", camera.name))
                     // Alguns apps de câmera ignoram o EXTRA_OUTPUT e devolvem o link
-                    source != null -> Result.Ok(copyFromUri(appContext, source))
+                    source != null -> Result.Ok(copyFromUri(appContext, source, documents = requestCode == REQUEST_DOCUMENT))
                     else -> Result.Cancelled
                 }
             } catch (t: MediaFiles.MediaException) {
@@ -185,12 +198,14 @@ class MediaPickActivity : Activity() {
         const val SOURCE_CAMERA_PHOTO = "camera-photo"
         const val SOURCE_CAMERA_VIDEO = "camera-video"
         const val SOURCE_AUDIO = "audio"
+        const val SOURCE_DOCUMENT = "document"
         const val SOURCE_MIC_PERMISSION = "mic-permission"
 
         private const val REQUEST_GALLERY = 1
         private const val REQUEST_CAMERA = 2
         private const val REQUEST_AUDIO = 3
         private const val REQUEST_MIC = 4
+        private const val REQUEST_DOCUMENT = 5
         private const val STATE_CAMERA_FILE = "cameraFile"
         private const val STATE_CAMERA_MIME = "cameraMime"
         private const val DIR = "picked"
@@ -234,11 +249,12 @@ class MediaPickActivity : Activity() {
             return File(dir, "${System.currentTimeMillis()}-${(1000..9999).random()}.$ext")
         }
 
-        private fun copyFromUri(context: Context, uri: Uri): Picked {
+        /** `documents` = veio do seletor de documentos: aceita qualquer tipo de arquivo. */
+        private fun copyFromUri(context: Context, uri: Uri, documents: Boolean = false): Picked {
             val resolver = context.contentResolver
-            val mime = resolver.getType(uri)?.lowercase() ?: "application/octet-stream"
+            var mime = resolver.getType(uri)?.lowercase() ?: "application/octet-stream"
             val audio = mime.startsWith("audio/") || mime == "application/ogg"
-            if (!mime.startsWith("image/") && !mime.startsWith("video/") && !audio) {
+            if (!documents && !mime.startsWith("image/") && !mime.startsWith("video/") && !audio) {
                 throw MediaFiles.MediaException("Escolha uma foto, um vídeo ou um áudio.")
             }
             var name: String? = null
@@ -251,7 +267,12 @@ class MediaPickActivity : Activity() {
             }
             if (size > MAX_BYTES) throw MediaFiles.MediaException("O arquivo passa de 64 MB. Escolha um menor.")
 
-            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "bin"
+            // Documento sem tipo informado: o tipo vem da extensão do nome (ex.: .docx)
+            val nameExt = name?.substringAfterLast('.', "")?.lowercase()?.takeIf { it.isNotEmpty() && it.length <= 5 }
+            if (mime == "application/octet-stream" && nameExt != null) {
+                MimeTypeMap.getSingleton().getMimeTypeFromExtension(nameExt)?.let { mime = it }
+            }
+            val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: nameExt ?: "bin"
             val target = newPickedFile(context, ext)
             resolver.openInputStream(uri)?.use { input ->
                 target.outputStream().use { out ->
@@ -289,6 +310,8 @@ class MediaPickActivity : Activity() {
                 }
                 return Picked(file, name, mime, mediaDuration(file))
             }
+            // Documentos e outros arquivos: vão como estão
+            if (!mime.startsWith("image/")) return Picked(file, name, mime, null)
             if (mime == "image/gif" || mime == "image/png") return Picked(file, name, mime, null)
             val jpeg = shrinkPhoto(context, file) ?: return Picked(file, name, mime, null)
             if (jpeg != file) file.delete()

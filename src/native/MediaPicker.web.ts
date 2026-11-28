@@ -50,6 +50,9 @@ export const pickFromGallery = (kind: MediaKind) => chooseFile(kind === 'image' 
 export const captureWithCamera = (kind: MediaKind) => chooseFile(kind === 'image' ? 'image/*' : 'video/*', 'environment');
 export const pickAudioFile = () => chooseFile('audio/*');
 export const pickPhotoOrVideo = () => chooseFile('image/*,video/*');
+/** Documentos: PDF, Word, Excel, PowerPoint, TXT, CSV e outros. */
+export const pickDocument = () =>
+  chooseFile('.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,application/*,text/*');
 
 /** No navegador do computador não há câmera de verdade para esse fluxo. */
 export const canUseCamera = false;

@@ -1,36 +1,62 @@
 /**
- * Abrir o app numa aba: o teclado pede ("keycon://locker") e o app vai direto
- * para a aba. Sem login, o pedido fica guardado até a pessoa entrar.
+ * Abrir o app numa aba: o teclado pede (botão da nuvem → aba Locker) e o app vai
+ * direto para a aba. Sem login, o pedido fica guardado até a pessoa entrar.
  *
- * No Android o teclado abre o link keycon://locker (o app recebe pelo Linking).
- * Na página de teste (web), teclado e app rodam juntos: o pedido vai direto.
+ * O pedido fica gravado no armazenamento que o app e o teclado dividem, e o app o
+ * consome ao abrir e ao voltar para a frente. Assim ele chega mesmo quando o app
+ * estava fechado: no Android o teclado roda no mesmo JavaScript do app, e o link
+ * keycon://locker sozinho se perdia quando o app abria do zero (ele subia antes de
+ * conseguir ler o link e ficava no Início). O link continua valendo (abre o app e
+ * serve para quem chamar keycon://locker de fora).
  */
-import { Linking } from 'react-native';
+import { AppState, Linking } from 'react-native';
+import { storage } from '../storage/storage';
 
 export type AppLinkTab = 'files';
 
 const LINKS: Record<string, AppLinkTab> = { locker: 'files' };
+const TABS: readonly AppLinkTab[] = ['files'];
 
 /** O link que abre o app na aba Locker. */
 export const LOCKER_APP_LINK = 'keycon://locker';
 
-let pending: AppLinkTab | null = null;
+const PENDING_KEY = 'app.pendingTab';
+/** Pedido antigo (ex.: o app não abriu) não vale mais: não muda de aba do nada depois. */
+const PENDING_TTL_MS = 2 * 60 * 1000;
+
 const listeners = new Set<(tab: AppLinkTab) => void>();
 
-/** Pede para o app abrir a aba (agora, se o app estiver ouvindo; senão, ao abrir). */
+/** Lê e apaga o pedido guardado (se ainda valer). */
+function takePending(): AppLinkTab | null {
+  const raw = storage.getString(PENDING_KEY);
+  if (!raw) return null;
+  storage.delete(PENDING_KEY);
+  try {
+    const { tab, at } = JSON.parse(raw) as { tab?: AppLinkTab; at?: number };
+    if (tab && TABS.includes(tab) && typeof at === 'number' && Date.now() - at < PENDING_TTL_MS) return tab;
+  } catch {
+    // pedido estragado: ignora
+  }
+  return null;
+}
+
+/** Entrega o pedido guardado a quem está ouvindo (o app, logado e já depois do tutorial). */
+function deliver() {
+  if (!listeners.size) return;
+  const tab = takePending();
+  if (tab) listeners.forEach(fn => fn(tab));
+}
+
+/** Pede para o app abrir a aba (agora, se o app estiver ouvindo; senão, quando abrir). */
 export function requestAppTab(tab: AppLinkTab): void {
-  if (listeners.size) listeners.forEach(fn => fn(tab));
-  else pending = tab;
+  storage.set(PENDING_KEY, JSON.stringify({ tab, at: Date.now() }));
+  deliver();
 }
 
 /** O app ouve os pedidos; recebe na hora o que ficou guardado. */
 export function onAppTab(fn: (tab: AppLinkTab) => void): () => void {
   listeners.add(fn);
-  if (pending) {
-    const tab = pending;
-    pending = null;
-    fn(tab);
-  }
+  deliver();
   return () => {
     listeners.delete(fn);
   };
@@ -42,11 +68,15 @@ function handleUrl(url: string | null) {
   if (tab) requestAppTab(tab);
 }
 
-/** Liga os links keycon://... (ao abrir o app e com ele aberto). */
+/** Liga os links keycon://... e confere o pedido guardado ao abrir e ao voltar para o app. */
 export function startAppLinks(): () => void {
   Linking.getInitialURL()
     .then(handleUrl)
     .catch(() => {});
   const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
-  return () => sub.remove();
+  const appState = AppState.addEventListener('change', state => state === 'active' && deliver());
+  return () => {
+    sub.remove();
+    appState.remove();
+  };
 }

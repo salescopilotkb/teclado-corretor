@@ -63,7 +63,7 @@ export interface KeyboardHeights {
   max: number;
 }
 
-export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio';
+export type KeyboardPickSource = 'gallery' | 'gallery-photo' | 'camera-photo' | 'camera-video' | 'audio' | 'document';
 
 /** Resposta do pedido do microfone (blocked = negou com "não perguntar de novo"). */
 export type MicPermission = 'granted' | 'denied' | 'blocked';

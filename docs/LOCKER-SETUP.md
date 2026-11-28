@@ -200,9 +200,9 @@ delete from public.locker_folders where user_id = '<User UID>';
 
 | Plano | Espaço | `plan` | `limit_bytes` |
 | --- | --- | --- | --- |
-| Basic | 5 GB | `basic` | 5368709120 |
-| Plus | 20 GB | `plus` | 21474836480 |
-| Pro | 100 GB | `pro` | 107374182400 |
+| Basic | 100 GB | `basic` | 107374182400 |
+| Plus | 500 GB | `plus` | 536870912000 |
+| Pro | 1 TB | `pro` | 1099511627776 |
 | Enterprise | combinado com o suporte | `enterprise` | o valor combinado (ex.: 1 TB = 1099511627776) |
 
 Limite de cada arquivo (no app e no servidor): **foto 16 MB, vídeo 64 MB, outros 10 MB**
@@ -214,10 +214,10 @@ permite fica na tabela `plan_limits`:
 
 | Plano | Espaço | Foto / vídeo / outros | Arquivos | Pessoas por e-mail | Equipes / dependentes | Pasta por link | Lixeira |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Free (sem assinatura) | 200 MB | 16 / 64 / 10 MB | 1 pasta, 3 arquivos | — | — | — | 30 dias |
-| Basic | 5 GB | 16 / 64 / 10 MB | sem limite | 3 | — | — | 30 dias |
-| Plus | 20 GB | 32 / 256 / 50 MB | sem limite | sem limite | 1 / 5 | sim | 60 dias |
-| Pro | 100 GB | 64 MB / 1 GB / 200 MB | sem limite | sem limite | 5 / 50 | sim | 90 dias |
+| Free (sem assinatura) | 5 GB | 16 / 64 / 10 MB | 1 pasta, 3 arquivos | — | — | — | 30 dias |
+| Basic | 100 GB | 16 / 64 / 10 MB | sem limite | 3 | — | — | 30 dias |
+| Plus | 500 GB | 32 / 256 / 50 MB | sem limite | sem limite | 1 / 5 | sim | 60 dias |
+| Pro | 1 TB | 64 MB / 1 GB / 200 MB | sem limite | sem limite | 5 / 50 | sim | 90 dias |
 | Enterprise | combinado | 64 MB / 1 GB / 200 MB | sem limite | sem limite | sem limite | sim | 90 dias |
 
 Para ligar: rode `supabase/plans.sql` no SQL Editor (depois do `locker.sql`) e republique:
@@ -236,7 +236,7 @@ supabase functions deploy locker-purge --no-verify-jwt
 
 ```sql
 insert into public.locker_plans (user_id, plan, limit_bytes, store, expires_at)
-values ('<id do usuário>', 'pro', 107374182400, 'manual', null)
+values ('<id do usuário>', 'pro', 1099511627776, 'manual', null)
 on conflict (user_id) do update set plan = excluded.plan, limit_bytes = excluded.limit_bytes,
   store = excluded.store, expires_at = excluded.expires_at, updated_at = now();
 ```

@@ -62,6 +62,9 @@ function friendlyMessage(raw: string): string {
     return t('Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.');
   if (msg.includes('network request failed') || msg.includes('fetch'))
     return t('Sem conexão com a internet. Verifique e tente de novo.');
+  // Falha do servidor de e-mail (SMTP) ao mandar o link de senha ou de confirmação
+  if (msg.includes('sending') && msg.includes('email'))
+    return t('Não conseguimos enviar o e-mail agora. Tente de novo em alguns minutos ou escreva para support@keyconapp.com.');
   return raw;
 }
 
@@ -131,14 +134,15 @@ export async function restoreSession(): Promise<boolean> {
 /**
  * "Esqueci a senha": manda o link do Supabase para o e-mail. O link abre a página do
  * Locker web (locker.keyconapp.com), onde a pessoa cria a senha nova; ela vale no app.
- * Conta inexistente não dá erro: ninguém descobre quais e-mails têm cadastro.
+ * Conta inexistente não dá erro (o Supabase responde "ok" do mesmo jeito): ninguém
+ * descobre quais e-mails têm cadastro. Por isso, QUALQUER erro aqui é real (servidor
+ * de e-mail fora, limite de envios, sem internet) e aparece para a pessoa, em vez de
+ * dizer "confira seu e-mail" sem ter mandado nada.
  */
 export async function requestPasswordReset(email: string): Promise<void> {
   if (DEMO_MODE) return;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${LOCKER_WEB_URL}/?redefinir=1` });
-  if (!error) return;
-  const msg = error.message.toLowerCase();
-  if (error.status === 429 || msg.includes('rate limit') || msg.includes('security purposes') || msg.includes('fetch') || msg.includes('network')) fail(error);
+  if (error) fail(error);
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

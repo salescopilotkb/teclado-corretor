@@ -25,6 +25,7 @@ function friendly(error: { message?: string; status?: number } | null): string {
   if (error?.status === 429 || text.includes('rate limit') || text.includes('security purposes')) return t('Muitas tentativas. Espere um minuto e tente de novo.');
   if (text.includes('same password') || text.includes('different from the old')) return t('A senha nova precisa ser diferente da atual.');
   if (text.includes('password should be') || text.includes('weak')) return t('Senha fraca. Use pelo menos {n} caracteres, misturando letras e números.', { n: MIN_PASSWORD });
+  if (text.includes('sending') && text.includes('email')) return t('Não conseguimos enviar o e-mail agora. Tente de novo em alguns minutos ou escreva para support@keyconapp.com.');
   return t('Não foi possível entrar agora. Tente de novo em instantes.');
 }
 
@@ -61,8 +62,9 @@ export function Login({ initialMode = 'signin', onReset, expired }: { initialMod
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${LOCKER_URL}/?redefinir=1` });
     setBusy(false);
     setLinkGone(false);
-    // Conta inexistente também mostra "enviamos": ninguém descobre quais e-mails têm conta
-    if (err && (err.status === 429 || !navigator.onLine)) return setError(friendly(err));
+    // Conta inexistente não dá erro (o Supabase responde "ok"): ninguém descobre quais
+    // e-mails têm conta. Qualquer erro é real (servidor de e-mail, limite, internet).
+    if (err) return setError(friendly(err));
     setMode('sent');
   };
 

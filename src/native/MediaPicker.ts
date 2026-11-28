@@ -7,6 +7,7 @@
  * acesso a todas as fotos.
  */
 import { t } from '../i18n';
+import { Platform } from 'react-native';
 import DocumentPicker from 'react-native-document-picker';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import type { Asset, ImagePickerResponse } from 'react-native-image-picker';
@@ -96,6 +97,65 @@ export async function pickAudioFile(): Promise<LocalMedia | null> {
     throw new PickError(t('Não foi possível abrir os arquivos do celular.'));
   }
 }
+
+/** Documentos do celular: PDF, Word, Excel, PowerPoint, TXT, CSV e outros. null = cancelou. */
+export async function pickDocument(): Promise<LocalMedia | null> {
+  try {
+    const file = await DocumentPicker.pickSingle({
+      type: [
+        DocumentPicker.types.pdf,
+        DocumentPicker.types.doc,
+        DocumentPicker.types.docx,
+        DocumentPicker.types.xls,
+        DocumentPicker.types.xlsx,
+        DocumentPicker.types.ppt,
+        DocumentPicker.types.pptx,
+        DocumentPicker.types.plainText,
+        DocumentPicker.types.csv,
+        // Qualquer outro documento (ODT, RTF, Pages, Numbers, ZIP...)
+        ...(Platform.OS === 'ios' ? ['public.content', 'public.data'] : ['application/*', 'text/*']),
+      ],
+      copyTo: 'cachesDirectory',
+    });
+    if (file.copyError) throw new PickError(t('Não foi possível ler o arquivo escolhido.'));
+    const mimeType = file.type || mimeFromName(file.name) || 'application/octet-stream';
+    const media: LocalMedia = {
+      uri: file.fileCopyUri ?? file.uri,
+      name: file.name ?? `documento-${Date.now()}`,
+      mimeType,
+      size: file.size ?? undefined,
+    };
+    const tooBig = media.size ? lockerSizeError(mimeType, media.size, getPlan().limits) : null;
+    if (tooBig) throw new PickError(tooBig);
+    return media;
+  } catch (e) {
+    if (DocumentPicker.isCancel(e)) return null;
+    if (e instanceof PickError) throw e;
+    throw new PickError(t('Não foi possível abrir os arquivos do celular.'));
+  }
+}
+
+/** Tipo pela extensão, quando o sistema não informa (comum em .docx e .txt). */
+function mimeFromName(name: string | null): string | undefined {
+  const ext = /\.([a-z0-9]{2,5})$/i.exec(name ?? '')?.[1]?.toLowerCase();
+  return ext ? DOC_TYPES[ext] : undefined;
+}
+
+const DOC_TYPES: Record<string, string> = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  txt: 'text/plain',
+  csv: 'text/csv',
+  rtf: 'application/rtf',
+  odt: 'application/vnd.oasis.opendocument.text',
+  ods: 'application/vnd.oasis.opendocument.spreadsheet',
+  odp: 'application/vnd.oasis.opendocument.presentation',
+};
 
 /** A câmera existe nesta plataforma (na web de testes, não). */
 export const canUseCamera = true;

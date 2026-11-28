@@ -85,7 +85,7 @@ Você vai continuar o desenvolvimento do **KEYCON**, um app de vendas com teclad
 - Pacotes para o HostGator: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_hostgator_zips.ps1` gera `keyconapp-public_html.zip` (landing sem `three.min.js` + `dist/` em `app/`; vai em public_html) e `locker-public_html.zip` (Locker web, `dist-locker/`; vai na pasta do subdomínio locker.keyconapp.com), com "/" nos caminhos. Pastas geradas e zips estão no `.gitignore`. O usuário sobe e extrai. Para ligar o Locker do zero: `docs/LOCKER-DEPLOY.md`.
 
 ## Locker (30/10/2026)
-- A seção Arquivos vai virar o **Locker**: um "Google Drive" do KEYCON em locker.keyconapp.com, com o mesmo login, sincronizado em tempo real com o app e o teclado. Planos de 5, 20 e 100 GB por usuário.
+- A seção Arquivos vai virar o **Locker**: um "Google Drive" do KEYCON em locker.keyconapp.com, com o mesmo login, sincronizado em tempo real com o app e o teclado. Planos de 5 GB (grátis), 100 GB, 500 GB e 1 TB por usuário.
 - Decidido: **Supabase** para login e organização (tabelas `locker_*`) + **Cloudflare R2** para os arquivos (sem custo de download). Já feito: `supabase/locker.sql`, a Edge Function `supabase/functions/locker` e `src/files/locker.ts` (envio para o R2, fila, tempo real). Sem migração: dados de teste, o Locker começa do zero (`supabase/locker-reset.sql` limpa a nuvem). Como ligar: `docs/LOCKER-SETUP.md`.
 - O dono respondeu as 15 perguntas e quer **uma tarefa por resposta, feita uma de cada vez, perguntando antes de seguir**. Feitas: 1 (nome "Locker"), 2 (abrir o Locker web logado pelo app: Edge Function `locker-handoff`) e 3 (sem migração). Faltam: 4, 5, 6, 7, 8 (site com as funções do Drive), 9 a 15.
 

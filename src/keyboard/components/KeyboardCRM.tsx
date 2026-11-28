@@ -15,6 +15,7 @@ import {
   countByStage,
   hasTag,
   initials,
+  lastContactDetail,
   lastContactLabel,
   newLeadId,
   sortLeads,
@@ -334,7 +335,7 @@ function LeadDetail({
                 {link.replace('https://', '')}
               </Text>
             ) : null}
-            <Text style={styles.leadMeta}>{t('Último contato: {lastContactLabellead}', { lastContactLabellead: lastContactLabel(lead).toLowerCase() })}</Text>
+            <Text style={styles.leadMeta}>{t('Último contato: {lastContactLabellead}', { lastContactLabellead: lastContactDetail(lead).toLowerCase() })}</Text>
           </View>
         </View>
 
@@ -353,6 +354,13 @@ function LeadDetail({
           onNew={onEdit}
         />
 
+        {lead.notes ? (
+          <>
+            <Text style={styles.section}>{t('Anotações')}</Text>
+            <Text style={styles.notes}>{lead.notes}</Text>
+          </>
+        ) : null}
+
         <Text style={styles.section}>{t('Ações')}</Text>
         <View style={styles.actions}>
           {link ? <Action testID="lead-talk" icon="compartilhar" label={t('Conversar no WhatsApp')} primary onPress={onTalk} /> : null}
@@ -362,12 +370,11 @@ function LeadDetail({
             primary={!link}
             onPress={() => {
               touch({});
-              onInsert(formatFollowUp(lead.clientName.split(/\s+/)[0], segment.id));
+              // A mensagem é a escolhida no app (Clientes › cliente › Editar mensagem)
+              onInsert(formatFollowUp(lead.clientName.split(/\s+/)[0], segment.id, Repo.getFollowUpTemplate(), Repo.getSeller()));
             }}
           />
           <Action icon="calendario" label={t('Agendar')} onPress={onSchedule} />
-          <Action icon="check" label={t('Registrar contato')} onPress={() => touch({})} />
-          {link ? <Action icon="adicionar" label={t('Inserir link do WhatsApp')} onPress={() => onInsert(link)} /> : null}
         </View>
 
         {next.length > 0 && (
@@ -384,13 +391,6 @@ function LeadDetail({
             ))}
           </>
         )}
-
-        {lead.notes ? (
-          <>
-            <Text style={styles.section}>{t('Anotações')}</Text>
-            <Text style={styles.notes}>{lead.notes}</Text>
-          </>
-        ) : null}
 
         <Pressable style={styles.deleteBtn} onPress={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}>
           <Text style={styles.deleteText}>{confirmDelete ? t('Toque de novo para excluir') : t('Excluir cliente')}</Text>
