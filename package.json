@@ -22,45 +22,35 @@
     "bundle:android": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res"
   },
   "dependencies": {
-    "@react-native-clipboard/clipboard": "^1.16.3",
-    "@react-native-documents/picker": "12.1.0",
+    "@react-native-clipboard/clipboard": "^1.14.1",
     "@supabase/supabase-js": "2.49.4",
-    "expo": "~54.0.38",
-    "expo-glass-effect": "~0.1.10",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
+    "react": "18.3.1",
+    "react-native": "0.77.3",
+    "react-native-document-picker": "9.3.1",
     "react-native-image-picker": "7.1.2",
     "react-native-mmkv": "^2.12.2",
     "react-native-purchases": "10.16.0",
-    "react-native-svg": "15.12.1",
+    "react-native-svg": "15.11.2",
     "react-native-url-polyfill": "2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
-    "@react-native-community/cli": "20.0.2",
-    "@react-native-community/cli-platform-android": "20.0.2",
-    "@react-native-community/cli-platform-ios": "20.0.2",
-    "@react-native/babel-preset": "0.81.5",
-    "@react-native/metro-config": "0.81.5",
-    "@react-native/typescript-config": "0.81.5",
+    "@react-native-community/cli": "15.0.1",
+    "@react-native-community/cli-platform-android": "15.0.1",
+    "@react-native-community/cli-platform-ios": "15.0.1",
+    "@react-native/babel-preset": "0.77.3",
+    "@react-native/metro-config": "0.77.3",
+    "@react-native/typescript-config": "0.77.3",
     "@types/express": "^4.17.21",
     "@types/jest": "^30.0.0",
-    "@types/react": "~19.1.17",
-    "@types/react-dom": "~19.1.11",
+    "@types/react": "^18.2.6",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "4.3.4",
-    "babel-preset-expo": "~54.0.12",
     "express": "^4.19.2",
-    "react-dom": "19.1.0",
-    "react-native-web": "~0.21.0",
+    "react-dom": "18.3.1",
+    "react-native-web": "0.19.13",
     "tsx": "^4.16.0",
-    "typescript": "~5.9.2",
+    "typescript": "5.0.4",
     "vite": "5.4.11"
-  },
-  "expo": {
-    "autolinking": {
-      "exclude": [
-        "expo-glass-effect"
-      ]
-    }
   }
 }

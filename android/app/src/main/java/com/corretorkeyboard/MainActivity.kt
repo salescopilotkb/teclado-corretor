@@ -9,7 +9,6 @@ import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
 
@@ -19,12 +18,8 @@ class MainActivity : ReactActivity() {
    */
   override fun getMainComponentName(): String = "CorretorApp"
 
-  // Expo: o wrapper repassa o ciclo de vida da tela aos módulos do Expo
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-      ReactActivityDelegateWrapper(
-          this,
-          BuildConfig.IS_NEW_ARCHITECTURE_ENABLED,
-          DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled))
+      DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
 
   /**
    * Android 15+ (API 35/36) desenha o app por baixo das barras do sistema. Em todas as

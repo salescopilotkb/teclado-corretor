@@ -25,13 +25,12 @@ function dosTime(d: Date): [number, number] {
   return [time, date];
 }
 
-// Uint8Array<ArrayBuffer>: o TypeScript 5.9 só aceita esse tipo dentro de um Blob
-export type ZipEntry = { path: string; data: Uint8Array<ArrayBuffer>; date?: Date };
+export type ZipEntry = { path: string; data: Uint8Array; date?: Date };
 
 export function makeZip(entries: ZipEntry[]): Blob {
   const encoder = new TextEncoder();
   const parts: BlobPart[] = [];
-  const central: Uint8Array<ArrayBuffer>[] = [];
+  const central: Uint8Array[] = [];
   let offset = 0;
 
   for (const entry of entries) {

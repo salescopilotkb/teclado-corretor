@@ -155,7 +155,7 @@ function save(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
 }
 
-async function bytesOf(file: LockerFile): Promise<Uint8Array<ArrayBuffer>> {
+async function bytesOf(file: LockerFile): Promise<Uint8Array> {
   const res = await fetch(await fileUrl(file));
   if (!res.ok) throw new Error(t('Não foi possível baixar "{name}".', { name: file.name }));
   return new Uint8Array(await res.arrayBuffer());

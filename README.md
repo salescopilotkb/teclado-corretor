@@ -85,7 +85,7 @@ Peças comuns (card, linha de menu, botão, estado vazio): `src/app/components/u
 | O quê | Onde |
 |---|---|
 | Galeria e câmera (fotos em JPEG até 2048 px; vídeos MP4 até 3 min) | `src/native/MediaPicker.ts` (`react-native-image-picker`) |
-| Arquivo de áudio do celular | `MediaPicker.pickAudioFile` (`@react-native-documents/picker`) |
+| Arquivo de áudio do celular | `MediaPicker.pickAudioFile` (`react-native-document-picker`) |
 | Gravar áudio (M4A/AAC, até 5 min) | `android/.../keyboard/AudioRecorderModule.kt` + `src/native/AudioRecorder.ts` |
 | Envio para o Storage do Supabase (bucket `media`, pasta do usuário), com andamento | `src/services/mediaUpload.ts` |
 | Pré-download no teclado (fotos e áudios sempre; vídeos só no Wi-Fi) | `KeyboardBridge.prefetchMedia` → `KeyboardBridgeModule.kt` |

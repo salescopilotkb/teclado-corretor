@@ -55,7 +55,6 @@ import { PlansScreen } from './screens/PlansScreen';
 import { KeepFilesScreen } from './screens/KeepFilesScreen';
 import { CompanyScreen } from './screens/CompanyScreen';
 import { KeyboardBridge } from '../native/KeyboardBridge';
-import { LiquidGlass } from '../native/LiquidGlass';
 import { CompanyBlocked } from './components/PlanLocked';
 import { dependentNotice, getPlan, watchPlan } from '../plans/plan';
 import { startBilling, stopBilling } from '../plans/billing';
@@ -456,8 +455,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
 
       {/* Barra de baixo (dock) em vidro leve: o Início + os ícones escolhidos pela pessoa.
           Segurar um ícone abre "Personalizar a barra". */}
-      {/* iOS 26: vidro Liquid Glass do sistema; nos outros, o vidro desenhado pelo app */}
-      <LiquidGlass style={styles.navBar} fallbackStyle={styles.navBarGlass} interactive>
+      <View style={[styles.navBar, styles.navBarGlass]}>
         <View style={styles.navBtn}>
           <AppIcon
             testID="dock-home"
@@ -488,7 +486,7 @@ function AppShell({ onThemeChange }: { onThemeChange: (theme: ThemePreference) =
             />
           </View>
         ))}
-      </LiquidGlass>
+      </View>
     </SafeAreaView>
   );
 }
@@ -545,7 +543,7 @@ const useStyles = makeStyles(colors => ({
     paddingVertical: spacing.sm,
     borderRadius: 28,
   },
-  /** Vidro do app (sem o Liquid Glass do iOS 26): fundo translúcido, borda e sombra. */
+  /** Vidro do app: fundo translúcido, borda e sombra. */
   navBarGlass: {
     backgroundColor: colors.glassFillStrong,
     ...glassBorder(colors),

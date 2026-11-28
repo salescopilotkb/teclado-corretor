@@ -32,6 +32,3 @@ dist-locker/
 
 # Pacote do Locker web para o HostGator (gerado de dist-locker/)
 locker-public_html.zip
-
-# Expo CLI (cache local do Metro/Expo)
-.expo/

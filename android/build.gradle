@@ -5,9 +5,9 @@ buildscript {
         minSdkVersion = 24
         compileSdkVersion = 36
         targetSdkVersion = 36
-        // React Native 0.81: NDK 27 e Kotlin 2.1 (bibliotecas nativas em páginas de 16 KB)
+        // React Native 0.77: NDK 27 e Kotlin 2.0 (bibliotecas nativas em páginas de 16 KB)
         ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.1.20"
+        kotlinVersion = "2.0.21"
     }
     repositories {
         google()
@@ -20,16 +20,6 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url 'https://www.jitpack.io' }
-    }
-}
-
-// Expo SDK 54: configura os módulos do Expo (antes do plugin do React Native, como no modelo do Expo)
-apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
 
 // Google Play: as bibliotecas nativas compiladas aqui (ex.: MMKV, em C++) também saem

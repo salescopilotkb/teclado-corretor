@@ -468,7 +468,7 @@ export function Drive({ session, plan }: { session: Session; plan: PlanInfo }) {
     return true;
   }
   /** Abrir a escolha de arquivos (na demonstração, só o convite). */
-  const pick = (input: React.RefObject<HTMLInputElement | null>) => {
+  const pick = (input: React.RefObject<HTMLInputElement>) => {
     if (!demoBlocked()) input.current?.click();
   };
 
